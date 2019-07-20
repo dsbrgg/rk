@@ -7,6 +7,8 @@ use std::fs::File;
 use std::path::Path;
 
 fn main() {
+    rk::logger::info(String::from("Working"));
+    
     let mut input = String::new();
 
     stdin()
