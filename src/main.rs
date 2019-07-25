@@ -1,38 +1,35 @@
-use rk;
+use rk::Locker;
 
 use std::io::stdin;
-use std::io::Write;
-use std::io::Read;
-
-use std::fs::File;
-use std::path::Path;
 
 fn main() {
-    rk::logger::info(String::from("Working"));
-    
-    let mut input = String::new();
+    let lock = Locker::new();
 
-    stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-    
-    let path = Path::new("t.txt");
-    let display = path.display();
+    lock.read();
 
-    let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {} : {}", display, why),
-        Ok(file) => file,
-    };
+    // let mut input = String::new();
 
-    match file.write_all(input.as_bytes()) {
-        Err(why) => panic!("couldn't write to {} : {}", display, why),
-        Ok(_) => println!("success {}", display),
-    };
+    // stdin()
+    //     .read_line(&mut input)
+    //     .expect("Failed to read line");
+    // 
+    // let path = Path::new("t.txt");
+    // let display = path.display();
 
-    let mut read_file = File::open(&path).expect("Unable to open file");
-    let mut contents = String::new();
+    // let mut file = match File::create(&path) {
+    //     Err(why) => panic!("couldn't create {} : {}", display, why),
+    //     Ok(file) => file,
+    // };
 
-    read_file.read_to_string(&mut contents).expect("Unable to read file");
+    // match file.write_all(input.as_bytes()) {
+    //     Err(why) => panic!("couldn't write to {} : {}", display, why),
+    //     Ok(_) => println!("success {}", display),
+    // };
 
-    println!("reding: {}", contents);
+    // let mut read_file = File::open(&path).expect("Unable to open file");
+    // let mut contents = String::new();
+
+    // read_file.read_to_string(&mut contents).expect("Unable to read file");
+
+    // println!("reding: {}", contents);
 }
