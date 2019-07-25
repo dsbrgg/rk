@@ -12,20 +12,19 @@ enum LockerAction {
 
 #[derive(Debug)]
 pub struct Locker<'a> {
-    path: Option<&'a str>,
+    path: &'a str,
 }
 
 impl<'a> Locker<'a> {
 
     pub fn new() -> Locker<'a> {
         Locker { 
-            path: Some("t.txt"), 
+            path: "t.txt", 
         }
     }
 
     fn open(&self, action: LockerAction) -> File {
-        let unwrap = &self.path.unwrap();
-        let path = Path::new(&unwrap);
+        let path = Path::new(&self.path);
         
         let file = match action {
             LockerAction::Read => File::open(&path).expect("Unable to open locker to read!"),
