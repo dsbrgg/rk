@@ -5,3 +5,4 @@ authors = ["dsbrgg <dsbrgg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rust-crypto = "^0.2"

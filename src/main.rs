@@ -2,6 +2,7 @@ use rk;
 
 use std::io::stdin;
 use std::io::Write;
+use std::io::Read;
 
 use std::fs::File;
 use std::path::Path;
@@ -24,5 +25,12 @@ fn main() {
     match file.write_all(input.as_bytes()) {
         Err(why) => panic!("couldn't write to {} : {}", display, why),
         Ok(_) => println!("success {}", display),
-    }
+    };
+
+    let mut read_file = File::open(&path).expect("Unable to open file");
+    let mut contents = String::new();
+
+    read_file.read_to_string(&mut contents).expect("Unable to read file");
+
+    println!("reding: {}", contents);
 }
