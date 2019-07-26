@@ -34,26 +34,38 @@ impl<'a> Locker<'a> {
         file
     }
 
-    pub fn read(&self) {
-        let mut file = &self.open(LockerAction::Read);
+    pub fn read(&self) -> String {
         let mut contents = String::new();
+        let mut file = self.open(LockerAction::Read);
 
-        file.read_to_string(&mut contents)
-            .expect("Unable to read opened locker!");
+        match file.read_to_string(&mut contents) {
+            Err(why) => panic!("Couldn't open file to read: {}", why),
+            Ok(_) => println!("\n::: Success reading locker :::\n"),
+        };
+       
+        contents
     }
 
-    pub fn write(&self) {
-        let mut file = &self.open(LockerAction::Write);
+    pub fn write(&self, contents: &mut String) {
         let mut input = String::new();
+        let mut file = self.open(LockerAction::Write);
 
         stdin()
             .read_line(&mut input)
             .expect("Failed to read user input");
 
-        match file.write_all(input.as_bytes()) {
+        contents.push_str(input.as_str());
+
+        match file.write_all(contents.as_bytes()) {
             Err(why) => panic!("Couldn't write to locker: {}", why),
-            Ok(_) => println!("Success writing to locker!")
+            Ok(_) => println!("\n::: Success writing to locker :::\n")
         } 
+    }
+
+    pub fn append(&self) {
+        self.write(
+            &mut self.read()
+        );
     }
 }
 
