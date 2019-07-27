@@ -27,11 +27,19 @@ impl<'a> Locker<'a> {
         let path = Path::new(&self.path);
         
         let file = match action {
-            LockerAction::Read => File::open(&path).expect("Unable to open locker to read!"),
+            LockerAction::Read => Locker::try_open(&path),
             LockerAction::Write => File::create(&path).expect("Unable to open locker to write!"),
         };
 
         file
+    }
+
+    fn try_open(path: &Path) -> File {
+        // TODO: Handle when file does not exist on read (eg. running command in "wrong" dir)
+        match File::open(&path) {
+            Err(_) => File::create(&path).expect("Unable to open create locker!"),
+            Ok(file) => file,
+        }
     }
 
     pub fn read(&self) -> String {
@@ -54,7 +62,9 @@ impl<'a> Locker<'a> {
             .read_line(&mut input)
             .expect("Failed to read user input");
 
-        contents.push_str(input.as_str());
+        contents.push_str(
+            input.trim()
+        );
 
         match file.write_all(contents.as_bytes()) {
             Err(why) => panic!("Couldn't write to locker: {}", why),
