@@ -37,9 +37,23 @@ impl<'a> Locker<'a> {
     fn try_open(path: &Path) -> File {
         // TODO: Handle when file does not exist on read (eg. running command in "wrong" dir)
         match File::open(&path) {
-            Err(_) => File::create(&path).expect("Unable to open create locker!"),
+            Err(_) => File::create(&path).expect("Unable to create locker file!"),
             Ok(file) => file,
         }
+    }
+
+    fn find(&self) {
+        let mut file = self.open(LockerAction::Read); 
+    }
+
+    fn handle_input() -> String {
+        let mut input = String::new();
+
+        stdin()
+            .read_line(&mut input)
+            .expect("Failed to read user input");
+
+        input
     }
 
     pub fn read(&self) -> String {
@@ -55,13 +69,9 @@ impl<'a> Locker<'a> {
     }
 
     pub fn write(&self, contents: &mut String) {
-        let mut input = String::new();
+        let mut input = Locker::handle_input();
         let mut file = self.open(LockerAction::Write);
-
-        stdin()
-            .read_line(&mut input)
-            .expect("Failed to read user input");
-
+ 
         contents.push_str(
             input.trim()
         );
