@@ -66,6 +66,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "rk"
 version = "0.1.0"
 dependencies = [
+ "rand 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

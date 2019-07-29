@@ -5,30 +5,32 @@ use std::io::Read;
 use std::fs::File;
 use std::path::Path;
 
-enum LockerAction {
+mod locker;
+
+enum KeeperAction {
     Read,
     Write
 }
 
 #[derive(Debug)]
-pub struct Locker<'a> {
+pub struct Keeper<'a> {
     path: &'a str,
 }
 
-impl<'a> Locker<'a> {
+impl<'a> Keeper<'a> {
 
-    pub fn new() -> Locker<'a> {
-        Locker { 
+    pub fn new() -> Keeper<'a> {
+        Keeper { 
             path: "t.txt", 
         }
     }
 
-    fn open(&self, action: LockerAction) -> File {
+    fn open(&self, action: KeeperAction) -> File {
         let path = Path::new(&self.path);
         
         let file = match action {
-            LockerAction::Read => Locker::try_open(&path),
-            LockerAction::Write => File::create(&path).expect("Unable to open locker to write!"),
+            KeeperAction::Read => Keeper::try_open(&path),
+            KeeperAction::Write => File::create(&path).expect("Unable to open locker to write!"),
         };
 
         file
@@ -43,7 +45,8 @@ impl<'a> Locker<'a> {
     }
 
     fn find(&self) {
-        let mut file = self.open(LockerAction::Read); 
+        let mut file = self.read_locker();
+
     }
 
     fn handle_input() -> String {
@@ -56,9 +59,9 @@ impl<'a> Locker<'a> {
         input
     }
 
-    pub fn read(&self) -> String {
+    pub fn read_locker(&self) -> String {
         let mut contents = String::new();
-        let mut file = self.open(LockerAction::Read);
+        let mut file = self.open(KeeperAction::Read);
 
         match file.read_to_string(&mut contents) {
             Err(why) => panic!("Couldn't open file to read: {}", why),
@@ -68,12 +71,17 @@ impl<'a> Locker<'a> {
         contents
     }
 
-    pub fn write(&self, contents: &mut String) {
-        let mut input = Locker::handle_input();
-        let mut file = self.open(LockerAction::Write);
- 
+    pub fn write_on(&self, contents: &mut String) {
+        let mut input = Keeper::handle_input();
+        let encrypted = locker::input_encryption(&mut input);
+
+        println!("{:#?}", encrypted);
+
+        let mut file = self.open(KeeperAction::Write);
+        let new_register = format!("{}", input.trim());
+
         contents.push_str(
-            input.trim()
+            new_register.as_str()
         );
 
         match file.write_all(contents.as_bytes()) {
@@ -83,9 +91,8 @@ impl<'a> Locker<'a> {
     }
 
     pub fn append(&self) {
-        self.write(
-            &mut self.read()
-        );
+        let previous_data = &mut self.read_locker();
+        self.write_on(previous_data);
     }
 }
 

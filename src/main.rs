@@ -1,6 +1,6 @@
-use rk::Locker;
+use rk::Keeper;
 
 fn main() {
-    let lock = Locker::new();
-    lock.append();
+    let keeper = Keeper::new();
+    keeper.append();
 }
