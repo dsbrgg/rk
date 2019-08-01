@@ -1,3 +1,5 @@
+extern crate hex;
+
 extern crate aes_soft as aes;
 extern crate block_modes;
 
@@ -17,7 +19,7 @@ fn encrypt<'a>(data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8>{
 fn to_hex_string(bytes: Vec<u8>) -> String {
     bytes
         .iter()
-        .map(|byte| format!("{:x}", byte))
+        .map(|byte| format!("{:02x}", byte))
         .fold(String::new(), |string, hx| format!("{}{}", string, hx))
 }
 
@@ -30,11 +32,16 @@ pub fn input_encryption(data: &mut String) -> String {
     rng.fill_bytes(&mut iv);
     rng.fill_bytes(&mut key);
 
-    let encrypted = encrypt(data.as_bytes(), &key, &iv);
+    let encrypted = encrypt(data.as_bytes(), &key, &iv); 
+    
+    to_hex_string(encrypted)
+}
 
+pub fn input_decryption(data: &String) {
     // TODO: when returning, convert back for Vec<u8> to decrypt
     // let decimal: Vec<u8> = hex.iter().map(|hex| u8::from_str_radix(hex, 16).unwrap()).collect();
     // to decrypt: cipher.decrypt_vec(&ciphertext).unwrap()
     
-    to_hex_string(encrypted)
+    println!("{:?}", data);
+    println!("{:?}", hex::decode(data));
 }

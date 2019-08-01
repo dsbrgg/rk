@@ -1,5 +1,3 @@
-#[macro_use] extern crate hex_literal;
-
 use std::io::stdin;
 use std::io::Write;
 use std::io::Read;
@@ -46,6 +44,7 @@ impl<'a> Keeper<'a> {
         }
     }
 
+    // TODO: read file + decrypt and find account
     fn find(&self) {
         let mut file = self.read_locker();
     }
