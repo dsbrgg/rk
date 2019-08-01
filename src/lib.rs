@@ -1,3 +1,5 @@
+#[macro_use] extern crate hex_literal;
+
 use std::io::stdin;
 use std::io::Write;
 use std::io::Read;
@@ -46,7 +48,6 @@ impl<'a> Keeper<'a> {
 
     fn find(&self) {
         let mut file = self.read_locker();
-
     }
 
     fn handle_input() -> String {
@@ -75,10 +76,8 @@ impl<'a> Keeper<'a> {
         let mut input = Keeper::handle_input();
         let encrypted = locker::input_encryption(&mut input);
 
-        println!("{:#?}", encrypted);
-
         let mut file = self.open(KeeperAction::Write);
-        let new_register = format!("{}", input.trim());
+        let new_register = format!("{}", encrypted.trim());
 
         contents.push_str(
             new_register.as_str()
