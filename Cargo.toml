@@ -5,5 +5,7 @@ authors = ["dsbrgg <dsbrgg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rust-crypto = "^0.2"
+aes-soft = "0.3.3"
+block-modes = "0.3.3"
 rand = "^0.3"
+hex = "0.3.2"
