@@ -12,16 +12,17 @@ enum KeeperAction {
     Write
 }
 
-#[derive(Debug)]
 pub struct Keeper<'a> {
     path: &'a str,
+    lock: locker::Locker,
 }
 
 impl<'a> Keeper<'a> {
 
     pub fn new() -> Keeper<'a> {
         Keeper { 
-            path: "t.txt", 
+            path: "t.txt",
+            lock: locker::Locker::new(),
         }
     }
 
@@ -73,7 +74,12 @@ impl<'a> Keeper<'a> {
 
     pub fn write_on(&self, contents: &mut String) {
         let mut input = Keeper::handle_input();
-        let encrypted = locker::input_encryption(&mut input);
+        let encrypted = self.lock.input_encryption(&mut input);
+
+        // TODO: decryption working, have to define a way
+        // to maintain key and iv to decrypt further values
+        self.lock.input_decryption(&encrypted);
+
 
         let mut file = self.open(KeeperAction::Write);
         let new_register = format!("{}", encrypted.trim());
