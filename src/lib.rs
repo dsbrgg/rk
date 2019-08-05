@@ -9,19 +9,19 @@ mod locker;
 
 enum KeeperAction {
     Read,
-    Write
+    Write,
 }
 
 pub struct Keeper<'a> {
     path: &'a str,
-    lock: locker::Locker,
+    lock: locker::Locker<'a>,
 }
 
 impl<'a> Keeper<'a> {
 
     pub fn new() -> Keeper<'a> {
         Keeper { 
-            path: "t.txt",
+            path: "t",
             lock: locker::Locker::new(),
         }
     }

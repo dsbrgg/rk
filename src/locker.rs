@@ -13,15 +13,17 @@ use block_modes::block_padding::Pkcs7;
 
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
-pub struct Locker { 
+pub struct Locker<'l> { 
     iv: [u8; 16],
     key: [u8; 16],
     iv0x: String,
     key0x: String,
+    iv_path: &'l str,
+    key_path: &'l str,
 }
 
-impl Locker {
-    pub fn new() -> Locker {
+impl<'l> Locker<'l> {
+    pub fn new() -> Locker<'l> {
         let mut rng = OsRng::new().ok().unwrap();
 
         let mut iv: [u8; 16] = [0; 16];
@@ -33,6 +35,8 @@ impl Locker {
         let iv0x = Locker::bytes_to_hex(iv.to_vec());
         let key0x = Locker::bytes_to_hex(key.to_vec());
 
+        // TODO: separate this logic when reading from old registers
+        // to be able to instantiate another Locker isntance
         let ivAgain = Locker::hex_to_bytes(&iv0x);
 
         println!("{:?}", iv);
@@ -45,6 +49,36 @@ impl Locker {
             key,
             iv0x,
             key0x,
+            iv_path: "iv",
+            key_path: "key"
+        }
+    }
+
+    pub fn from_u8(iv: [u8; 16], key: [u8; 16]) -> Locker<'l> {
+        let iv0x = Locker::bytes_to_hex(iv.to_vec());
+        let key0x = Locker::bytes_to_hex(key.to_vec());
+
+         Locker {
+            iv,
+            key,
+            iv0x,
+            key0x,
+            iv_path: "iv",
+            key_path: "key"
+        }
+    }
+
+    pub fn from_hex(iv0x: String, key0x: String) -> Locker<'l> {
+        let iv = Locker::hex_to_bytes(&iv0x);
+        let key = Locker::hex_to_bytes(&key0x);
+
+         Locker {
+            iv,
+            key,
+            iv0x,
+            key0x,
+            iv_path: "iv",
+            key_path: "key"
         }
     }
 
