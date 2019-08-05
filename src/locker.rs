@@ -13,7 +13,9 @@ use block_modes::block_padding::Pkcs7;
 
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
-pub struct Locker<'l> { 
+pub struct Locker<'l> {
+    // TODO: use enums here to maintain structure
+    // concise
     iv: [u8; 16],
     key: [u8; 16],
     iv0x: String,
