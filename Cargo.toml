@@ -5,7 +5,10 @@ authors = ["dsbrgg <dsbrgg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-aes-soft = "0.3.3"
-block-modes = "0.3.3"
 rand = "^0.3"
 hex = "0.3.2"
+serde = "1.0"
+serde_yaml = "0.8"
+aes-soft = "0.3.3"
+block-modes = "0.3.3"
+

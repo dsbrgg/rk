@@ -41,9 +41,6 @@ impl<'l> Locker<'l> {
         // to be able to instantiate another Locker isntance
         let ivAgain = Locker::hex_to_bytes(&iv0x);
 
-        println!("{:?}", iv);
-        println!("{:?}", ivAgain);
-
         // TODO: store iv and key along with data to 
         // persist manipulating data further
         Locker {
