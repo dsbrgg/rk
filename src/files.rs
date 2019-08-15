@@ -1,9 +1,15 @@
+extern crate dirs;
 extern crate serde_yaml;
 
 use serde_yaml::{Mapping, Value};
 
+use std::io;
 use std::io::Write;
 use std::io::Read;
+use std::io::ErrorKind;
+
+use std::fs::read_dir;
+use std::fs::create_dir_all;
 
 use std::fs::File;
 use std::path::Path;
@@ -28,7 +34,23 @@ impl LockerFiles {
         }
     }
 
+    fn init_default_config_dir() -> io::Result<()> {
+        let mut config_dir = dirs::home_dir().unwrap();
+        
+        config_dir.push(".config/rk");
+ 
+        match read_dir(&config_dir) {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                if err.kind() == ErrorKind::NotFound { create_dir_all(&config_dir)?; }
+                
+                Ok(())
+            },
+        } 
+    }
+
     pub fn test() {
+        LockerFiles::init_default_config_dir();
         let f = LockerFiles::open("test.yaml", Action::Read);
         let mut d: Mapping = serde_yaml::from_reader(f).unwrap();
        
