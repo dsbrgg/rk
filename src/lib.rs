@@ -9,7 +9,7 @@ use std::fs::File;
 use std::path::Path;
 
 use locker::Locker;
-use files::Files;
+use files::LockerFiles;
 
 enum KeeperAction {
     Read,

@@ -15,24 +15,29 @@ enum Action {
     Write,
 }
 
-pub struct Files<'f> {
-    paths: HashMap<&'f str, &'f str> 
+pub struct LockerFiles {
+    paths: HashMap<String, String> 
 }
 
-impl<'f> Files<'f> {
+impl LockerFiles {
+    pub fn new() -> LockerFiles {
+        // TODO: handle if user is a first-timer
+        // to load paths appropriately
+        LockerFiles {
+            paths: HashMap::new()
+        }
+    }
+
     pub fn test() {
-        let f = Files::open("test.yaml", Action::Read);
+        let f = LockerFiles::open("test.yaml", Action::Read);
         let mut d: Mapping = serde_yaml::from_reader(f).unwrap();
        
-        Files::test_consume_yaml(&mut d);
-
-        // let e = d.get(&Value::String("test1".to_string()));
-        // printlna("Read YAML string: {:?}", e);
+        LockerFiles::test_consume_yaml(&mut d);
     }
 
     fn test_consume_yaml(d: &mut Mapping) {
-        let paths = Files::key_mapping(&d, "paths");
-        let locker_path = Files::key_values(&paths, "locker");
+        let paths = LockerFiles::key_mapping(&d, "paths");
+        let locker_path = LockerFiles::key_values(&paths, "locker");
 
         println!("{:?}", locker_path);
     }
@@ -44,7 +49,7 @@ impl<'f> Files<'f> {
     }
 
     fn key_mapping(map: &Mapping, string: &str) -> Mapping {
-       let value = Files::build_value_string(string); 
+       let value = LockerFiles::build_value_string(string); 
 
         map.get(&value)
             .unwrap()
@@ -55,29 +60,19 @@ impl<'f> Files<'f> {
     }
 
     fn key_values(map: &Mapping, string: &str) -> Value {
-       let value = Files::build_value_string(string); 
+       let value = LockerFiles::build_value_string(string); 
 
         map.get(&value)
             .unwrap()
             .to_owned()
-    }
-
-    pub fn new() -> Files<'f> {
-        Files {
-            paths: HashMap::new()
-        }
-    }
-
-    fn serialize(from: String) {
-
-    }
+    } 
 
     fn open(path: &str, action: Action) -> File {
         let path = Path::new(path);
         
         let file = match action {
-            Read => Files::try_open(path),
-            Write => File::create(path).expect("Unable to open locker to write!"),
+            Action::Read => LockerFiles::try_open(path),
+            Action::Write => File::create(path).expect("Unable to open locker to write!"),
         };
 
         file
