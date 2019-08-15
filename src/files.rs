@@ -3,18 +3,10 @@ extern crate serde_yaml;
 
 use serde_yaml::{Mapping, Value};
 
-use std::io;
-use std::io::Write;
-use std::io::Read;
-use std::io::ErrorKind;
-
-use std::fs;
-use std::fs::File;
-
-use std::path::Path;
-use std::path::PathBuf;
-
-use std::collections::HashMap;
+use std::fs::{self, File};
+use std::path::{Path, PathBuf};
+use std::collections::{HashMap, BTreeMap};
+use std::io::{self, Write, Read, ErrorKind};
 
 enum Action {
     Read,
@@ -45,26 +37,69 @@ impl LockerFiles {
         }
     }
 
-    fn init_default_dirs() {
+    fn init_default_dirs() -> io::Result<()> {
         let mut config_dir = dirs::home_dir().unwrap();
         let mut locker_dir = dirs::home_dir().unwrap();
 
         locker_dir.push(".rk");
         config_dir.push(".config/rk");
- 
-        match LockerFiles::create_dir(&config_dir) {
-            Ok(_) => (),
-            Err(err) => panic!("Unable to init config dir: {}", err),
-        };
 
-        match LockerFiles::create_dir(&locker_dir) {
-            Ok(_) => (),
-            Err(err) => panic!("Unable to init config dir: {}", err),
-        };
+        let config_dir_path = config_dir.as_path();
+        let locker_dir_path = locker_dir.as_path();
+
+        if !locker_dir_path.exists() {
+            match LockerFiles::create_dir(&locker_dir) {
+                Ok(_) => (),
+                Err(err) => panic!("Unable to initialize locker dir: {}", err),
+            };
+        }
+
+        if !config_dir_path.exists() {
+            match LockerFiles::create_dir(&config_dir) {
+                Ok(_) => (),
+                Err(err) => panic!("Unable to initialize config dir: {}", err),
+            };
+        } 
+
+        Ok(())
+    }
+
+    fn init_default_yaml() -> serde_yaml::Result<()> {
+        type YAML = BTreeMap<String, BTreeMap<String, String>>;
+
+        let mut rk_yml = dirs::home_dir().unwrap();
+        let mut locker = dirs::home_dir().unwrap();
+
+        locker.push(".rk");
+        rk_yml.push(".config/rk/rk.yml");
+
+        let config_path = rk_yml.as_path();
+        let locker_path = locker.as_path();
+
+        if !config_path.exists() {
+            let mut map: YAML = BTreeMap::new();
+            map.insert(String::from("paths"), BTreeMap::new());
+            
+            let paths = map.get_mut("paths").unwrap();
+            let config_path_string = String::from(config_path.to_str().unwrap());
+            let locker_path_string = String::from(locker_path.to_str().unwrap());
+
+            paths.insert(String::from("config"), config_path_string);
+            paths.insert(String::from("locker"), locker_path_string);
+
+            LockerFiles::write(
+                config_path.to_str().unwrap(),
+                serde_yaml::to_string(&map)?
+            );
+        } 
+
+        Ok(()) 
     }
 
     pub fn test() {
         LockerFiles::init_default_dirs();
+        LockerFiles::init_default_yaml();
+
         let f = LockerFiles::open("../rk.yml", Action::Read);
         let mut d: Mapping = serde_yaml::from_reader(f).unwrap();
        
@@ -108,7 +143,7 @@ impl LockerFiles {
         
         let file = match action {
             Action::Read => LockerFiles::try_open(path),
-            Action::Write => File::create(path).expect("Unable to open locker to write!"),
+            Action::Write => File::create(path).expect("Unable to open path to write!"),
         };
 
         file
@@ -117,8 +152,17 @@ impl LockerFiles {
     fn try_open(path: &Path) -> File {
         // TODO: Handle when file does not exist on read (eg. running command in "wrong" dir)
         match File::open(&path) {
-            Err(_) => File::create(&path).expect("Unable to create locker file!"),
+            Err(_) => File::create(&path).expect("Unable to create path file!"),
             Ok(file) => file,
         }
+    }
+
+    fn write(path: &str, contents: String) {
+        let mut file = LockerFiles::open(path, Action::Write);
+
+        match file.write_all(contents.as_bytes()) {
+            Err(why) => panic!("Couldn't write to {}: {}", path, why),
+            Ok(_) => println!("\n::: Success writing to {} :::\n", path),
+        } 
     }
 }
