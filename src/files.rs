@@ -8,11 +8,11 @@ use std::io::Write;
 use std::io::Read;
 use std::io::ErrorKind;
 
-use std::fs::read_dir;
-use std::fs::create_dir_all;
-
+use std::fs;
 use std::fs::File;
+
 use std::path::Path;
+use std::path::PathBuf;
 
 use std::collections::HashMap;
 
@@ -34,24 +34,38 @@ impl LockerFiles {
         }
     }
 
-    fn init_default_config_dir() -> io::Result<()> {
-        let mut config_dir = dirs::home_dir().unwrap();
-        
-        config_dir.push(".config/rk");
- 
-        match read_dir(&config_dir) {
+    fn create_dir(path: &PathBuf) -> io::Result<()> {
+        match fs::read_dir(&path) {
             Ok(_) => Ok(()),
             Err(err) => {
-                if err.kind() == ErrorKind::NotFound { create_dir_all(&config_dir)?; }
+                if err.kind() == ErrorKind::NotFound { fs::create_dir_all(&path)?; }
                 
                 Ok(())
             },
-        } 
+        }
+    }
+
+    fn init_default_dirs() {
+        let mut config_dir = dirs::home_dir().unwrap();
+        let mut locker_dir = dirs::home_dir().unwrap();
+
+        locker_dir.push(".rk");
+        config_dir.push(".config/rk");
+ 
+        match LockerFiles::create_dir(&config_dir) {
+            Ok(_) => (),
+            Err(err) => panic!("Unable to init config dir: {}", err),
+        };
+
+        match LockerFiles::create_dir(&locker_dir) {
+            Ok(_) => (),
+            Err(err) => panic!("Unable to init config dir: {}", err),
+        };
     }
 
     pub fn test() {
-        LockerFiles::init_default_config_dir();
-        let f = LockerFiles::open("test.yaml", Action::Read);
+        LockerFiles::init_default_dirs();
+        let f = LockerFiles::open("../rk.yml", Action::Read);
         let mut d: Mapping = serde_yaml::from_reader(f).unwrap();
        
         LockerFiles::test_consume_yaml(&mut d);
