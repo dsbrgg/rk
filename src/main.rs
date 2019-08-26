@@ -4,7 +4,7 @@ use rk::Keeper;
 use files::LockerFiles;
 
 fn main() {
-    LockerFiles::test();
+    LockerFiles::new();
     let keeper = Keeper::new();
     keeper.append(); 
 }

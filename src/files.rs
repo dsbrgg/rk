@@ -29,23 +29,15 @@ pub struct LockerFiles {
 
 impl LockerFiles {
     pub fn new() -> LockerFiles {
-        // TODO: handle if user is a first-timer
-        // to load paths appropriately
-        LockerFiles {
-            paths: HashMap::new()
+        if !LockerFiles::config_exists() {
+            LockerFiles::init_default_dirs().expect("Failed initiating default diretories");
+            LockerFiles::init_default_yaml().expect("Failed initiating default yaml file");
         }
-    }
 
-    fn create_dir(path: &PathBuf) -> io::Result<()> {
-        match fs::read_dir(&path) {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                if err.kind() == ErrorKind::NotFound { fs::create_dir_all(&path)?; }
-                
-                Ok(())
-            },
+        LockerFiles {
+            paths: LockerFiles::read_paths()
         }
-    }
+    } 
 
     fn init_default_dirs() -> io::Result<()> {
         for dir in default_dirs.iter() {
@@ -56,10 +48,7 @@ impl LockerFiles {
             let dir_path = new_dir.as_path();
 
             if !dir_path.exists() {
-                match LockerFiles::create_dir(&new_dir) {
-                    Ok(_) => (),
-                    Err(err) => panic!("Unable to initialize {:?} : {}", dir_path, err),
-                };
+                LockerFiles::create_dir(&new_dir)?;
             }
         } 
 
@@ -73,8 +62,7 @@ impl LockerFiles {
         let mut map: YAML = BTreeMap::new();
         map.insert(String::from("paths"), BTreeMap::new());
 
-        let mut config_path = dirs::home_dir().unwrap();
-        config_path.push(".config/rk/rk.yml");
+        let config_path = LockerFiles::default_config_dir();
 
         for path in default_paths.iter() {
             let data: Vec<&str> = path.split("::").collect();
@@ -101,21 +89,52 @@ impl LockerFiles {
         Ok(()) 
     }
 
-    pub fn test() {
-        LockerFiles::init_default_dirs();
-        LockerFiles::init_default_yaml();
-
-        let f = LockerFiles::open("../rk.yml", Action::Read);
-        let mut d: Mapping = serde_yaml::from_reader(f).unwrap();
-       
-        LockerFiles::test_consume_yaml(&mut d);
+    fn config_exists() -> bool {
+        let mut config_dir = dirs::home_dir().unwrap();
+        config_dir.push(".config/rk");
+        
+        config_dir.as_path().exists()
     }
 
-    fn test_consume_yaml(d: &mut Mapping) {
-        let paths = LockerFiles::key_mapping(&d, "paths");
-        let locker_path = LockerFiles::key_values(&paths, "locker");
+    fn default_config_dir() -> PathBuf {
+        let mut config_path = dirs::home_dir().unwrap();
+        config_path.push(".config/rk/rk.yml");
 
-        println!("{:?}", locker_path);
+        config_path
+    }
+
+    fn create_dir(path: &PathBuf) -> io::Result<()> {
+        match fs::read_dir(&path) {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                if err.kind() == ErrorKind::NotFound { fs::create_dir_all(&path)?; }
+                
+                Ok(())
+            },
+        }
+    } 
+
+    fn read_paths() -> HashMap<String, String> {
+        let mut path_map: HashMap<String, String> = HashMap::new();
+
+        let config_path = LockerFiles::default_config_dir()
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        let config_file = LockerFiles::open(&config_path[..], Action::Read);
+        let yml_map: Mapping = serde_yaml::from_reader(config_file).unwrap();
+
+        let paths = LockerFiles::key_mapping(&yml_map, "paths");
+        
+        for (key_raw, path_raw) in paths.iter() {
+            path_map.insert(
+                key_raw.as_str().unwrap().to_string(),
+                path_raw.as_str().unwrap().to_string()
+            );
+        }
+
+        path_map
     }
 
     fn build_value_string(string: &str) -> Value {
