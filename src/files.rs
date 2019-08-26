@@ -13,6 +13,16 @@ enum Action {
     Write,
 }
 
+const default_dirs: [&'static str; 2] = [ 
+    ".rk",
+    ".config/rk" 
+];
+
+const default_paths: [&'static str; 2] = [ 
+    "locker::.rk",
+    "config::.config/rk/rk.yml" 
+];
+
 pub struct LockerFiles {
     paths: HashMap<String, String> 
 }
@@ -38,60 +48,55 @@ impl LockerFiles {
     }
 
     fn init_default_dirs() -> io::Result<()> {
-        let mut config_dir = dirs::home_dir().unwrap();
-        let mut locker_dir = dirs::home_dir().unwrap();
+        for dir in default_dirs.iter() {
+            let mut new_dir = dirs::home_dir().unwrap();
 
-        locker_dir.push(".rk");
-        config_dir.push(".config/rk");
+            new_dir.push(dir);
 
-        let config_dir_path = config_dir.as_path();
-        let locker_dir_path = locker_dir.as_path();
+            let dir_path = new_dir.as_path();
 
-        if !locker_dir_path.exists() {
-            match LockerFiles::create_dir(&locker_dir) {
-                Ok(_) => (),
-                Err(err) => panic!("Unable to initialize locker dir: {}", err),
-            };
-        }
-
-        if !config_dir_path.exists() {
-            match LockerFiles::create_dir(&config_dir) {
-                Ok(_) => (),
-                Err(err) => panic!("Unable to initialize config dir: {}", err),
-            };
+            if !dir_path.exists() {
+                match LockerFiles::create_dir(&new_dir) {
+                    Ok(_) => (),
+                    Err(err) => panic!("Unable to initialize {:?} : {}", dir_path, err),
+                };
+            }
         } 
 
         Ok(())
     }
 
+    // TODO: this is pretty ugly, def a better way to do it
     fn init_default_yaml() -> serde_yaml::Result<()> {
         type YAML = BTreeMap<String, BTreeMap<String, String>>;
+        
+        let mut map: YAML = BTreeMap::new();
+        map.insert(String::from("paths"), BTreeMap::new());
 
-        let mut rk_yml = dirs::home_dir().unwrap();
-        let mut locker = dirs::home_dir().unwrap();
+        let mut config_path = dirs::home_dir().unwrap();
+        config_path.push(".config/rk/rk.yml");
 
-        locker.push(".rk");
-        rk_yml.push(".config/rk/rk.yml");
-
-        let config_path = rk_yml.as_path();
-        let locker_path = locker.as_path();
-
-        if !config_path.exists() {
-            let mut map: YAML = BTreeMap::new();
-            map.insert(String::from("paths"), BTreeMap::new());
+        for path in default_paths.iter() {
+            let data: Vec<&str> = path.split("::").collect();
             
+            let key = data[0];
+            let value = data[1];
+
+            let mut yaml_path = dirs::home_dir().unwrap();
+            yaml_path.push(value);
+
+            let new_path = yaml_path.as_path();
+
             let paths = map.get_mut("paths").unwrap();
-            let config_path_string = String::from(config_path.to_str().unwrap());
-            let locker_path_string = String::from(locker_path.to_str().unwrap());
+            let path_string = String::from(new_path.to_str().unwrap());
 
-            paths.insert(String::from("config"), config_path_string);
-            paths.insert(String::from("locker"), locker_path_string);
-
-            LockerFiles::write(
-                config_path.to_str().unwrap(),
-                serde_yaml::to_string(&map)?
-            );
-        } 
+            paths.insert(String::from(key), path_string); 
+        }
+        
+        LockerFiles::write(
+            config_path.to_str().unwrap(),
+            serde_yaml::to_string(&map)?
+        );
 
         Ok(()) 
     }
