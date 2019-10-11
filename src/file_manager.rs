@@ -28,8 +28,8 @@ pub struct FileManager {
 }
 
 impl FileManager{
-    pub fn init() -> FileManager {
-        if FileManager::config_exists() {
+    pub fn new() -> FileManager {
+        if !FileManager::config_exists() {
             FileManager::init_default_dirs().expect("Failed initiating default diretories");
             FileManager::init_default_yaml().expect("Failed initiating default yaml file");
         }

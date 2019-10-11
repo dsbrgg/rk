@@ -19,15 +19,15 @@ enum KeeperAction {
 pub struct Keeper<'a> {
     path: &'a str,
     lock: Locker<'a>,
+    manager: FileManager
 }
 
 impl<'a> Keeper<'a> {
     pub fn new() -> Keeper<'a> {
-        FileManager::init();
-
         Keeper { 
             path: "t",
             lock: Locker::new(),
+            manager: FileManager::new()
         }
     }
 
