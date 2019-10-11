@@ -1,5 +1,5 @@
 mod locker;
-mod files;
+mod file_manager;
 
 use std::io::stdin;
 use std::io::Write;
@@ -9,7 +9,7 @@ use std::fs::File;
 use std::path::Path;
 
 use locker::Locker;
-use files::LockerFiles;
+use file_manager::FileManager;
 
 enum KeeperAction {
     Read,
@@ -23,6 +23,8 @@ pub struct Keeper<'a> {
 
 impl<'a> Keeper<'a> {
     pub fn new() -> Keeper<'a> {
+        FileManager::init();
+
         Keeper { 
             path: "t",
             lock: Locker::new(),

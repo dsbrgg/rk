@@ -1,10 +1,6 @@
-mod files;
-
 use rk::Keeper;
-use files::LockerFiles;
 
-fn main() {
-    LockerFiles::new();
+fn main() { 
     let keeper = Keeper::new();
     keeper.append(); 
 }
