@@ -9,7 +9,7 @@ use std::fs::File;
 use std::path::Path;
 
 use locker::Locker;
-use file_manager::FileManager;
+use file_manager::{FileAction, FileManager};
 
 enum KeeperAction {
     Read,
@@ -31,25 +31,6 @@ impl<'a> Keeper<'a> {
         }
     }
 
-    fn open(&self, action: KeeperAction) -> File {
-        let path = Path::new(&self.path);
-        
-        let file = match action {
-            KeeperAction::Read => Keeper::try_open(&path),
-            KeeperAction::Write => File::create(&path).expect("Unable to open locker to write!"),
-        };
-
-        file
-    }
-
-    fn try_open(path: &Path) -> File {
-        // TODO: Handle when file does not exist on read (eg. running command in "wrong" dir)
-        match File::open(&path) {
-            Err(_) => File::create(&path).expect("Unable to create locker file!"),
-            Ok(file) => file,
-        }
-    }
-
     // TODO: read file + decrypt and find account
     fn find(&self) {
         let mut file = self.read_locker();
@@ -67,7 +48,9 @@ impl<'a> Keeper<'a> {
 
     pub fn read_locker(&self) -> String {
         let mut contents = String::new();
-        let mut file = self.open(KeeperAction::Read);
+        
+        let locker_path = self.manager.get_locker_path();
+        let mut file = FileManager::open(locker_path, FileAction::Read);
 
         match file.read_to_string(&mut contents) {
             Err(why) => panic!("Couldn't open file to read: {}", why),
@@ -86,7 +69,7 @@ impl<'a> Keeper<'a> {
         self.lock.input_decryption(&encrypted);
 
 
-        let mut file = self.open(KeeperAction::Write);
+        let mut file = FileManager::open(KeeperAction::Write);
         let new_register = format!("{}", encrypted.trim());
 
         contents.push_str(

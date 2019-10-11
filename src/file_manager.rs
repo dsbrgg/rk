@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
 use std::io::{self, Write, Read, ErrorKind};
 
-enum Action {
+pub enum FileAction {
     Read,
     Write,
 }
@@ -122,7 +122,7 @@ impl FileManager{
             .unwrap()
             .to_owned();
 
-        let config_file = FileManager::open(&config_path[..], Action::Read);
+        let config_file = FileManager::open(&config_path[..], FileAction::Read);
         let yml_map: Mapping = serde_yaml::from_reader(config_file).unwrap();
 
         let paths = FileManager::key_mapping(&yml_map, "paths");
@@ -162,12 +162,12 @@ impl FileManager{
             .to_owned()
     } 
 
-    fn open(path: &str, action: Action) -> File {
+    pub fn open(path: &str, action: FileAction) -> File {
         let path = Path::new(path);
         
         let file = match action {
-            Action::Read => FileManager::try_open(path),
-            Action::Write => File::create(path).expect("Unable to open path to write!"),
+            FileAction::Read => FileManager::try_open(path),
+            FileAction::Write => File::create(path).expect("Unable to open path to write!"),
         };
 
         file
@@ -182,11 +182,15 @@ impl FileManager{
     }
 
     fn write(path: &str, contents: String) {
-        let mut file = FileManager::open(path, Action::Write);
+        let mut file = FileManager::open(path, FileAction::Write);
 
         match file.write_all(contents.as_bytes()) {
             Err(why) => panic!("Couldn't write to {}: {}", path, why),
             Ok(_) => println!("\n::: Success writing to {} :::\n", path),
         } 
+    }
+
+    pub fn get_locker_path(&self) -> &String {
+        self.paths.get("locker").unwrap()
     }
 }
