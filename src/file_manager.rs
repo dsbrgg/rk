@@ -29,12 +29,12 @@ pub struct FileManager {
 
 impl FileManager{
     pub fn init() -> FileManager {
-        if  FileManager::config_exists() {
-         FileManager::init_default_dirs().expect("Failed initiating default diretories");
-         FileManager::init_default_yaml().expect("Failed initiating default yaml file");
+        if FileManager::config_exists() {
+            FileManager::init_default_dirs().expect("Failed initiating default diretories");
+            FileManager::init_default_yaml().expect("Failed initiating default yaml file");
         }
 
-         FileManager{
+        FileManager {
             paths: FileManager::read_paths()
         }
     } 
@@ -48,7 +48,7 @@ impl FileManager{
             let dir_path = new_dir.as_path();
 
             if !dir_path.exists() {
-             FileManager::create_dir(&new_dir)?;
+                FileManager::create_dir(&new_dir)?;
             }
         } 
 
@@ -81,7 +81,7 @@ impl FileManager{
             paths.insert(String::from(key), path_string); 
         }
         
-     FileManager::write(
+        FileManager::write(
             config_path.to_str().unwrap(),
             serde_yaml::to_string(&map)?
         );
