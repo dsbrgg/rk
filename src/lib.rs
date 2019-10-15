@@ -5,9 +5,6 @@ use std::io::stdin;
 use std::io::Write;
 use std::io::Read;
 
-use std::fs::File;
-use std::path::Path;
-
 use locker::Locker;
 use file_manager::{FileAction, FileManager};
 
@@ -69,7 +66,9 @@ impl<'a> Keeper<'a> {
         self.lock.input_decryption(&encrypted);
 
 
-        let mut file = FileManager::open(KeeperAction::Write);
+        let locker_path = self.manager.get_locker_path();
+        let mut file = FileManager::open(locker_path, FileAction::Write);
+        
         let new_register = format!("{}", encrypted.trim());
 
         contents.push_str(
