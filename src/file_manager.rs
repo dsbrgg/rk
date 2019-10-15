@@ -6,7 +6,7 @@ use serde_yaml::{Mapping, Value};
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
-use std::io::{self, Write, Read, ErrorKind};
+use std::io::{self, Write, ErrorKind};
 
 pub enum FileAction {
     Read,
@@ -122,7 +122,7 @@ impl FileManager {
             .unwrap()
             .to_owned();
 
-        let config_file = FileManager::open(&config_path[..], FileAction::Read);
+        let config_file = FileManager::open(&config_path[..], None, FileAction::Read);
         let yml_map: Mapping = serde_yaml::from_reader(config_file).unwrap();
 
         let paths = FileManager::key_mapping(&yml_map, "paths");
@@ -162,12 +162,15 @@ impl FileManager {
             .to_owned()
     } 
 
-    pub fn open(path: &str, action: FileAction) -> File {
-        let path = Path::new(path);
-        
+    pub fn open(path: &str, append: Option<String>, action: FileAction) -> File {
+        let buf = match append {
+            Some(string) => Path::new(path).join(string.as_str()),
+            None => PathBuf::from(path),
+        };
+       
         match action {
-            FileAction::Read => FileManager::try_open(path),
-            FileAction::Write => File::create(path).expect("Unable to open path to write!"),
+            FileAction::Read => FileManager::try_open(buf.as_path()),
+            FileAction::Write => File::create(buf.as_path()).expect("Unable to open path to write!"),
         }
     }
 
@@ -180,7 +183,7 @@ impl FileManager {
     }
 
     fn write(path: &str, contents: String) {
-        let mut file = FileManager::open(path, FileAction::Write);
+        let mut file = FileManager::open(path, None, FileAction::Write);
 
         match file.write_all(contents.as_bytes()) {
             Err(why) => panic!("Couldn't write to {}: {}", path, why),
