@@ -27,7 +27,7 @@ pub struct FileManager {
     paths: HashMap<String, String> 
 }
 
-impl FileManager{
+impl FileManager {
     pub fn new() -> FileManager {
         if !FileManager::config_exists() {
             FileManager::init_default_dirs().expect("Failed initiating default diretories");
