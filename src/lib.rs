@@ -40,7 +40,7 @@ impl<'a> Keeper<'a> {
         let mut contents = String::new();
         
         let locker_path = self.manager.get_locker_path();
-        let mut file = FileManager::open(locker_path, FileAction::Read);
+        let mut file = FileManager::open(locker_path, None, FileAction::Read);
 
         match file.read_to_string(&mut contents) {
             Err(why) => panic!("Couldn't open file to read: {}", why),
@@ -60,7 +60,7 @@ impl<'a> Keeper<'a> {
 
 
         let locker_path = self.manager.get_locker_path();
-        let mut file = FileManager::open(locker_path, FileAction::Write);
+        let mut file = FileManager::open(locker_path, None, FileAction::Write);
         
         let new_register = format!("{}", encrypted.trim());
 
@@ -77,8 +77,9 @@ impl<'a> Keeper<'a> {
     pub fn add_account(&self) {
         let input = Keeper::handle_input();
         let hash = self.lock.hash(input);
+        let path = self.manager.get_locker_path();
 
-        println!("{}", hash);
+       FileManager::open(path, Some(hash), FileAction::Write);
     }
 
     // TODO: deprecate this, no way to append out of nothing
