@@ -13,12 +13,12 @@ pub enum FileAction {
     Write,
 }
 
-const default_dirs: [&'static str; 2] = [ 
+const DEFAULT_DIRS: [&'static str; 2] = [ 
     ".rk",
     ".config/rk" 
 ];
 
-const default_paths: [&'static str; 2] = [ 
+const DEFAULT_PATHS: [&'static str; 2] = [ 
     "locker::.rk",
     "config::.config/rk/rk.yml" 
 ];
@@ -40,7 +40,7 @@ impl FileManager{
     } 
 
     fn init_default_dirs() -> io::Result<()> {
-        for dir in default_dirs.iter() {
+        for dir in DEFAULT_DIRS.iter() {
             let mut new_dir = dirs::home_dir().unwrap();
 
             new_dir.push(dir);
@@ -64,7 +64,7 @@ impl FileManager{
 
         let config_path = FileManager::default_config_dir();
 
-        for path in default_paths.iter() {
+        for path in DEFAULT_PATHS.iter() {
             let data: Vec<&str> = path.split("::").collect();
             
             let key = data[0];
@@ -165,12 +165,10 @@ impl FileManager{
     pub fn open(path: &str, action: FileAction) -> File {
         let path = Path::new(path);
         
-        let file = match action {
+        match action {
             FileAction::Read => FileManager::try_open(path),
             FileAction::Write => File::create(path).expect("Unable to open path to write!"),
-        };
-
-        file
+        }
     }
 
     fn try_open(path: &Path) -> File {
