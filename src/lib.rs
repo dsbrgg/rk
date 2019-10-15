@@ -8,11 +8,6 @@ use std::io::Read;
 use locker::Locker;
 use file_manager::{FileAction, FileManager};
 
-enum KeeperAction {
-    Read,
-    Write,
-}
-
 pub struct Keeper<'a> {
     path: &'a str,
     lock: Locker<'a>,
