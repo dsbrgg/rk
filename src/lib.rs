@@ -9,7 +9,6 @@ use locker::Locker;
 use file_manager::{FileAction, FileManager};
 
 pub struct Keeper<'a> {
-    path: &'a str,
     lock: Locker<'a>,
     manager: FileManager
 }
@@ -17,7 +16,6 @@ pub struct Keeper<'a> {
 impl<'a> Keeper<'a> {
     pub fn new() -> Keeper<'a> {
         Keeper { 
-            path: "t",
             lock: Locker::new(),
             manager: FileManager::new()
         }
@@ -76,6 +74,14 @@ impl<'a> Keeper<'a> {
         } 
     }
 
+    pub fn add_account(&self) {
+        let input = Keeper::handle_input();
+        let hash = self.lock.hash(input);
+
+        println!("{}", hash);
+    }
+
+    // TODO: deprecate this, no way to append out of nothing
     pub fn append(&self) {
         let previous_data = &mut self.read_locker();
         self.write_on(previous_data);
