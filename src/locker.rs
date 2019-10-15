@@ -1,10 +1,6 @@
 use std::str;
 
-extern crate hex;
-
-extern crate aes_soft as aes;
-extern crate block_modes;
-extern crate crypto_hash;
+use aes_soft as aes;
 
 use aes::Aes128;
 use rand::{Rng, OsRng};
