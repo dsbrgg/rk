@@ -1,6 +1,3 @@
-extern crate dirs;
-extern crate serde_yaml;
-
 use serde_yaml::{Mapping, Value};
 
 use std::fs::{self, File};
@@ -167,7 +164,7 @@ impl FileManager {
             Some(string) => Path::new(path).join(string.as_str()),
             None => PathBuf::from(path),
         };
-       
+
         match action {
             FileAction::Read => FileManager::try_open(buf.as_path()),
             FileAction::Write => File::create(buf.as_path()).expect("Unable to open path to write!"),
