@@ -4,9 +4,11 @@ extern crate hex;
 
 extern crate aes_soft as aes;
 extern crate block_modes;
+extern crate crypto_hash;
 
 use aes::Aes128;
 use rand::{Rng, OsRng};
+use crypto_hash::{Algorithm, hex_digest};
 
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
@@ -115,10 +117,17 @@ impl<'l> Locker<'l> {
     }
 
     fn decrypt<'a>(&self, data: &Vec<u8>) -> Vec<u8> {
-       Aes128Cbc::new_var(&self.key, &self.iv)
+        Aes128Cbc::new_var(&self.key, &self.iv)
            .unwrap()
            .decrypt_vec(data)
            .unwrap()
+    }
+
+    pub fn hash(&self, string: String) -> String {
+        hex_digest(
+            Algorithm::SHA256, 
+            string.as_bytes()
+        )
     }
 
     // TODO: implement method to rotate key and iv
