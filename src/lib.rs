@@ -1,23 +1,24 @@
 mod locker;
-mod file_manager;
+mod managers;
 
-use std::io::stdin;
-use std::io::Write;
-use std::io::Read;
+use std::io::{stdin, Write, Read};
 
 use locker::Locker;
-use file_manager::{FileAction, FileManager};
+use managers::dir_manager::{DirAction, DirManager};
+use managers::file_manager::{FileAction, FileManager};
 
 pub struct Keeper<'a> {
     lock: Locker<'a>,
-    manager: FileManager
+    files: FileManager,
+    directories: DirManager,
 }
 
 impl<'a> Keeper<'a> {
     pub fn new() -> Keeper<'a> {
         Keeper { 
             lock: Locker::new(),
-            manager: FileManager::new()
+            directories: DirManager::new(),
+            files: FileManager::new(),
         }
     }
 
@@ -39,7 +40,7 @@ impl<'a> Keeper<'a> {
     pub fn read_locker(&self) -> String {
         let mut contents = String::new();
         
-        let locker_path = self.manager.get_locker_path();
+        let locker_path = self.files.get_locker_path();
         let mut file = FileManager::open(locker_path, None, FileAction::Read);
 
         match file.read_to_string(&mut contents) {
@@ -59,7 +60,7 @@ impl<'a> Keeper<'a> {
         self.lock.input_decryption(&encrypted);
 
 
-        let locker_path = self.manager.get_locker_path();
+        let locker_path = self.files.get_locker_path();
         let mut file = FileManager::open(locker_path, None, FileAction::Write);
         
         let new_register = format!("{}", encrypted.trim());
@@ -77,7 +78,7 @@ impl<'a> Keeper<'a> {
     pub fn add_account(&self) {
         let input = Keeper::handle_input();
         let hash = self.lock.hash(input);
-        let path = self.manager.get_locker_path();
+        let path = self.files.get_locker_path();
 
        FileManager::open(path, Some(hash), FileAction::Write);
     }
