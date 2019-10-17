@@ -1,6 +1,6 @@
 use rk::Keeper;
 
-fn main() { 
+fn main() {
     let keeper = Keeper::new();
     keeper.add_account();
 }
