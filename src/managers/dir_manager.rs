@@ -35,9 +35,9 @@ impl DirManager {
             let dir_path = new_dir.as_path();
 
             if !dir_path.exists() {
-                DirManager::create_dir(&new_dir)?;
+                DirManager::create_dir(&dir_path.to_str().unwrap())?;
             }
-        } 
+        }
 
         Ok(())
     }
@@ -49,7 +49,7 @@ impl DirManager {
         config_dir.as_path().exists()
     }
 
-    pub fn read_dir(dir: &str) -> io::Result<Vec<String>> {
+    fn read_dir(dir: &str) -> io::Result<Vec<String>> {
         let mut entries = Vec::new();
 
         for entry in fs::read_dir(dir)? {
@@ -63,7 +63,21 @@ impl DirManager {
         Ok(entries)
     }
 
-    pub fn create_dir(path: &PathBuf) -> io::Result<()> {
+    pub fn read_account_dir(dir: &str) -> io::Result<Vec<String>> {
+        let mut acc_dir = dirs::home_dir().unwrap();
+        
+        acc_dir.push(".rk");
+        acc_dir.push(dir);
+
+        DirManager::read_dir(
+            acc_dir
+                .as_path()
+                .to_str()
+                .unwrap()
+        )
+    }
+
+    fn create_dir(path: &str) -> io::Result<()> {
         match fs::read_dir(&path) {
             Ok(_) => Ok(()),
             Err(err) => {
@@ -72,5 +86,19 @@ impl DirManager {
                 Ok(())
             },
         }
+    }
+
+    pub fn create_account_dir(path: &str) -> io::Result<()> {
+        let mut acc_dir = dirs::home_dir().unwrap();
+        
+        acc_dir.push(".rk");
+        acc_dir.push(path);
+
+        DirManager::create_dir(
+            acc_dir
+                .as_path()
+                .to_str()
+                .unwrap()
+        )
     }
 }
