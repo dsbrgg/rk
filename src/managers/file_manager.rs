@@ -127,7 +127,7 @@ impl FileManager {
         map.get(&value)
             .unwrap()
             .to_owned()
-    } 
+    }
 
     pub fn open(path: &str, append: Option<String>, action: FileAction) -> File {
         let buf = match append {
