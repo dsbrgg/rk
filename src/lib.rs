@@ -78,15 +78,8 @@ impl<'a> Keeper<'a> {
     pub fn add_account(&self) {
         let input = Keeper::handle_input();
         let hash = self.lock.hash(input);
-        let path = self.files.get_locker_path();
 
-       FileManager::open(path, Some(hash), FileAction::Write);
-    }
-
-    // TODO: deprecate this, no way to append out of nothing
-    pub fn append(&self) {
-        let previous_data = &mut self.read_locker();
-        self.write_on(previous_data);
+        DirManager::create_account_dir(&hash[..]);
     }
 }
 
