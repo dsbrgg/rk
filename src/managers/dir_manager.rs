@@ -9,24 +9,19 @@ const DEFAULT_DIRS: [&'static str; 2] = [
     ".config/rk" 
 ];
 
-pub enum DirAction {
-    Read,
-    Write,
-}
-
 pub struct DirManager {}
 
 impl DirManager {
     pub fn new() -> DirManager {
         if !DirManager::config_exists() {
-            DirManager::init_default()
-                .expect("Failed initiating default diretories");
+            DirManager::init_default_directories()
+                .expect("Unable to initalize default directories"); 
         }
 
         DirManager {}
     }
 
-    fn init_default() -> io::Result<()> {
+    fn init_default_directories() -> io::Result<()> {
         for dir in DEFAULT_DIRS.iter() {
             let mut new_dir = dirs::home_dir().unwrap();
 
@@ -35,7 +30,7 @@ impl DirManager {
             let dir_path = new_dir.as_path();
 
             if !dir_path.exists() {
-                DirManager::create_dir(&dir_path.to_str().unwrap())?;
+                DirManager::create_dir(&dir_path.to_str().unwrap());
             }
         }
 
@@ -77,18 +72,19 @@ impl DirManager {
         )
     }
 
-    fn create_dir(path: &str) -> io::Result<()> {
+    fn create_dir(path: &str) {
         match fs::read_dir(&path) {
-            Ok(_) => Ok(()),
+            Ok(_) => (),
             Err(err) => {
-                if err.kind() == ErrorKind::NotFound { fs::create_dir_all(&path)?; }
-                
-                Ok(())
+                if err.kind() == ErrorKind::NotFound { 
+                    fs::create_dir_all(&path)
+                        .expect("Unable to create directory and its dependencies"); 
+                }
             },
         }
     }
 
-    pub fn create_account_dir(path: &str) -> io::Result<()> {
+    pub fn create_account_dir(path: &str) {
         let mut acc_dir = dirs::home_dir().unwrap();
         
         acc_dir.push(".rk");
@@ -99,6 +95,6 @@ impl DirManager {
                 .as_path()
                 .to_str()
                 .unwrap()
-        )
+        );
     }
 }

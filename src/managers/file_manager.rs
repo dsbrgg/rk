@@ -136,16 +136,8 @@ impl FileManager {
         };
 
         match action {
-            FileAction::Read => FileManager::try_open(buf.as_path()),
+            FileAction::Read => File::open(buf.as_path()).unwrap(),
             FileAction::Write => File::create(buf.as_path()).expect("Unable to open path to write!"),
-        }
-    }
-
-    fn try_open(path: &Path) -> File {
-        // TODO: Handle when file does not exist on read (eg. running command in "wrong" dir)
-        match File::open(&path) {
-            Err(_) => File::create(&path).expect("Unable to create path file!"),
-            Ok(file) => file,
         }
     }
 
