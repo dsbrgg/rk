@@ -4,7 +4,7 @@ mod managers;
 use std::io::{stdin, Write, Read};
 
 use locker::Locker;
-use managers::dir_manager::{DirAction, DirManager};
+use managers::dir_manager::DirManager;
 use managers::file_manager::{FileAction, FileManager};
 
 pub struct Keeper<'a> {
