@@ -4,21 +4,29 @@ mod managers;
 use std::io::{stdin, Write, Read};
 
 use locker::Locker;
+
+use crate::managers::traits::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::{FileAction, FileManager};
 
 pub struct Keeper<'a> {
     lock: Locker<'a>,
     files: FileManager,
-    directories: DirManager,
+    directories: DirManager<'a>,
 }
 
 impl<'a> Keeper<'a> {
     pub fn new() -> Keeper<'a> {
+        let mut config_path = dirs::home_dir().unwrap();
+        let mut locker_path = dirs::home_dir().unwrap();
+
+        locker_path.push(".rk");
+        config_path.push(".config/rk");
+
         Keeper { 
             lock: Locker::new(),
-            directories: DirManager::new(),
             files: FileManager::new(),
+            directories: DirManager::new(config_path, locker_path),
         }
     }
 
@@ -75,11 +83,11 @@ impl<'a> Keeper<'a> {
         } 
     }
 
-    pub fn add_account(&self) {
+    pub fn add_account(&mut self) {
         let input = Keeper::handle_input();
         let hash = self.lock.hash(input);
 
-        DirManager::create_account_dir(&hash[..]);
+        self.directories.create(&hash[..]);
     }
 }
 
