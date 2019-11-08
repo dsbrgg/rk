@@ -102,4 +102,21 @@ mod tests {
 
         DirManager::new(config_path, locker_path);
     } 
+
+    #[test]
+    fn read_directories() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests");
+        config_path.push("tests/rk");
+
+        let mut dm = DirManager::new(config_path.clone(), locker_path);
+        
+        let path = config_path.as_path().to_str().unwrap().to_owned();
+
+        let res = dm.read(&path).unwrap();
+
+        assert_eq!(res.len(), 0); 
+    }
 }
