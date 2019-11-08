@@ -1,6 +1,7 @@
 use serde_yaml::{Mapping, Value};
 
 use std::fs;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, ErrorKind};
 
@@ -14,11 +15,7 @@ pub struct DirManager<'d> {
 
 impl<'d> DirManager<'d> {
     pub fn new(config: PathBuf, locker: PathBuf) -> DirManager<'d> {
-        let mut dm = DirManager { 
-            name: "directories", 
-            config, 
-            locker 
-        };
+        let mut dm = DirManager { name: "directories", config, locker };
 
         dm.init().expect("Could not initialize DirManager");
 
@@ -97,11 +94,11 @@ mod tests {
 
     #[test]
     fn creates_new_dir_manager() {
-        let mut locker_path = dirs::home_dir().unwrap();
-        let mut config_path = dirs::home_dir().unwrap();
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push(".rk");
-        config_path.push(".config/rk");
+        locker_path.push("tests");
+        config_path.push("tests/rk");
 
         DirManager::new(config_path, locker_path);
     } 
