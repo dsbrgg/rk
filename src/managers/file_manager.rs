@@ -14,7 +14,7 @@ pub enum FileAction {
 
 const DEFAULT_PATHS: [&'static str; 2] = [ 
     "locker::.rk",
-    "config::.config/rk/rk.yml" 
+    "config::.config/rk/settings.yml" 
 ];
 
 pub struct FileManager {
@@ -69,14 +69,14 @@ impl FileManager {
 
     fn yaml_exists() -> bool {
         let mut config_dir = dirs::home_dir().unwrap();
-        config_dir.push(".config/rk/rk.yml");
+        config_dir.push(".config/rk/settings.yml");
         
         config_dir.as_path().exists()
     }
 
     fn get_config_file_path() -> PathBuf {
         let mut config_path = dirs::home_dir().unwrap();
-        config_path.push(".config/rk/rk.yml");
+        config_path.push(".config/rk/settings.yml");
 
         config_path
     }
