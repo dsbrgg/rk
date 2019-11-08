@@ -1,14 +1,57 @@
-use clap::{App, Arg, SubCommand};
 use rk::Keeper;
+use clap::{App, AppSettings, Arg, SubCommand};
 
 fn main() {
-    let matches = App::new("MyApp")
+    let matches = App::new("Rusty Keeper")
         .version("1.0")
-        .author("Diego Braga")
+        .author("Diego Braga <dsbrgg@gmail.com>")
         .about("Local password manager")
+        .setting(AppSettings::SubcommandRequired)
+        .subcommand(
+            SubCommand::with_name("list")
+                .about("List entities or accounts")
+                .setting(AppSettings::SubcommandRequired)
+                .subcommand(
+                    SubCommand::with_name("entity")
+                        .about("List entities")
+                )
+                .subcommand(
+                    SubCommand::with_name("account")
+                        .about("List accounts of an entity")
+                        .arg(
+                            Arg::with_name("entity")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("find")
+                .about("Find an entity or account")
+                .setting(AppSettings::SubcommandRequired)
+                .subcommand(
+                    SubCommand::with_name("entity")
+                        .about("Find an entity")
+                        .arg(
+                            Arg::with_name("name")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+                .subcommand(
+                    SubCommand::with_name("account")
+                        .about("Find an account")
+                        .arg(
+                            Arg::with_name("name")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+        )
         .subcommand(
             SubCommand::with_name("add")
-                .about("Add and entity, account or password")
+                .about("Add an entity, account or password")
+                .setting(AppSettings::SubcommandRequired)
                 .subcommand(
                     SubCommand::with_name("entity")
                         .about("Add an entity")
@@ -26,6 +69,11 @@ fn main() {
                                 .takes_value(true)
                                 .required(true)
                         )
+                        .arg(
+                            Arg::with_name("entity")
+                                .takes_value(true)
+                                .required(true)
+                        )
                 )
                 .subcommand(
                     SubCommand::with_name("password")
@@ -35,10 +83,47 @@ fn main() {
                                 .takes_value(true)
                                 .required(true)
                         )
+                        .arg(
+                            Arg::with_name("account")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("remove")
+                .about("Remove an entity, account or password")
+                .setting(AppSettings::SubcommandRequired)
+                .subcommand(
+                    SubCommand::with_name("entity")
+                        .about("Remove an entity")
+                        .arg(
+                            Arg::with_name("name")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+                .subcommand(
+                    SubCommand::with_name("account")
+                        .about("Remove an account")
+                        .arg(
+                            Arg::with_name("name")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+                .subcommand(
+                    SubCommand::with_name("password")
+                        .about("Remove a password")
+                        .arg(
+                            Arg::with_name("pwd")
+                                .takes_value(true)
+                                .required(true)
+                        )
                 )
         )
         .get_matches();
 
-    let keeper = Keeper::new();
+    let mut keeper = Keeper::new();
     keeper.add_account();
 }
