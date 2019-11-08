@@ -1,7 +1,4 @@
-t
-iv
-key
-t.txt
+tests/
 
 /target
 **/*.rs.bk
