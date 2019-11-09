@@ -23,6 +23,8 @@ impl<'d> DirManager<'d> {
     }
 }
 
+// TODO: having to self.locker.push and .pop all the time seems really bad
+
 impl<'d> Manager for DirManager<'d> { 
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
@@ -96,11 +98,11 @@ impl<'d> Manager for DirManager<'d> {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
 
     #[test]
-    fn create_new_dir_manager() {
+    fn create() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
@@ -111,7 +113,7 @@ mod tests {
     } 
 
     #[test]
-    fn read_directories() {
+    fn read() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
@@ -128,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn remove_dir_manager() {
+    fn remove() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
