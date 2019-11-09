@@ -124,6 +124,6 @@ fn main() {
         )
         .get_matches();
 
-    let mut keeper = Keeper::new();
-    keeper.add_account();
+    // let mut keeper = Keeper::new();
+    // keeper.add_account();
 }
