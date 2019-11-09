@@ -1,4 +1,4 @@
-tests/
+tests*/
 
 /target
 **/*.rs.bk
