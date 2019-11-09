@@ -33,7 +33,7 @@ impl<'d> Manager for DirManager<'d> {
                 config_path
                     .to_str()
                     .unwrap()
-            );
+            )?;
         }
 
         if !locker_path.exists() { 
@@ -41,7 +41,7 @@ impl<'d> Manager for DirManager<'d> {
                 locker_path
                     .to_str()
                     .unwrap()
-            );
+            )?;
         }
 
         Ok(())
@@ -61,8 +61,15 @@ impl<'d> Manager for DirManager<'d> {
         Ok(())
     }
 
-    // TODO: implement this
-    fn remove(&mut self, path: &str) -> io::Result<()> { Ok(()) }
+    fn remove(&mut self, path: &str) -> io::Result<()> { 
+        self.locker.push(path);
+
+        fs::remove_dir(&self.locker)?;
+
+        self.locker.pop();
+
+        Ok(()) 
+    }
 
     fn read(&mut self, dir: &str) -> io::Result<Vec<String>> {
         self.locker.push(dir);
@@ -90,15 +97,15 @@ impl<'d> Manager for DirManager<'d> {
 
 #[cfg(test)]
 mod tests {
-   use super::*;
+    use super::*;
 
     #[test]
-    fn creates_new_dir_manager() {
+    fn create_new_dir_manager() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests");
-        config_path.push("tests/rk");
+        locker_path.push("tests1");
+        config_path.push("tests1/rk");
 
         DirManager::new(config_path, locker_path);
     } 
@@ -108,8 +115,8 @@ mod tests {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests");
-        config_path.push("tests/rk");
+        locker_path.push("tests2");
+        config_path.push("tests2/rk");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path);
         
@@ -118,5 +125,26 @@ mod tests {
         let res = dm.read(&path).unwrap();
 
         assert_eq!(res.len(), 0); 
+    }
+
+    #[test]
+    fn remove_dir_manager() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests3");
+        config_path.push("tests3/rk");
+
+        let mut dm = DirManager::new(config_path.clone(), locker_path.clone());
+        
+        let path = config_path.as_path().to_str().unwrap().to_owned();
+        dm.remove(&path).unwrap();
+
+        assert_eq!(config_path.as_path().exists(), false);
+
+        let path = locker_path.as_path().to_str().unwrap().to_owned();
+        dm.remove(&path).unwrap();
+
+        assert_eq!(locker_path.as_path().exists(), false)
     }
 }
