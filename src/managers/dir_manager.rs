@@ -106,8 +106,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests1");
-        config_path.push("tests1/rk");
+        locker_path.push("tests/dir_manager_new_1");
+        config_path.push("tests/dir_manager_new_2");
 
         DirManager::new(config_path, locker_path);
     } 
@@ -117,8 +117,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests2");
-        config_path.push("tests2/rk");
+        locker_path.push("tests/dir_manager_create_1");
+        config_path.push("tests/dir_manager_create_2");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path);
         
@@ -136,8 +136,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests3");
-        config_path.push("tests3/rk");
+        locker_path.push("tests/dir_manager_read_1");
+        config_path.push("tests/dir_manager_read_2");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path);
         
@@ -153,8 +153,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests4");
-        config_path.push("tests4/rk");
+        locker_path.push("tests/dir_manager_remove_1");
+        config_path.push("tests/dir_manager_remove_2");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path.clone());
         
