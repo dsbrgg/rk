@@ -94,7 +94,7 @@ impl<'d> Manager for DirManager<'d> {
         self.locker.pop();
 
         Ok(entries)
-    }
+    } 
 }
 
 #[cfg(test)]
@@ -166,6 +166,17 @@ mod test {
         let path = locker_path.as_path().to_str().unwrap().to_owned();
         dm.remove(&path).unwrap();
 
-        assert_eq!(locker_path.as_path().exists(), false)
+        assert_eq!(locker_path.as_path().exists(), false);
+    }
+
+    #[test]
+    fn pb_to_str() {
+        let current_dir = env::current_dir().unwrap();
+
+        let current_dir_str = DirManager::pb_to_str(&current_dir);
+
+        let current_dir = current_dir.as_path().to_str().unwrap().to_owned(); 
+
+        assert_eq!(current_dir_str, current_dir);
     }
 }
