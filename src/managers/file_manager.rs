@@ -4,7 +4,7 @@ use std::env;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
-use std::io::{self, Write, ErrorKind};
+use std::io::{self, Read, Write, ErrorKind};
 
 use crate::managers::traits::Manager;
 
@@ -148,7 +148,9 @@ impl<'f> FileManager<'f> {
 // TODO: all impl, probably read will have a conflict here
 // since it will return the open file not in a manner to handle
 // as a vec type
-impl <'f> Manager for FileManager<'f> {
+impl<'f> Manager for FileManager<'f> {
+    type Output = String; 
+
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
         let locker_path = self.locker.as_path().to_owned();
@@ -172,13 +174,34 @@ impl <'f> Manager for FileManager<'f> {
         Ok(())
     }
 
-    fn create(&mut self, path: &str) -> io::Result<()> { Ok(()) }
+    fn create(&mut self, path: &str) -> io::Result<()> {
+        let p = Path::new(path);
 
-    fn read(&mut self, path: &str) -> io::Result<Vec<String>> { 
-        Ok(vec![String::from("fdx")]) 
+        if !p.exists() { File::create(p).expect("Unable to create file"); }
+
+        Ok(()) 
     }
 
-    fn remove(&mut self, path: &str) -> io::Result<()> { Ok(()) }
+    fn read(&mut self, path: &str) -> io::Result<Self::Output> {
+        let p = Path::new(path);
+
+        if !p.exists() { panic!("Trying to open file that does not exist"); }
+
+        let mut file = File::open(p)?;
+        let mut contents = String::new();
+
+        file.read_to_string(&mut contents)?;
+
+        Ok(contents)
+    }
+
+    fn remove(&mut self, path: &str) -> io::Result<()> {
+        let p = Path::new(path);
+
+        if p.exists() { fs::remove_file(path)?; }
+        
+        Ok(()) 
+    }
 }
 
 #[cfg(test)]
@@ -194,5 +217,68 @@ mod test {
         config_path.push("tests/file_manager_new_2");
 
         FileManager::new(config_path, locker_path);
+    }
+
+    #[test] 
+    fn create() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests/file_manager_create_1");
+        config_path.push("tests/file_manager_create_2");
+
+        let mut fm = FileManager::new(config_path.clone(), locker_path);
+        let hello_path = config_path.as_path().to_str().unwrap().to_owned();
+
+        fm.create(&hello_path);
+
+        assert_eq!(Path::new(&hello_path).exists(), true);
+    }
+
+    #[test] 
+    fn read() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests/file_manager_read_1");
+        config_path.push("tests/file_manager_read_2");
+
+        let mut fm = FileManager::new(config_path, locker_path);
+
+        let file = fm.read("tests/file_manager_read_1").unwrap();
+
+        assert_eq!(file, String::from(""));
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_panic() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests/file_manager_read_1");
+        config_path.push("tests/file_manager_read_2");
+
+        let mut fm = FileManager::new(config_path, locker_path);
+
+        fm.read("tests/unknown").unwrap();
+    }
+
+    #[test]
+    fn remove() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests/file_manager_read_1");
+        config_path.push("tests/file_manager_read_2");
+
+        let mut fm = FileManager::new(config_path.clone(), locker_path);
+        let path_to_remove = config_path.as_path().to_str().unwrap().to_owned();
+
+        fm.remove(&path_to_remove);
+
+        let path = Path::new("tests/file_manager_read_2");
+
+        assert_eq!(path.exists(), false);
     }
 }
