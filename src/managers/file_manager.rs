@@ -213,8 +213,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests/file_manager_new_1");
-        config_path.push("tests/file_manager_new_2");
+        locker_path.push("dump/file_manager_new_1");
+        config_path.push("dump/file_manager_new_2");
 
         FileManager::new(config_path, locker_path);
     }
@@ -224,8 +224,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests/file_manager_create_1");
-        config_path.push("tests/file_manager_create_2");
+        locker_path.push("dump/file_manager_create_1");
+        config_path.push("dump/file_manager_create_2");
 
         let mut fm = FileManager::new(config_path.clone(), locker_path);
         let hello_path = config_path.as_path().to_str().unwrap().to_owned();
@@ -240,12 +240,12 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests/file_manager_read_1");
-        config_path.push("tests/file_manager_read_2");
+        locker_path.push("dump/file_manager_read_1");
+        config_path.push("dump/file_manager_read_2");
 
         let mut fm = FileManager::new(config_path, locker_path);
 
-        let file = fm.read("tests/file_manager_read_1").unwrap();
+        let file = fm.read("dump/file_manager_read_1").unwrap();
 
         assert_eq!(file, String::from(""));
     }
@@ -256,12 +256,12 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests/file_manager_read_1");
-        config_path.push("tests/file_manager_read_2");
+        locker_path.push("dump/file_manager_read_1");
+        config_path.push("dump/file_manager_read_2");
 
         let mut fm = FileManager::new(config_path, locker_path);
 
-        fm.read("tests/unknown").unwrap();
+        fm.read("dump/unknown").unwrap();
     }
 
     #[test]
@@ -269,15 +269,15 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests/file_manager_read_1");
-        config_path.push("tests/file_manager_read_2");
+        locker_path.push("dump/file_manager_read_1");
+        config_path.push("dump/file_manager_read_2");
 
         let mut fm = FileManager::new(config_path.clone(), locker_path);
         let path_to_remove = config_path.as_path().to_str().unwrap().to_owned();
 
         fm.remove(&path_to_remove);
 
-        let path = Path::new("tests/file_manager_read_2");
+        let path = Path::new("dump/file_manager_read_2");
 
         assert_eq!(path.exists(), false);
     }
