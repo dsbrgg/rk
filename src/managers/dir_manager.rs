@@ -1,7 +1,6 @@
 use serde_yaml::{Mapping, Value};
 
 use std::fs;
-use std::env;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, ErrorKind};
 
@@ -102,6 +101,7 @@ impl<'d> Manager for DirManager<'d> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::env;
 
     #[test]
     fn new() {
