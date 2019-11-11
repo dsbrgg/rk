@@ -102,7 +102,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn create() {
+    fn new() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
@@ -113,12 +113,31 @@ mod test {
     } 
 
     #[test]
-    fn read() {
+    fn create() {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
         locker_path.push("tests2");
         config_path.push("tests2/rk");
+
+        let mut dm = DirManager::new(config_path.clone(), locker_path);
+        
+        config_path.push("hello");
+
+        let hello_path = config_path.as_path().to_str().unwrap().to_owned();
+
+        dm.create(&hello_path);
+
+        assert_eq!(Path::new(&hello_path).exists(), true); 
+    }
+
+    #[test]
+    fn read() {
+        let mut locker_path = env::current_dir().unwrap();
+        let mut config_path = env::current_dir().unwrap();
+
+        locker_path.push("tests3");
+        config_path.push("tests3/rk");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path);
         
@@ -134,8 +153,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests3");
-        config_path.push("tests3/rk");
+        locker_path.push("tests4");
+        config_path.push("tests4/rk");
 
         let mut dm = DirManager::new(config_path.clone(), locker_path.clone());
         
