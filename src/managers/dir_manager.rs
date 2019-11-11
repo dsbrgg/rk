@@ -25,7 +25,9 @@ impl<'d> DirManager<'d> {
 
 // TODO: having to self.locker.push and .pop all the time seems really bad
 
-impl<'d> Manager for DirManager<'d> { 
+impl<'d> Manager for DirManager<'d> {
+    type Output = Vec<String>;
+
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
         let locker_path = self.locker.as_path().to_owned();
@@ -73,7 +75,7 @@ impl<'d> Manager for DirManager<'d> {
         Ok(()) 
     }
 
-    fn read(&mut self, dir: &str) -> io::Result<Vec<String>> {
+    fn read(&mut self, dir: &str) -> io::Result<Self::Output> {
         self.locker.push(dir);
 
         let mut entries = Vec::new();
