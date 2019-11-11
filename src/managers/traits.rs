@@ -9,4 +9,13 @@ pub trait Manager {
     fn remove(&mut self, path: &str) -> io::Result<()>;
 
     fn read(&mut self, path: &str) -> io::Result<Vec<String>>;
+
+    fn pb_to_str(path: &PathBuf) -> String {
+        path
+            .clone()
+            .as_path()
+            .to_str()
+            .unwrap()
+            .to_owned()
+    }
 }
