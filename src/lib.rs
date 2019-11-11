@@ -1,6 +1,7 @@
 mod locker;
 mod managers;
 
+use std::path::PathBuf;
 use std::io::{stdin, Write, Read};
 
 use locker::Locker;
@@ -15,6 +16,18 @@ pub struct Keeper<'l, 'd, 'f> {
 }
 
 impl<'l, 'd, 'f> Keeper<'l, 'd, 'f> {
+    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper<'l, 'd, 'f> {
+        // TODO: just for future reference
+        // let mut config_path = dirs::home_dir().unwrap();
+        // let mut locker_path = dirs::home_dir().unwrap();
+
+        let lock = Locker::new();
+        let directories = DirManager::new(config.clone(), locker.clone());
+        let files = FileManager::new(config, locker);
+
+        Keeper { lock, files, directories }
+    }
+
     // pub fn new() -> Keeper<'l, 'd, 'f> {
     //     let mut config_path = dirs::home_dir().unwrap();
     //     let mut locker_path = dirs::home_dir().unwrap();
@@ -90,3 +103,19 @@ impl<'l, 'd, 'f> Keeper<'l, 'd, 'f> {
     // }
 }
 
+#[cfg(test)]
+mod tests_keeper {
+    use super::*;
+    use std::env; 
+
+    #[test]
+    fn new() {
+        let mut config_path = env::current_dir().unwrap();
+        let mut locker_path = env::current_dir().unwrap();
+        
+        locker_path.push("dump/keeper_new_1");
+        config_path.push("dump/keeper_new_2");
+
+        Keeper::new(config_path, locker_path);
+    }
+}
