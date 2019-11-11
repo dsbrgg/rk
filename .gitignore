@@ -1,4 +1,5 @@
-tests*/
+dump/*
+!dump/.gitkeep
 
 /target
 **/*.rs.bk
