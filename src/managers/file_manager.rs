@@ -150,6 +150,25 @@ impl<'f> FileManager<'f> {
 // as a vec type
 impl <'f> Manager for FileManager<'f> {
     fn init(&mut self) -> io::Result<()> {
+        let config_path = self.config.as_path().to_owned();
+        let locker_path = self.locker.as_path().to_owned();
+
+        if !config_path.exists() { 
+            self.create(
+                config_path
+                    .to_str()
+                    .unwrap()
+            )?;
+        }
+
+        if !locker_path.exists() { 
+            self.create(
+                locker_path
+                    .to_str()
+                    .unwrap()
+            )?;
+        }
+
         Ok(())
     }
 
