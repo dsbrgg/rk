@@ -190,8 +190,8 @@ mod test {
         let mut locker_path = env::current_dir().unwrap();
         let mut config_path = env::current_dir().unwrap();
 
-        locker_path.push("tests1");
-        config_path.push("tests1/rk");
+        locker_path.push("tests/file_manager_new_1");
+        config_path.push("tests/file_manager_new_2");
 
         FileManager::new(config_path, locker_path);
     }
