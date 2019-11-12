@@ -124,6 +124,13 @@ fn main() {
         )
         .get_matches();
 
+    
+    if let Some(sub) = matches.subcommand_matches("add") {
+        if let Some(cmd) = sub.subcommand_matches("entity") {
+            println!("{:#?}", cmd.value_of("name").unwrap());
+        }
+    }
+
     // let mut keeper = Keeper::new();
     // keeper.add_account();
 }
