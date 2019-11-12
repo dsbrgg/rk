@@ -2,21 +2,22 @@ mod locker;
 mod managers;
 
 use std::path::PathBuf;
-use std::io::{stdin, Write, Read};
+use std::io::{self, Write, Read};
 
 use locker::Locker;
 
+use managers::traits::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
 
-pub struct Keeper<'l, 'd, 'f> {
+pub struct Keeper<'l> {
     lock: Locker<'l>,
-    files: FileManager<'d>,
-    directories: DirManager<'f>,
+    files: FileManager<'l>,
+    directories: DirManager<'l>,
 }
 
-impl<'l, 'd, 'f> Keeper<'l, 'd, 'f> {
-    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper<'l, 'd, 'f> {
+impl<'l> Keeper<'l> {
+    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper<'l> {
         // TODO: just for future reference
         // let mut config_path = dirs::home_dir().unwrap();
         // let mut locker_path = dirs::home_dir().unwrap();
@@ -26,6 +27,25 @@ impl<'l, 'd, 'f> Keeper<'l, 'd, 'f> {
         let files = FileManager::new(config, locker);
 
         Keeper { lock, files, directories }
+    }
+
+    pub fn add(
+        &mut self, 
+        entity: Option<&str>, 
+        account: Option<&str>, 
+        password: Option<&str>
+    ) -> io::Result<()> {
+        self.add_entity(entity)?;
+
+        Ok(())
+    }
+    
+    fn add_entity(&mut self, entity: Option<&str>) -> io::Result<()> {
+        if let Some(value) = entity {
+            self.directories.create(value)?; 
+        }
+
+        Ok(())
     }
 
     // pub fn new() -> Keeper<'l, 'd, 'f> {
@@ -108,14 +128,34 @@ mod tests_keeper {
     use super::*;
     use std::env; 
 
-    #[test]
-    fn new() {
+    // TODO: implement struct that will init and drop files/folders
+    // https://stackoverflow.com/questions/38253321/what-is-a-good-way-of-cleaning-up-after-a-unit-test-in-rust
+    fn setup_paths(test: &str, count: u8) -> (PathBuf, PathBuf) {
         let mut config_path = env::current_dir().unwrap();
         let mut locker_path = env::current_dir().unwrap();
         
-        locker_path.push("dump/keeper_new_1");
-        config_path.push("dump/keeper_new_2");
+        locker_path.push(format!("dump/keeper_{}_{}", test, count));
+        config_path.push(format!("dump/keeper_{}_{}", test, count+1));
 
-        Keeper::new(config_path, locker_path);
+        (config_path, locker_path)
+    }
+
+    #[test]
+    fn new() {
+        let paths = setup_paths("new", 1); 
+        Keeper::new(paths.0, paths.1);
+    }
+
+    #[test]
+    fn add_entity() {
+        let paths = setup_paths("add", 1);
+        
+        let mut keeper = Keeper::new(paths.0, paths.1);
+        
+        let entity = Some("entity");
+        let account = None;
+        let password = None;
+
+        keeper.add(entity, account, password);
     }
 }
