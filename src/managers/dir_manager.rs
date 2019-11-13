@@ -101,61 +101,89 @@ impl<'d> Manager for DirManager<'d> {
 #[cfg(test)]
 mod test {
     use super::*;
+    
     use std::env;
+    use std::fs::remove_dir_all;
     use crate::tests::setup::Setup;
 
     #[test]
     fn new() {
-        let mut setup = Setup { 
+        Setup { 
             name: "dir_manager", 
             test_type: "new",
             count: (1, 2),
-            drop: true
-        };
+            process: &|this| {
+                let (config, locker) = this.paths();
+                DirManager::new(config, locker);
+            },
+            after_each: &|this| {
+                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
 
-        let (config, locker) = setup.paths();
-
-        DirManager::new(config, locker);
+                remove_dir_all(locker_path)
+                    .expect("Could not remove file in test");
+                remove_dir_all(config_path)
+                    .expect("Could not remove file in test");
+            },
+        }; 
     } 
 
     #[test]
     fn create() {
-        let mut setup = Setup { 
+        Setup { 
             name: "dir_manager", 
             test_type: "create",
             count: (3, 4),
-            drop: true
-        };
+            process: &|this| {
+                let (mut config, locker) = this.paths();
 
-        let (mut config, locker) = setup.paths();
-        
-        let mut dm = DirManager::new(config.clone(), locker);
-        
-        config.push("hello");
+                let mut dm = DirManager::new(config.clone(), locker);
+                
+                config.push("hello");
 
-        let hello_path = config.as_path().to_str().unwrap().to_owned();
+                let hello_path = config.as_path().to_str().unwrap().to_owned();
 
-        dm.create(&hello_path);
+                dm.create(&hello_path);
 
-        assert_eq!(Path::new(&hello_path).exists(), true); 
+                assert_eq!(Path::new(&hello_path).exists(), true);
+            },
+            after_each: &|this| {
+                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
+
+                remove_dir_all(locker_path)
+                    .expect("Could not remove file in test");
+                remove_dir_all(config_path)
+                    .expect("Could not remove file in test");
+            },
+        }; 
     }
 
     #[test]
     fn read() {
-        let mut setup = Setup { 
+        Setup { 
             name: "dir_manager", 
             test_type: "read",
             count: (5, 6),
-            drop: true
+            process: &|this| {
+                let (config, locker) = this.paths();
+
+                let mut dm = DirManager::new(config.clone(), locker);
+                let path = config.as_path().to_str().unwrap().to_owned();
+                let res = dm.read(&path).unwrap();
+
+                assert_eq!(res.len(), 0);
+            },
+            after_each: &|this| {
+                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
+
+                remove_dir_all(locker_path)
+                    .expect("Could not remove file in test");
+                remove_dir_all(config_path)
+                    .expect("Could not remove file in test");
+            },
         };
-
-        let (config, locker) = setup.paths();
-
-        let mut dm = DirManager::new(config.clone(), locker);
-        let path = config.as_path().to_str().unwrap().to_owned();
-        let res = dm.read(&path).unwrap();
-
-        assert_eq!(res.len(), 0); 
     }
 
     #[test]
@@ -164,25 +192,26 @@ mod test {
             name: "dir_manager", 
             test_type: "remove",
             count: (7, 8),
-            drop: false
-        };
+            process: &|this| {
+                let (config, locker) = this.paths();
 
-        let (config, locker) = setup.paths();
+                let mut dm = DirManager::new(config.clone(), locker.clone());
+                
+                let path = config.as_path().to_str().unwrap().to_owned();
+                dm.remove(&path).unwrap();
 
-        let mut dm = DirManager::new(config.clone(), locker.clone());
-        
-        let path = config.as_path().to_str().unwrap().to_owned();
-        dm.remove(&path).unwrap();
+                assert_eq!(config.as_path().exists(), false);
 
-        assert_eq!(config.as_path().exists(), false);
+                let path = locker.as_path().to_str().unwrap().to_owned();
+                dm.remove(&path).unwrap();
 
-        let path = locker.as_path().to_str().unwrap().to_owned();
-        dm.remove(&path).unwrap();
-
-        assert_eq!(locker.as_path().exists(), false);
+                assert_eq!(locker.as_path().exists(), false);
+            },
+            after_each: &|this| {},
+        }; 
     }
 
-    #[test]
+    // #[test]
     fn pb_to_str() {
         let current_dir = env::current_dir().unwrap();
 
