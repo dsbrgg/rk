@@ -1,3 +1,4 @@
+mod tests;
 mod locker;
 mod managers;
 
@@ -9,47 +10,6 @@ use locker::Locker;
 use managers::traits::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
-
-// Struct for tests
-struct Setup<'s> {
-    test_type: &'s str,
-    count: (u8, u8)
-}
-
-impl<'s> Setup<'s> { 
-    fn paths(&mut self) -> (PathBuf, PathBuf) {
-        use std::env;  
-
-        let mut config_path = env::current_dir().unwrap();
-        let mut locker_path = env::current_dir().unwrap();
-        
-        locker_path.push(format!("dump/keeper_{}_{}", self.test_type, self.count.0));
-        config_path.push(format!("dump/keeper_{}_{}", self.test_type, self.count.1));
-
-        (config_path, locker_path)
-    }
-}
-
-// RAII https://stackoverflow.com/questions/38253321/what-is-a-good-way-of-cleaning-up-after-a-unit-test-in-rust
-impl<'s> Drop for Setup<'s> {
-    fn drop(&mut self) {
-        use std::fs::remove_dir;
-
-        let locker_path = format!("dump/keeper_{}_{}", self.test_type, self.count.0);
-        let config_path = format!("dump/keeper_{}_{}", self.test_type, self.count.1);
-
-        println!("{}", locker_path);
-
-        remove_dir(locker_path)
-            .expect("Could not remove file in test");
-        remove_dir(config_path)
-            .expect("Could not remove file in test");
-
-        println!("Dropping");
-    }
-}
-
-//////////////////////////////
 
 pub struct Keeper<'l> {
     lock: Locker<'l>,
@@ -167,10 +127,17 @@ impl<'l> Keeper<'l> {
 #[cfg(test)]
 mod tests_keeper {
     use super::*; 
+    use tests::setup::Setup;
 
     #[test]
     fn new() {
-        let mut setup = Setup { test_type: "new", count: (1, 2) };
+        let mut setup = Setup { 
+            name: "keeper", 
+            test_type: "new", 
+            count: (1, 2),
+            drop: true
+        };
+
         let (config, locker) = setup.paths();
 
         Keeper::new(config, locker);
