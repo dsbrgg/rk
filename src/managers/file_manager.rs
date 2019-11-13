@@ -145,9 +145,6 @@ impl<'f> FileManager<'f> {
     // }
 }
 
-// TODO: all impl, probably read will have a conflict here
-// since it will return the open file not in a manner to handle
-// as a vec type
 impl<'f> Manager for FileManager<'f> {
     type Output = String; 
 
