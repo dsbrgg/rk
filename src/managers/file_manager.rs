@@ -204,6 +204,7 @@ impl<'f> Manager for FileManager<'f> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::tests::setup::Setup;
 
    #[test] 
     fn new() {
