@@ -126,21 +126,32 @@ impl<'l> Keeper<'l> {
 
 #[cfg(test)]
 mod tests_keeper {
-    use super::*; 
+    use super::*;
+
     use tests::setup::Setup;
+    use std::fs::remove_dir_all;
 
     #[test]
     fn new() {
-        let mut setup = Setup { 
+        Setup { 
             name: "keeper", 
             test_type: "new", 
             count: (1, 2),
-            drop: true
-        };
+            process: &|this| {
+                let (config, locker) = this.paths();
 
-        let (config, locker) = setup.paths();
+                Keeper::new(config, locker);
+            },
+            after_each: &|this| {
+                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
 
-        Keeper::new(config, locker);
+                remove_dir_all(locker_path)
+                    .expect("Could not remove file in test");
+                remove_dir_all(config_path)
+                    .expect("Could not remove file in test");
+            },
+        }; 
     }
 
     // #[test]
