@@ -204,79 +204,108 @@ impl<'f> Manager for FileManager<'f> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use std::fs::remove_file;
     use crate::tests::setup::Setup;
 
-   #[test] 
+    fn after_each(this: &Setup) {
+        let locker_path = format!("dump/{}_{}", this.name, this.count.0);
+        let config_path = format!("dump/{}_{}", this.name, this.count.1);
+
+        remove_file(locker_path)
+            .expect("Could not remove file in test");
+        remove_file(config_path)
+            .expect("Could not remove file in test");
+    }
+
+    #[test] 
     fn new() {
-        let mut locker_path = env::current_dir().unwrap();
-        let mut config_path = env::current_dir().unwrap();
-
-        locker_path.push("dump/file_manager_new_1");
-        config_path.push("dump/file_manager_new_2");
-
-        FileManager::new(config_path, locker_path);
+        Setup {
+            name: "file_manager_new",
+            count: (1, 2),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.paths();
+                FileManager::new(config, locker);
+            }
+        }; 
     }
 
     #[test] 
     fn create() {
-        let mut locker_path = env::current_dir().unwrap();
-        let mut config_path = env::current_dir().unwrap();
+        Setup {
+            name: "file_manager_create",
+            count: (1, 2),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.paths();
+                let mut fm = FileManager::new(config.clone(), locker);
+                let hello_path = FileManager::pb_to_str(&config); 
 
-        locker_path.push("dump/file_manager_create_1");
-        config_path.push("dump/file_manager_create_2");
+                fm.create(&hello_path);
 
-        let mut fm = FileManager::new(config_path.clone(), locker_path);
-        let hello_path = config_path.as_path().to_str().unwrap().to_owned();
-
-        fm.create(&hello_path);
-
-        assert_eq!(Path::new(&hello_path).exists(), true);
+                assert_eq!(Path::new(&hello_path).exists(), true);
+            }
+        };
     }
 
     #[test] 
     fn read() {
-        let mut locker_path = env::current_dir().unwrap();
-        let mut config_path = env::current_dir().unwrap();
+        Setup {
+            name: "file_manager_read",
+            count: (1, 2),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.paths();
+                let mut fm = FileManager::new(config, locker);
+                let file = fm.read("dump/file_manager_read_1").unwrap();
 
-        locker_path.push("dump/file_manager_read_1");
-        config_path.push("dump/file_manager_read_2");
-
-        let mut fm = FileManager::new(config_path, locker_path);
-
-        let file = fm.read("dump/file_manager_read_1").unwrap();
-
-        assert_eq!(file, String::from(""));
+                assert_eq!(file, String::from(""));
+            }
+        };
     }
 
     #[test]
     #[should_panic]
     fn read_panic() {
-        let mut locker_path = env::current_dir().unwrap();
-        let mut config_path = env::current_dir().unwrap();
+        Setup {
+            name: "file_manager_read",
+            count: (3, 4),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.paths();
+                let mut fm = FileManager::new(config, locker);
 
-        locker_path.push("dump/file_manager_read_1");
-        config_path.push("dump/file_manager_read_2");
-
-        let mut fm = FileManager::new(config_path, locker_path);
-
-        fm.read("dump/unknown").unwrap();
+                fm.read("dump/unknown").unwrap();
+            }
+        };
     }
 
     #[test]
     fn remove() {
-        let mut locker_path = env::current_dir().unwrap();
-        let mut config_path = env::current_dir().unwrap();
+        Setup {
+            name: "file_manager_remove",
+            count: (1, 2),
+            after_each: &|this| {},
+            test: &|this| {
+                let (config, locker) = this.paths();
+                let mut fm = FileManager::new(config.clone(), locker);
+                let path_to_remove = FileManager::pb_to_str(&config);
+                let path = Path::new(&path_to_remove);
 
-        locker_path.push("dump/file_manager_read_1");
-        config_path.push("dump/file_manager_read_2");
+                fm.remove(&path_to_remove);
 
-        let mut fm = FileManager::new(config_path.clone(), locker_path);
-        let path_to_remove = config_path.as_path().to_str().unwrap().to_owned();
+                assert_eq!(path.exists(), false);
+            }
+        }; 
+    }
 
-        fm.remove(&path_to_remove);
+    #[test]
+    fn pb_to_str() {
+        let current_dir = env::current_dir().unwrap();
+        let manager_str = FileManager::pb_to_str(&current_dir);
+        let current_str = current_dir.as_path().to_str().unwrap().to_owned(); 
 
-        let path = Path::new("dump/file_manager_read_2");
-
-        assert_eq!(path.exists(), false);
+        assert_eq!(manager_str, current_str);
     }
 }
