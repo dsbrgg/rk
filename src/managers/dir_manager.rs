@@ -107,8 +107,8 @@ mod test {
     use crate::tests::setup::Setup;
 
     fn after_each(this: &Setup) {
-        let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
-        let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
+        let locker_path = format!("dump/{}_{}", this.name, this.count.0);
+        let config_path = format!("dump/{}_{}", this.name, this.count.1);
 
         remove_dir_all(locker_path)
             .expect("Could not remove file in test");
@@ -119,11 +119,10 @@ mod test {
     #[test]
     fn new() {
         Setup { 
-            name: "dir_manager", 
-            test_type: "new",
+            name: "dir_manager_new", 
             count: (1, 2),
             after_each: &after_each,
-            process: &|this| {
+            test: &|this| {
                 let (config, locker) = this.paths();
                 DirManager::new(config, locker);
             },
@@ -133,11 +132,10 @@ mod test {
     #[test]
     fn create() {
         Setup { 
-            name: "dir_manager", 
-            test_type: "create",
-            count: (3, 4),
+            name: "dir_manager_create", 
+            count: (1, 2),
             after_each: &after_each,
-            process: &|this| {
+            test: &|this| {
                 let (mut config, locker) = this.paths();
 
                 let mut dm = DirManager::new(config.clone(), locker);
@@ -156,11 +154,10 @@ mod test {
     #[test]
     fn read() {
         Setup { 
-            name: "dir_manager", 
-            test_type: "read",
-            count: (5, 6),
+            name: "dir_manager_read", 
+            count: (1, 2),
             after_each: &after_each,
-            process: &|this| {
+            test: &|this| {
                 let (config, locker) = this.paths();
 
                 let mut dm = DirManager::new(config.clone(), locker);
@@ -175,11 +172,10 @@ mod test {
     #[test]
     fn remove() {
         Setup { 
-            name: "dir_manager", 
-            test_type: "remove",
-            count: (7, 8),
+            name: "dir_manager_remove", 
+            count: (1, 2),
             after_each: &|this| {},
-            process: &|this| {
+            test: &|this| {
                 let (config, locker) = this.paths();
 
                 let mut dm = DirManager::new(config.clone(), locker.clone());
@@ -197,14 +193,12 @@ mod test {
         }; 
     }
 
-    // #[test]
+    #[test]
     fn pb_to_str() {
         let current_dir = env::current_dir().unwrap();
+        let manager_str = DirManager::pb_to_str(&current_dir);
+        let current_str = current_dir.as_path().to_str().unwrap().to_owned(); 
 
-        let current_dir_str = DirManager::pb_to_str(&current_dir);
-
-        let current_dir = current_dir.as_path().to_str().unwrap().to_owned(); 
-
-        assert_eq!(current_dir_str, current_dir);
+        assert_eq!(manager_str, current_str);
     }
 }
