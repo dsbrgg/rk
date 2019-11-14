@@ -106,24 +106,26 @@ mod test {
     use std::fs::remove_dir_all;
     use crate::tests::setup::Setup;
 
+    fn after_each(this: &Setup) {
+        let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+        let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
+
+        remove_dir_all(locker_path)
+            .expect("Could not remove file in test");
+        remove_dir_all(config_path)
+            .expect("Could not remove file in test");
+    }
+
     #[test]
     fn new() {
         Setup { 
             name: "dir_manager", 
             test_type: "new",
             count: (1, 2),
+            after_each: &after_each,
             process: &|this| {
                 let (config, locker) = this.paths();
                 DirManager::new(config, locker);
-            },
-            after_each: &|this| {
-                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
-                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
-
-                remove_dir_all(locker_path)
-                    .expect("Could not remove file in test");
-                remove_dir_all(config_path)
-                    .expect("Could not remove file in test");
             },
         }; 
     } 
@@ -134,6 +136,7 @@ mod test {
             name: "dir_manager", 
             test_type: "create",
             count: (3, 4),
+            after_each: &after_each,
             process: &|this| {
                 let (mut config, locker) = this.paths();
 
@@ -147,15 +150,6 @@ mod test {
 
                 assert_eq!(Path::new(&hello_path).exists(), true);
             },
-            after_each: &|this| {
-                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
-                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
-
-                remove_dir_all(locker_path)
-                    .expect("Could not remove file in test");
-                remove_dir_all(config_path)
-                    .expect("Could not remove file in test");
-            },
         }; 
     }
 
@@ -165,6 +159,7 @@ mod test {
             name: "dir_manager", 
             test_type: "read",
             count: (5, 6),
+            after_each: &after_each,
             process: &|this| {
                 let (config, locker) = this.paths();
 
@@ -173,15 +168,6 @@ mod test {
                 let res = dm.read(&path).unwrap();
 
                 assert_eq!(res.len(), 0);
-            },
-            after_each: &|this| {
-                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
-                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
-
-                remove_dir_all(locker_path)
-                    .expect("Could not remove file in test");
-                remove_dir_all(config_path)
-                    .expect("Could not remove file in test");
             },
         };
     }
@@ -192,6 +178,7 @@ mod test {
             name: "dir_manager", 
             test_type: "remove",
             count: (7, 8),
+            after_each: &|this| {},
             process: &|this| {
                 let (config, locker) = this.paths();
 
@@ -207,7 +194,6 @@ mod test {
 
                 assert_eq!(locker.as_path().exists(), false);
             },
-            after_each: &|this| {},
         }; 
     }
 
