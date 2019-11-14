@@ -6,9 +6,8 @@ pub mod setup {
     // https://stackoverflow.com/questions/16946888/is-it-possible-to-make-a-recursive-closure-in-rust
     pub struct Setup<'s> {
         pub name: &'s str,
-        pub test_type: &'s str,
         pub count: (u8, u8),
-        pub process: &'s Fn(&Self),
+        pub test: &'s Fn(&Self),
         pub after_each: &'s Fn(&Self)
     }
 
@@ -17,8 +16,8 @@ pub mod setup {
             let mut config_path = env::current_dir().unwrap();
             let mut locker_path = env::current_dir().unwrap();
            
-            let lp = format!("dump/{}_{}_{}", self.name, self.test_type, self.count.0);
-            let cp = format!("dump/{}_{}_{}", self.name, self.test_type, self.count.1); 
+            let lp = format!("dump/{}_{}", self.name, self.count.0);
+            let cp = format!("dump/{}_{}", self.name, self.count.1); 
 
             locker_path.push(lp);
             config_path.push(cp);
@@ -33,7 +32,7 @@ pub mod setup {
         // if the methods `process` and `after_each` and subsequent 
         // methods  remain only needing a `&self`
         fn drop(&mut self) {
-            (self.process)(&self);
+            (self.test)(&self);
             (self.after_each)(&self); 
         }
     }
