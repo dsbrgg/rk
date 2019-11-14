@@ -3,6 +3,7 @@ pub mod setup {
     use std::path::PathBuf;
     use std::cell::RefCell;
 
+    // https://stackoverflow.com/questions/16946888/is-it-possible-to-make-a-recursive-closure-in-rust
     pub struct Setup<'s> {
         pub name: &'s str,
         pub test_type: &'s str,
