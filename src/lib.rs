@@ -131,25 +131,27 @@ mod tests_keeper {
     use tests::setup::Setup;
     use std::fs::remove_dir_all;
 
+    fn after_each(this: &Setup) {
+        let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
+        let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
+
+        remove_dir_all(locker_path)
+            .expect("Could not remove file in test");
+        remove_dir_all(config_path)
+            .expect("Could not remove file in test");
+    }
+
     #[test]
     fn new() {
         Setup { 
             name: "keeper", 
             test_type: "new", 
             count: (1, 2),
+            after_each: &after_each,
             process: &|this| {
                 let (config, locker) = this.paths();
-
+                    
                 Keeper::new(config, locker);
-            },
-            after_each: &|this| {
-                let locker_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.0);
-                let config_path = format!("dump/{}_{}_{}", this.name, this.test_type, this.count.1);
-
-                remove_dir_all(locker_path)
-                    .expect("Could not remove file in test");
-                remove_dir_all(config_path)
-                    .expect("Could not remove file in test");
             },
         }; 
     }
