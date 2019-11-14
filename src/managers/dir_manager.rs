@@ -174,7 +174,7 @@ mod test {
 
     #[test]
     fn remove() {
-        let mut setup = Setup { 
+        Setup { 
             name: "dir_manager", 
             test_type: "remove",
             count: (7, 8),
