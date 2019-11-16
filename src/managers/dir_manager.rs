@@ -102,7 +102,7 @@ impl<'d> Manager for DirManager<'d> {
 mod test {
     use super::*;
     
-    use std::env;
+    use std::env::current_dir;
     use std::fs::remove_dir_all;
     use crate::tests::setup::Setup;
 
@@ -195,10 +195,21 @@ mod test {
 
     #[test]
     fn pb_to_str() {
-        let current_dir = env::current_dir().unwrap();
-        let manager_str = DirManager::pb_to_str(&current_dir);
-        let current_str = current_dir.as_path().to_str().unwrap().to_owned(); 
+        let dir = current_dir().unwrap();
+        let manager_str = DirManager::pb_to_str(&dir);
+        let current_str = dir.as_path().to_str().unwrap().to_owned(); 
 
         assert_eq!(manager_str, current_str);
+    }
+
+    #[test]
+    fn append_path() {
+        let mut dir = current_dir().unwrap();
+        let current_str = DirManager::pb_to_str(&dir);
+        let appended = DirManager::append_path(&current_str, &vec!["src"]);
+        
+        dir.push("src");
+
+        assert_eq!(appended.as_str(), DirManager::pb_to_str(&dir));
     }
 }
