@@ -36,14 +36,28 @@ impl<'l> Keeper<'l> {
         account: Option<&str>, 
         password: Option<&str>
     ) -> io::Result<()> {
-        self.add_entity(entity)?;
+        let mut paths = Vec::new();
 
-        Ok(())
-    }
-    
-    fn add_entity(&mut self, entity: Option<&str>) -> io::Result<()> {
-        if let Some(value) = entity {
-            self.directories.create(value)?; 
+        if let Some(e) = entity { self.directories.create(e)?; }
+
+        if let Some(a) = account {
+            paths.push(a);
+
+            let e = entity.unwrap();
+
+            self.directories.create(
+                &DirManager::append_path(e, &paths)
+            )?; 
+        }
+
+        if let Some(p) = password {
+            paths.push(p);
+
+            let e = entity.unwrap();
+
+            self.files.create(
+                &FileManager::append_path(e, &paths)
+            )?; 
         }
 
         Ok(())
@@ -154,16 +168,22 @@ mod tests_keeper {
         }; 
     }
 
-    // #[test]
-    // fn add_entity() {
-    //     let paths = setup_paths("add", 1);
-    //     
-    //     let mut keeper = Keeper::new(paths.0, paths.1);
-    //     
-    //     let entity = Some("entity");
-    //     let account = None;
-    //     let password = None;
+    #[test]
+    fn add_entity() {
+        Setup {
+            name: "keeper_add_entity",
+            count: (1, 2),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.paths();
+                let mut keeper = Keeper::new(config, locker);
+        
+                let entity = Some("keeper_add_entity_1");
+                let account = None;
+                let password = None;
 
-    //     keeper.add(entity, account, password);
-    // }
+                keeper.add(entity, account, password);
+            }
+        };
+    }
 }
