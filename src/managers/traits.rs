@@ -20,4 +20,12 @@ pub trait Manager {
             .unwrap()
             .to_owned()
     }
+
+    fn append_path(root: &str, paths: &Vec<&str>) -> String {
+        let mut path = PathBuf::from(root);
+       
+        for p in paths.iter() { path.push(p); }
+
+        Self::pb_to_str(&path)
+    } 
 }
