@@ -1,6 +1,5 @@
 use serde_yaml::{Mapping, Value};
 
-use std::env;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
@@ -205,6 +204,7 @@ impl<'f> Manager for FileManager<'f> {
 mod test {
     use super::*;
 
+    use std::env::current_dir;
     use std::fs::remove_file;
     use std::panic::{AssertUnwindSafe, catch_unwind};
     
@@ -316,10 +316,21 @@ mod test {
 
     #[test]
     fn pb_to_str() {
-        let current_dir = env::current_dir().unwrap();
-        let manager_str = FileManager::pb_to_str(&current_dir);
-        let current_str = current_dir.as_path().to_str().unwrap().to_owned(); 
+        let dir = current_dir().unwrap();
+        let manager_str = FileManager::pb_to_str(&dir);
+        let current_str = dir.as_path().to_str().unwrap().to_owned(); 
 
         assert_eq!(manager_str, current_str);
+    }
+
+    #[test]
+    fn append_path() {
+        let mut dir = current_dir().unwrap();
+        let current_str = FileManager::pb_to_str(&dir);
+        let appended = FileManager::append_path(&current_str, &vec!["src"]);
+        
+        dir.push("src");
+
+        assert_eq!(appended.as_str(), FileManager::pb_to_str(&dir));
     }
 }
