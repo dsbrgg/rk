@@ -206,16 +206,26 @@ mod test {
     use super::*;
 
     use std::fs::remove_file;
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+    
     use crate::tests::setup::Setup;
 
     fn after_each(this: &Setup) {
-        let locker_path = format!("dump/{}_{}", this.name, this.count.0);
-        let config_path = format!("dump/{}_{}", this.name, this.count.1);
+        let locker = format!("dump/{}_{}", this.name, this.count.0);
+        let config = format!("dump/{}_{}", this.name, this.count.1);
 
-        remove_file(locker_path)
-            .expect("Could not remove file in test");
-        remove_file(config_path)
-            .expect("Could not remove file in test");
+        let locker_path = Path::new(&locker);
+        let config_path = Path::new(&config);
+
+        if locker_path.exists() {
+            remove_file(locker)
+                .expect("Could not remove file in test");
+        }
+
+        if config_path.exists() {
+            remove_file(config_path)
+                .expect("Could not remove file in test");
+        } 
     }
 
     #[test] 
@@ -266,7 +276,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn read_panic() {
         Setup {
             name: "file_manager_read",
@@ -276,7 +285,12 @@ mod test {
                 let (config, locker) = this.paths();
                 let mut fm = FileManager::new(config, locker);
 
-                fm.read("dump/unknown").unwrap();
+                // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    fm.read("dump/unknown");
+                }));
+
+                assert!(result.is_err());
             }
         };
     }
@@ -286,15 +300,15 @@ mod test {
         Setup {
             name: "file_manager_remove",
             count: (1, 2),
-            after_each: &|this| {},
+            after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.paths();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
-                let path = Path::new(&path_to_remove);
-
+                
                 fm.remove(&path_to_remove);
 
+                let path = Path::new(&path_to_remove);
                 assert_eq!(path.exists(), false);
             }
         }; 
