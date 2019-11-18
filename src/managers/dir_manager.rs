@@ -109,7 +109,7 @@ mod test {
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
             remove_dir_all(path)
-                    .expect("Could not remove file in test");
+                .expect("Could not remove file in test");
         } 
     }
 
