@@ -210,32 +210,24 @@ mod test {
     
     use crate::tests::setup::Setup;
 
-    fn after_each(this: &Setup) {
-        let locker = format!("dump/{}_{}", this.name, this.count.0);
-        let config = format!("dump/{}_{}", this.name, this.count.1);
+    fn after_each(this: &mut Setup) {
+        for path in this.paths.iter() {
+            let exists = Path::new(&path).exists();
 
-        let locker_path = Path::new(&locker);
-        let config_path = Path::new(&config);
-
-        if locker_path.exists() {
-            remove_file(locker)
-                .expect("Could not remove file in test");
+            if exists {
+                remove_file(path)
+                    .expect("Could not remove file in test");
+            }
         }
-
-        if config_path.exists() {
-            remove_file(config_path)
-                .expect("Could not remove file in test");
-        } 
     }
 
     #[test] 
     fn new() {
         Setup {
-            name: "file_manager_new",
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 FileManager::new(config, locker);
             }
         }; 
@@ -244,11 +236,10 @@ mod test {
     #[test] 
     fn create() {
         Setup {
-            name: "file_manager_create",
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let hello_path = FileManager::pb_to_str(&config); 
 
@@ -262,13 +253,12 @@ mod test {
     #[test] 
     fn read() {
         Setup {
-            name: "file_manager_read",
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
-                let mut fm = FileManager::new(config, locker);
-                let file = fm.read("dump/file_manager_read_1").unwrap();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(config.clone(), locker);
+                let file = fm.read(&FileManager::pb_to_str(&config)).unwrap();
 
                 assert_eq!(file, String::from(""));
             }
@@ -278,11 +268,10 @@ mod test {
     #[test]
     fn read_panic() {
         Setup {
-            name: "file_manager_read",
-            count: (3, 4),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config, locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
@@ -298,11 +287,10 @@ mod test {
     #[test]
     fn remove() {
         Setup {
-            name: "file_manager_remove",
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
                 
