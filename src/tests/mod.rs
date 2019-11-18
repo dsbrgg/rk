@@ -12,18 +12,18 @@ pub mod setup {
     }
 
     impl<'s> Setup<'s> {
-        // TODO: self is not needed here
         fn rand_path(&self) -> String {
-            let mut rng = OsRng::new().ok().unwrap();
             let mut rand_str: [u8; 10] = [0; 10];
+            let mut rng = OsRng::new().ok().unwrap();
+            let init_str = self.buf_to_str(&self.dump_path());
 
             rng.fill_bytes(&mut rand_str);
 
             rand_str 
                 .iter()
                 .map(|byte| format!("{:02x}", byte))
-                .fold(String::from("dump/"), |string, hx| format!("{}{}", string, hx))
-        }
+                .fold(init_str, |string, hx| format!("{}{}", string, hx))
+        } 
 
         fn gen_path(&mut self) -> PathBuf {
             let path = self.rand_path();
@@ -35,12 +35,28 @@ pub mod setup {
             dir.push(path);
 
             dir
+        } 
+
+        pub fn dump_path(&self) -> PathBuf {
+            let mut dir = env::current_dir().unwrap();
+            dir.push("dump");
+            dir    
+        }
+
+        fn buf_to_str(&self, buf: &PathBuf) -> String {
+            buf.as_path()
+                .to_str()
+                .unwrap()
+                .to_owned()
         }
 
         // NOTE: maybe Cow<T> can be used here
-        pub fn add_to_paths(&mut self, path: String) -> String {
-            self.paths.push(format!("dump/{}", path));
-            path
+        pub fn add_to_paths(&mut self, path: &PathBuf) -> String {
+            let path_str = self.buf_to_str(path);
+
+            self.paths.push(path_str.clone());
+
+            path_str
         }
 
         pub fn as_path_buf(&mut self) -> (PathBuf, PathBuf) {
