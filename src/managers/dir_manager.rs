@@ -106,24 +106,20 @@ mod test {
     use std::fs::remove_dir_all;
     use crate::tests::setup::Setup;
 
-    fn after_each(this: &Setup) {
-        let locker_path = format!("dump/{}_{}", this.name, this.count.0);
-        let config_path = format!("dump/{}_{}", this.name, this.count.1);
-
-        remove_dir_all(locker_path)
-            .expect("Could not remove file in test");
-        remove_dir_all(config_path)
-            .expect("Could not remove file in test");
+    fn after_each(this: &mut Setup) {
+        for path in this.paths.iter() {
+            remove_dir_all(path)
+                    .expect("Could not remove file in test");
+        } 
     }
 
     #[test]
     fn new() {
-        Setup { 
-            name: "dir_manager_new", 
-            count: (1, 2),
+        Setup {
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 DirManager::new(config, locker);
             },
         }; 
@@ -131,12 +127,11 @@ mod test {
 
     #[test]
     fn create() {
-        Setup { 
-            name: "dir_manager_create", 
-            count: (1, 2),
+        Setup {
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (mut config, locker) = this.paths();
+            test: &|mut this| {
+                let (mut config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker);
                 
@@ -153,12 +148,11 @@ mod test {
 
     #[test]
     fn read() {
-        Setup { 
-            name: "dir_manager_read", 
-            count: (1, 2),
+        Setup {
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker);
                 let path = config.as_path().to_str().unwrap().to_owned();
@@ -171,12 +165,11 @@ mod test {
 
     #[test]
     fn remove() {
-        Setup { 
-            name: "dir_manager_remove", 
-            count: (1, 2),
-            after_each: &|this| {},
-            test: &|this| {
-                let (config, locker) = this.paths();
+        Setup {
+            paths: Vec::new(),
+            after_each: &|mut this| {},
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker.clone());
                 
