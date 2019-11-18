@@ -55,7 +55,7 @@ impl<'l> Locker<'l> {
         let iv0x = Locker::bytes_to_hex(iv.to_vec());
         let key0x = Locker::bytes_to_hex(key.to_vec());
 
-         Locker {
+        Locker {
             iv,
             key,
             iv0x,
@@ -69,7 +69,7 @@ impl<'l> Locker<'l> {
         let iv = Locker::hex_to_bytes(&iv0x);
         let key = Locker::hex_to_bytes(&key0x);
 
-         Locker {
+        Locker {
             iv,
             key,
             iv0x,
