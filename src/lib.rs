@@ -174,10 +174,13 @@ mod tests_keeper {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|mut this| {
+                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
+                
                 let mut keeper = Keeper::new(config, locker);
-       
-                let e = this.add_to_paths("add_entity".to_string());
+      
+                dump.push("add_entity");
+                let e = this.add_to_paths(&dump);
 
                 let entity = Some(e.as_str());
                 let account = None;
@@ -194,17 +197,47 @@ mod tests_keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|mut this| {
+                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
+                
                 let mut keeper = Keeper::new(config, locker);
-       
-                let e = this.add_to_paths("add_account_1".to_string());
-                let a = this.add_to_paths("add_account_2".to_string());
+
+                dump.push("add_account_1");
+                let e = this.add_to_paths(&dump);
+
+                dump.push("add_account_2");
+                let a = this.add_to_paths(&dump);
 
                 let entity = Some(e.as_str());
                 let account = Some(a.as_str());
                 let password = None;
 
                 keeper.add(entity, account, password);
+            }
+        };
+    }
+
+    #[test]
+    fn add_password() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|mut this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                
+                let mut keeper = Keeper::new(config, locker);
+
+                dump.push("add_password_1");
+                let e = this.add_to_paths(&dump);
+
+                dump.push("add_password_2");
+                let a = this.add_to_paths(&dump);
+
+                let entity = Some(e.as_str());
+                let account = Some(a.as_str());
+    
+                keeper.add(entity, account, Some("password"));
             }
         };
     }
