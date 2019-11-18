@@ -2,7 +2,7 @@ mod tests;
 mod locker;
 mod managers;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::io::{self, Write, Read};
 
 use locker::Locker;
@@ -145,24 +145,24 @@ mod tests_keeper {
     use tests::setup::Setup;
     use std::fs::remove_dir_all;
 
-    fn after_each(this: &Setup) {
-        let locker_path = format!("dump/{}_{}", this.name, this.count.0);
-        let config_path = format!("dump/{}_{}", this.name, this.count.1);
+    fn after_each(this: &mut Setup) {
+        for path in this.paths.iter() {
+            let exists = Path::new(path).exists();
 
-        remove_dir_all(locker_path)
-            .expect("Could not remove file in test");
-        remove_dir_all(config_path)
-            .expect("Could not remove file in test");
+            if exists {
+                remove_dir_all(path)
+                    .expect("Could not remove file in test");
+            } 
+        }
     }
 
     #[test]
     fn new() {
         Setup { 
-            name: "keeper_new", 
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 Keeper::new(config, locker);
             },
         }; 
@@ -171,15 +171,37 @@ mod tests_keeper {
     #[test]
     fn add_entity() {
         Setup {
-            name: "keeper_add_entity",
-            count: (1, 2),
+            paths: Vec::new(),
             after_each: &after_each,
-            test: &|this| {
-                let (config, locker) = this.paths();
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(config, locker);
-        
-                let entity = Some("keeper_add_entity_1");
+       
+                let e = this.add_to_paths("add_entity".to_string());
+
+                let entity = Some(e.as_str());
                 let account = None;
+                let password = None;
+
+                keeper.add(entity, account, password);
+            }
+        };
+    }
+
+    #[test]
+    fn add_account() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|mut this| {
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
+       
+                let e = this.add_to_paths("add_account_1".to_string());
+                let a = this.add_to_paths("add_account_2".to_string());
+
+                let entity = Some(e.as_str());
+                let account = Some(a.as_str());
                 let password = None;
 
                 keeper.add(entity, account, password);
