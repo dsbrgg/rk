@@ -19,7 +19,7 @@ pub struct Keeper<'l> {
 
 impl<'l> Keeper<'l> {
     pub fn new(config: PathBuf, locker: PathBuf) -> Keeper<'l> {
-        // TODO: just for future reference
+        // NOTE: just for future reference
         // let mut config_path = dirs::home_dir().unwrap();
         // let mut locker_path = dirs::home_dir().unwrap();
 
@@ -30,6 +30,15 @@ impl<'l> Keeper<'l> {
         Keeper { lock, files, directories }
     }
 
+    // TODO: this stil has to handle when an entity/account
+    // is already created. so it doesn't erases previous
+    // registers. 
+    //
+    // It also needs to hash/encrypt values appropriately.
+    //
+    // It also needs to create an index with the 
+    // entities and accounts hashes for further searching
+    // operations
     pub fn add(
         &mut self, 
         entity: Option<&str>, 
@@ -46,7 +55,7 @@ impl<'l> Keeper<'l> {
             let e = entity.unwrap();
 
             self.directories.create(
-                &DirManager::append_path(e, &paths)
+                &DirManager::append_paths(e, &paths)
             )?; 
         }
 
@@ -56,11 +65,26 @@ impl<'l> Keeper<'l> {
             let e = entity.unwrap();
 
             self.files.create(
-                &FileManager::append_path(e, &paths)
+                &FileManager::append_paths(e, &paths)
             )?; 
         }
 
         Ok(())
+    }
+
+    pub fn find(
+        &mut self, 
+        entity: Option<&str>, 
+        account: Option<&str> 
+    ) -> io::Result<Vec<String>> {
+        if entity.is_none() && account.is_none() { () }
+        
+        let e = entity.unwrap_or("");
+        let a = account.unwrap_or("");
+
+        self.directories.read(
+            &DirManager::append_path(&e, &a)
+        )
     }
 
     // pub fn new() -> Keeper<'l, 'd, 'f> {
@@ -246,6 +270,58 @@ mod tests_keeper {
                 dump.push("password");
 
                 assert!(dump.as_path().exists());
+            }
+        };
+    }
+
+    #[test]
+    fn find_entity() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|mut this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                
+                let mut keeper = Keeper::new(config, locker);
+
+                dump.push("find_entity_1");
+                let e = this.add_to_paths(&dump);
+                let entity = Some(e.as_str());
+    
+                keeper.add(entity, None, None);
+
+                let result = keeper.find(entity, None).unwrap();
+                
+                assert_eq!(result.len(), 0);
+            }
+        };
+    }
+
+    #[test]
+    fn find_entity_accounts() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|mut this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                
+                let mut keeper = Keeper::new(config, locker);
+
+                dump.push("find_entity_account_1");
+                let e = this.add_to_paths(&dump);
+                let entity = Some(e.as_str());
+   
+                dump.push("find_entity_account_2");
+                let a = this.add_to_paths(&dump);
+                let account = Some(a.as_str());
+
+                keeper.add(entity, account, None);
+
+                let result = keeper.find(entity, None).unwrap();
+                
+                assert_eq!(result.len(), 1);
             }
         };
     }
