@@ -185,7 +185,7 @@ mod tests_keeper {
         Setup { 
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 Keeper::new(config, locker);
             },
@@ -197,7 +197,7 @@ mod tests_keeper {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 
@@ -222,7 +222,7 @@ mod tests_keeper {
         Setup {
             paths: Vec::new(), 
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 
@@ -250,7 +250,7 @@ mod tests_keeper {
         Setup {
             paths: Vec::new(), 
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 
@@ -279,7 +279,7 @@ mod tests_keeper {
         Setup {
             paths: Vec::new(), 
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 
@@ -303,7 +303,7 @@ mod tests_keeper {
         Setup {
             paths: Vec::new(), 
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 

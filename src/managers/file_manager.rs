@@ -226,7 +226,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 FileManager::new(config, locker);
             }
@@ -238,7 +238,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let hello_path = FileManager::pb_to_str(&config); 
@@ -255,7 +255,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let file = fm.read(&FileManager::pb_to_str(&config)).unwrap();
@@ -270,7 +270,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config, locker);
 
@@ -289,7 +289,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(config.clone(), locker);
                 let path_to_remove = FileManager::pb_to_str(&config);

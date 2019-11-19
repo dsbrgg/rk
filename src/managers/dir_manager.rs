@@ -118,7 +118,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 DirManager::new(config, locker);
             },
@@ -130,7 +130,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (mut config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker);
@@ -151,7 +151,7 @@ mod test {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
-            test: &|mut this| {
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker);
@@ -167,8 +167,8 @@ mod test {
     fn remove() {
         Setup {
             paths: Vec::new(),
-            after_each: &|mut this| {},
-            test: &|mut this| {
+            after_each: &|this| {},
+            test: &|this| {
                 let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(config.clone(), locker.clone());
