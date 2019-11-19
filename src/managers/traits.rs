@@ -21,11 +21,19 @@ pub trait Manager {
             .to_owned()
     }
 
-    fn append_path(root: &str, paths: &Vec<&str>) -> String {
+    fn append_paths(root: &str, paths: &Vec<&str>) -> String {
         let mut path = PathBuf::from(root);
        
         for p in paths.iter() { path.push(p); }
 
         Self::pb_to_str(&path)
-    } 
+    }
+
+    fn append_path(root: &str, path: &str) -> String {
+        let mut buf = PathBuf::from(root);
+       
+        buf.push(path);
+
+        Self::pb_to_str(&buf)
+    }
 }
