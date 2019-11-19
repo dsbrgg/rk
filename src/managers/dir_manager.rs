@@ -196,10 +196,21 @@ mod test {
     }
 
     #[test]
+    fn append_paths() {
+        let mut dir = current_dir().unwrap();
+        let current_str = DirManager::pb_to_str(&dir);
+        let appended = DirManager::append_paths(&current_str, &vec!["src"]);
+        
+        dir.push("src");
+
+        assert_eq!(appended.as_str(), DirManager::pb_to_str(&dir));
+    }
+
+    #[test]
     fn append_path() {
         let mut dir = current_dir().unwrap();
         let current_str = DirManager::pb_to_str(&dir);
-        let appended = DirManager::append_path(&current_str, &vec!["src"]);
+        let appended = DirManager::append_path(&current_str, "src");
         
         dir.push("src");
 
