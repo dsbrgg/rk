@@ -187,6 +187,8 @@ mod tests_keeper {
                 let password = None;
 
                 keeper.add(entity, account, password);
+
+                assert!(dump.as_path().exists());
             }
         };
     }
@@ -213,6 +215,8 @@ mod tests_keeper {
                 let password = None;
 
                 keeper.add(entity, account, password);
+
+                assert!(dump.as_path().exists());
             }
         };
     }
@@ -238,6 +242,10 @@ mod tests_keeper {
                 let account = Some(a.as_str());
     
                 keeper.add(entity, account, Some("password"));
+
+                dump.push("password");
+
+                assert!(dump.as_path().exists());
             }
         };
     }
