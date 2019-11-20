@@ -2,6 +2,7 @@ mod tests;
 mod locker;
 mod managers;
 
+use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, Read};
 
@@ -77,7 +78,11 @@ impl<'l> Keeper<'l> {
         entity: Option<&str>, 
         account: Option<&str> 
     ) -> io::Result<Vec<String>> {
-        if entity.is_none() && account.is_none() { () }
+        if entity.is_none() && account.is_none() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other, "Neither entity or account provided."
+            ));
+        }
         
         let e = entity.unwrap_or("");
         let a = account.unwrap_or("");
@@ -320,8 +325,29 @@ mod tests_keeper {
                 keeper.add(entity, account, None);
 
                 let result = keeper.find(entity, None).unwrap();
-                
+    
                 assert_eq!(result.len(), 1);
+            }
+        };
+    }
+
+    #[test]
+    fn find_without_params_returns_error() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                
+                let mut keeper = Keeper::new(config, locker);
+                
+                let operation = keeper.find(None, None);
+                
+                assert!(operation.is_err());
+                assert_eq!(
+                    operation.unwrap_err().to_string(), 
+                    "Neither entity or account provided."
+                );
             }
         };
     }
