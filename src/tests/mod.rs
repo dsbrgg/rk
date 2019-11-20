@@ -15,14 +15,18 @@ pub mod setup {
         fn rand_path(&self) -> String {
             let mut rand_str: [u8; 10] = [0; 10];
             let mut rng = OsRng::new().ok().unwrap();
-            let init_str = self.buf_to_str(&self.dump_path());
+            let mut dump = self.dump_path();
 
             rng.fill_bytes(&mut rand_str);
 
-            rand_str 
+            let hx = rand_str 
                 .iter()
                 .map(|byte| format!("{:02x}", byte))
-                .fold(init_str, |string, hx| format!("{}{}", string, hx))
+                .fold(String::new(), |string, hx| format!("{}{}", string, hx));
+
+            dump.push(hx);
+
+            self.buf_to_str(&dump)
         } 
 
         fn gen_path(&mut self) -> PathBuf {
