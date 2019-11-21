@@ -1,8 +1,25 @@
-use rk::Keeper;
-use clap::{App, AppSettings, Arg, SubCommand};
+mod handler;
+
+use handler::handler::CLI;
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 fn main() {
-    let matches = App::new("Rusty Keeper")
+    let mut config = dirs::home_dir().unwrap();
+    let mut locker = dirs::home_dir().unwrap();
+    
+    config.push(".config");
+    config.push("rk");
+    locker.push(".rk");
+
+    let mut cli = CLI::new(config, locker);
+    
+    cli.operation(
+        execute()
+    );
+}
+
+fn execute() -> ArgMatches<'static> {
+    App::new("Rusty Keeper")
         .version("1.0")
         .author("Diego Braga <dsbrgg@gmail.com>")
         .about("Local password manager")
@@ -71,6 +88,7 @@ fn main() {
                         )
                         .arg(
                             Arg::with_name("entity")
+                                .short("e")
                                 .takes_value(true)
                                 .required(true)
                         )
@@ -122,15 +140,5 @@ fn main() {
                         )
                 )
         )
-        .get_matches();
-
-    
-    if let Some(sub) = matches.subcommand_matches("add") {
-        if let Some(cmd) = sub.subcommand_matches("entity") {
-            println!("{:#?}", cmd.value_of("name").unwrap());
-        }
-    }
-
-    // let mut keeper = Keeper::new();
-    // keeper.add_account();
+        .get_matches()
 }
