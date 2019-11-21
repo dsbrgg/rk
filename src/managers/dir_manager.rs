@@ -51,22 +51,22 @@ impl<'d> Manager for DirManager<'d> {
     }
 
     fn create(&mut self, path: &str) -> io::Result<()> {
-        self.locker.push(path);
+        let mut locker = self.locker.clone();
 
-        if let Err(err) = fs::read_dir(&self.locker) {
+        locker.push(path);
+
+        if let Err(err) = fs::read_dir(&locker) {
             if err.kind() == ErrorKind::NotFound {
-                fs::create_dir_all(&self.locker)?;
+                fs::create_dir_all(&locker)?;
             }
         }
-
-        self.locker.pop();
 
         Ok(())
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> { 
         self.locker.push(path);
-
+        
         fs::remove_dir(&self.locker)?;
 
         self.locker.pop();
@@ -83,12 +83,7 @@ impl<'d> Manager for DirManager<'d> {
             let dir = entry?;
             
             entries.push(
-                dir
-                    .path()
-                    .as_path()
-                    .to_str()
-                    .unwrap()
-                    .to_owned()
+               DirManager::pb_to_str(&dir.path())
             );
         }
 
@@ -108,8 +103,12 @@ mod test {
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
-            remove_dir_all(path)
-                .expect("Could not remove file in test");
+            let exists = Path::new(&path).exists();
+
+            if exists {
+                remove_dir_all(path)
+                    .expect("Could not remove file in test");
+            } 
         } 
     }
 
@@ -167,7 +166,7 @@ mod test {
     fn remove() {
         Setup {
             paths: Vec::new(),
-            after_each: &|this| {},
+            after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
 
