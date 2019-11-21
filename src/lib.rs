@@ -2,9 +2,8 @@ mod tests;
 mod locker;
 mod managers;
 
-use std::error::Error;
-use std::path::{Path, PathBuf};
-use std::io::{self, Write, Read};
+use std::io;
+use std::path::{PathBuf};
 
 use locker::Locker;
 
@@ -12,23 +11,23 @@ use managers::traits::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
 
-pub struct Keeper<'l> {
-    lock: Locker<'l>,
-    files: FileManager<'l>,
-    directories: DirManager<'l>,
+pub struct Keeper {
+    // lock: Locker,
+    files: FileManager,
+    directories: DirManager,
 }
 
-impl<'l> Keeper<'l> {
-    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper<'l> {
+impl Keeper {
+    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper {
         // NOTE: just for future reference
         // let mut config_path = dirs::home_dir().unwrap();
         // let mut locker_path = dirs::home_dir().unwrap();
 
-        let lock = Locker::new();
-        let directories = DirManager::new(config.clone(), locker.clone());
-        let files = FileManager::new(config, locker);
+        // let lock = Locker::new();
+        let directories = DirManager::new(&config, &locker);
+        let files = FileManager::new(&config, &locker);
 
-        Keeper { lock, files, directories }
+        Keeper { files, directories }
     }
 
     // TODO: this stil has to handle when an entity/account
@@ -48,7 +47,15 @@ impl<'l> Keeper<'l> {
     ) -> io::Result<()> {
         let mut paths = Vec::new();
 
-        if let Some(e) = entity { self.directories.create(e)?; }
+        if entity.is_none() && account.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other, "Entity must be provided when an account is set."
+            ));
+        }
+
+        if let Some(e) = entity { 
+            self.directories.create(e)?; 
+        }
 
         if let Some(a) = account {
             paths.push(a);
@@ -191,6 +198,8 @@ mod tests_keeper {
     use super::*;
 
     use tests::setup::Setup;
+
+    use std::path::Path;
     use std::fs::remove_dir_all;
     use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -238,6 +247,30 @@ mod tests_keeper {
                 keeper.add(entity, account, password);
 
                 assert!(dump.as_path().exists());
+            }
+        };
+    }
+
+    #[test]
+    fn add_account_without_entity() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                
+                let mut keeper = Keeper::new(config, locker);
+
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    keeper.add(
+                        None, 
+                        Some("account"),
+                        None
+                    ).unwrap();
+                }));
+
+                assert_eq!(result.is_err(), true);
             }
         };
     }
