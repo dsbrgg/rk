@@ -83,13 +83,32 @@ impl<'l> Keeper<'l> {
                 io::ErrorKind::Other, "Neither entity or account provided."
             ));
         }
-        
+
         let e = entity.unwrap_or("");
         let a = account.unwrap_or("");
-
+ 
         self.directories.read(
             &DirManager::append_path(&e, &a)
         )
+    }
+
+    pub fn remove(
+        &mut self,
+        entity: Option<&str>,
+        account: Option<&str>
+    ) -> io::Result<()> {
+        if entity.is_none() && account.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other, "Entity must be provided when an account is set."
+            ));
+        }
+
+        let e = entity.unwrap_or("");
+        let a = account.unwrap_or("");
+
+        let path = DirManager::append_path(&e, &a);         
+        
+        self.directories.remove(&path)
     }
 
     // pub fn new() -> Keeper<'l, 'd, 'f> {
@@ -173,6 +192,7 @@ mod tests_keeper {
 
     use tests::setup::Setup;
     use std::fs::remove_dir_all;
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
@@ -348,6 +368,87 @@ mod tests_keeper {
                     operation.unwrap_err().to_string(), 
                     "Neither entity or account provided."
                 );
+            }
+        };
+    }
+
+    #[test]
+    fn remove() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
+                
+                let entity = Some("entity");
+                let account = Some("account");
+
+                keeper.add(
+                    entity, 
+                    account, 
+                    None
+                );
+
+                keeper.remove(
+                    entity, 
+                    account
+                ); 
+               
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    keeper.find(entity, account).unwrap();
+                }));
+
+                assert_eq!(result.is_err(), true);
+            }
+        };
+    }
+
+    #[test]
+    fn remove_only_with_entity() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
+                
+                let entity = Some("entity");
+
+                keeper.add(
+                    entity, 
+                    None,
+                    None
+                );
+
+                keeper.remove(
+                    entity,
+                    None
+                ); 
+               
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    keeper.find(entity, None).unwrap();
+                }));
+
+                assert_eq!(result.is_err(), true);
+            }
+        };
+    }
+
+    #[test]
+    fn remove_only_with_account() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf(); 
+                let mut keeper = Keeper::new(config, locker);
+
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    keeper.remove(None, Some("account")).unwrap();
+                }));
+
+                assert_eq!(result.is_err(), true);
             }
         };
     }
