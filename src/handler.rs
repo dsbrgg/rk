@@ -26,39 +26,18 @@ pub mod handler {
         }
 
         pub fn handle_add(&mut self, args: &ArgMatches) {
-            match args.subcommand() {
-                ("entity", Some(arg)) => {
-                    let entity = arg.value_of("name").unwrap();
+            let (_, arg) = args.subcommand();
+            let options = arg.unwrap();
 
-                    self.keeper.add(
-                        Some(entity),
-                        None,
-                        None
-                    );
-                },
-                ("account", Some(arg)) => {
-                    let account = arg.value_of("name").unwrap();
-                    let entity = arg.value_of("entity").unwrap();
+            let password = options.value_of("pwd");
+            let account = options.value_of("account");
+            let entity = options.value_of("entity");
 
-                    self.keeper.add(
-                        Some(entity),
-                        Some(account),
-                        None
-                    );
-                },
-                ("password", Some(arg)) => {
-                    let password = arg.value_of("pwd").unwrap();
-                    let account = arg.value_of("account").unwrap();
-                    let entity = arg.value_of("entity").unwrap();
-
-                    self.keeper.add(
-                        Some(entity),
-                        Some(account),
-                        Some(password) 
-                    );
-                },
-                (_, _) => {}
-            } 
+            self.keeper.add(
+                entity,
+                account,
+                password
+            );
         }
 
         pub fn handle_find(&self, args: &ArgMatches) {}
