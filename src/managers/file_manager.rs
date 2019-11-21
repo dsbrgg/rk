@@ -7,15 +7,17 @@ use std::io::{self, Read, Write, ErrorKind};
 
 use crate::managers::traits::Manager;
 
-pub struct FileManager<'f> {
-    name: &'f str,
+pub struct FileManager {
     config: PathBuf,
     locker: PathBuf,
 }
 
-impl<'f> FileManager<'f> {
-    pub fn new(config: PathBuf, locker: PathBuf) -> FileManager<'f> {
-        let mut fm = FileManager { name: "files", config, locker };
+impl FileManager {
+    pub fn new(config: &PathBuf, locker: &PathBuf) -> FileManager {
+        let config = config.clone();
+        let locker = locker.clone();
+
+        let mut fm = FileManager { config, locker };
 
         fm.init().expect("Could not initialize FileManager");
 
@@ -144,7 +146,7 @@ impl<'f> FileManager<'f> {
     // }
 }
 
-impl<'f> Manager for FileManager<'f> {
+impl Manager for FileManager {
     type Output = String; 
 
     fn init(&mut self) -> io::Result<()> {
@@ -228,7 +230,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                FileManager::new(config, locker);
+                FileManager::new(&config, &locker);
             }
         }; 
     }
@@ -240,7 +242,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(config.clone(), locker);
+                let mut fm = FileManager::new(&config, &locker);
                 let hello_path = FileManager::pb_to_str(&config); 
 
                 fm.create(&hello_path);
@@ -257,7 +259,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(config.clone(), locker);
+                let mut fm = FileManager::new(&config, &locker);
                 let file = fm.read(&FileManager::pb_to_str(&config)).unwrap();
 
                 assert_eq!(file, String::from(""));
@@ -272,7 +274,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(config, locker);
+                let mut fm = FileManager::new(&config, &locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
@@ -291,7 +293,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(config.clone(), locker);
+                let mut fm = FileManager::new(&config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
                 
                 fm.remove(&path_to_remove);

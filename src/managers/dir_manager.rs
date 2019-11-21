@@ -6,15 +6,17 @@ use std::io::{self, Write, ErrorKind};
 
 use crate::managers::traits::Manager;
 
-pub struct DirManager<'d> {
-    name: &'d str,
+pub struct DirManager {
     config: PathBuf,
     locker: PathBuf,
 }
 
-impl<'d> DirManager<'d> {
-    pub fn new(config: PathBuf, locker: PathBuf) -> DirManager<'d> {
-        let mut dm = DirManager { name: "directories", config, locker };
+impl DirManager {
+    pub fn new(config: &PathBuf, locker: &PathBuf) -> DirManager {
+        let config = config.clone();
+        let locker = locker.clone();
+
+        let mut dm = DirManager { config, locker };
 
         dm.init().expect("Could not initialize DirManager");
 
@@ -24,7 +26,7 @@ impl<'d> DirManager<'d> {
 
 // TODO: having to self.locker.push and .pop all the time seems really bad
 
-impl<'d> Manager for DirManager<'d> {
+impl Manager for DirManager {
     type Output = Vec<String>;
 
     fn init(&mut self) -> io::Result<()> {
@@ -65,29 +67,29 @@ impl<'d> Manager for DirManager<'d> {
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> { 
-        self.locker.push(path);
+        let mut locker = self.locker.clone();
         
-        fs::remove_dir(&self.locker)?;
+        locker.push(path);
 
-        self.locker.pop();
+        fs::remove_dir(&locker)?;
 
         Ok(()) 
     }
 
     fn read(&mut self, dir: &str) -> io::Result<Self::Output> {
-        self.locker.push(dir);
+        let mut locker = self.locker.clone();
+        
+        locker.push(dir);
 
         let mut entries = Vec::new();
 
-        for entry in fs::read_dir(&self.locker)? {
+        for entry in fs::read_dir(&locker)? {
             let dir = entry?;
             
             entries.push(
                DirManager::pb_to_str(&dir.path())
             );
         }
-
-        self.locker.pop();
 
         Ok(entries)
     } 
@@ -119,7 +121,7 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                DirManager::new(config, locker);
+                DirManager::new(&config, &locker);
             },
         }; 
     } 
@@ -132,7 +134,7 @@ mod test {
             test: &|this| {
                 let (mut config, locker) = this.as_path_buf();
 
-                let mut dm = DirManager::new(config.clone(), locker);
+                let mut dm = DirManager::new(&config, &locker);
                 
                 config.push("hello");
 
@@ -153,7 +155,7 @@ mod test {
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
 
-                let mut dm = DirManager::new(config.clone(), locker);
+                let mut dm = DirManager::new(&config, &locker);
                 let path = config.as_path().to_str().unwrap().to_owned();
                 let res = dm.read(&path).unwrap();
 
@@ -170,7 +172,7 @@ mod test {
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
 
-                let mut dm = DirManager::new(config.clone(), locker.clone());
+                let mut dm = DirManager::new(&config, &locker);
                 
                 let path = config.as_path().to_str().unwrap().to_owned();
                 dm.remove(&path).unwrap();
