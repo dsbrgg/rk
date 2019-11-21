@@ -73,7 +73,7 @@ fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("entity")
                         .about("Add an entity")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("entity")
                                 .takes_value(true)
                                 .required(true)
                         )
@@ -82,7 +82,7 @@ fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("account")
                         .about("Add an account")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("account")
                                 .takes_value(true)
                                 .required(true)
                         )
@@ -103,6 +103,13 @@ fn execute() -> ArgMatches<'static> {
                         )
                         .arg(
                             Arg::with_name("account")
+                                .short("a")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                        .arg(
+                            Arg::with_name("entity")
+                                .short("e")
                                 .takes_value(true)
                                 .required(true)
                         )
