@@ -1,4 +1,4 @@
-mod tests;
+mod setup;
 mod locker;
 mod managers;
 
@@ -197,7 +197,7 @@ impl Keeper {
 mod tests_keeper {
     use super::*;
 
-    use tests::setup::Setup;
+    use setup::setup::Setup;
 
     use std::path::Path;
     use std::fs::remove_dir_all;
@@ -209,7 +209,7 @@ mod tests_keeper {
 
             if exists {
                 remove_dir_all(path)
-                    .expect("Could not remove file in test");
+                    .expect("Could not remove file in `lib.rs` test");
             } 
         }
     }
@@ -257,7 +257,6 @@ mod tests_keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
                 
                 let mut keeper = Keeper::new(config, locker);
