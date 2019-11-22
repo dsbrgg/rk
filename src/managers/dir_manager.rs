@@ -101,7 +101,7 @@ mod test {
     
     use std::env::current_dir;
     use std::fs::remove_dir_all;
-    use crate::tests::setup::Setup;
+    use crate::setup::setup::Setup;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
@@ -109,7 +109,7 @@ mod test {
 
             if exists {
                 remove_dir_all(path)
-                    .expect("Could not remove file in test");
+                    .expect("Could not remove file in `dir_manager.rs` test");
             } 
         } 
     }
