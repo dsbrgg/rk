@@ -21,7 +21,7 @@ pub mod handler {
                 ("add", Some(add)) => { self.handle_add(add); },
                 ("find", Some(find)) => { self.handle_find(find); },
                 ("remove", Some(remove)) => { self.handle_remove(remove); }
-                (_, _) => {}
+                (_, _) => { println!("Unknown operation"); }
             }
         }
 
@@ -32,7 +32,7 @@ pub mod handler {
             let password = options.value_of("pwd");
             let account = options.value_of("account");
             let entity = options.value_of("entity");
-
+            
             self.keeper.add(
                 entity,
                 account,
@@ -45,23 +45,61 @@ pub mod handler {
     }
 }
 
-// #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::handler::CLI;
+    use crate::setup::setup::Setup;
 
-    // #[test]
-    fn operation() {
-        let locker = dirs::home_dir().unwrap();
-        let config = dirs::home_dir().unwrap();
+    use std::path::Path;
+    use std::fs::remove_dir_all;
+    use clap::{App, AppSettings, Arg, SubCommand};
 
-        let cli = CLI::new(config, locker);
+    fn after_each(this: &mut Setup) {
+        for path in this.paths.iter() {
+            let exists = Path::new(path).exists();
 
-        // TODO: find a way to construct ArgMatches to test this
-        // let m = App::new("prog")
-        // .arg(Arg::with_name("config")
-        //     .short("c"))
-        // .get_matches_from(vec![
-        //     "prog", "-c"
-        // ]);
+            if exists {
+                remove_dir_all(path)
+                    .expect("Could not remove file in `handlers.rs` test");
+            } 
+        }
+    }
+
+    #[test]
+    fn operation_add() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+               
+                let mut l = locker.clone();
+                l.push("an_entity");
+
+                let mut cli = CLI::new(config, locker);
+                
+                let results = App::new("test")
+                    .subcommand(
+                        SubCommand::with_name("add")
+                            .setting(AppSettings::SubcommandRequired)
+                            .subcommand(
+                                SubCommand::with_name("entity")
+                                    .arg(
+                                        Arg::with_name("entity")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                            )
+                    ) 
+                    .get_matches_from(
+                        vec![ "test", "add", "entity", "an_entity" ]
+                    ); 
+
+                cli.operation(results);
+
+                assert_eq!(l.as_path().exists(), true);
+            }
+        
+        };
     }
 }
