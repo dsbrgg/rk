@@ -5,27 +5,33 @@ pub mod handler {
     use super::*;
 
     use std::io;
-    use rk::Keeper;
+    use rk::{Resolve, Keeper};
+
+    struct Params<'p> { 
+        entity: Option<&'p str>,
+        account: Option<&'p str>,
+        password: Option<&'p str>
+    }
 
     pub struct CLI { keeper: Keeper }
 
-    impl CLI {
+    impl<'p> CLI {
         pub fn new(config: PathBuf, locker: PathBuf) -> CLI {
             CLI {
                 keeper: Keeper::new(config, locker)
             }
         }
 
-        pub fn operation(&mut self, args: ArgMatches) {
+        pub fn operation(&mut self, args: ArgMatches) -> io::Result<Resolve> {
             match args.subcommand() {
-                ("add", Some(add)) => { self.handle_add(add); },
-                ("find", Some(find)) => { self.handle_find(find); },
-                ("remove", Some(remove)) => { self.handle_remove(remove); }
-                (_, _) => { println!("Unknown operation"); }
+                ("add", Some(add)) => { self.handle_add(add) },
+                ("find", Some(find)) => { self.handle_find(find) },
+                ("remove", Some(remove)) => { self.handle_remove(remove) }
+                (_, _) => { panic!("Unknown operation in CLI"); }
             }
         }
 
-        pub fn handle_add(&mut self, args: &ArgMatches) {
+        fn extract_values(args: &'p ArgMatches) -> Params<'p> {
             let (_, arg) = args.subcommand();
             let options = arg.unwrap();
 
@@ -33,15 +39,44 @@ pub mod handler {
             let account = options.value_of("account");
             let entity = options.value_of("entity");
             
+            Params {
+                entity,
+                account,
+                password
+            }
+        }
+
+        fn handle_add(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+            let Params { 
+                entity, 
+                account, 
+                password 
+            } = CLI::extract_values(args);
+
             self.keeper.add(
                 entity,
                 account,
                 password
-            );
+            )
         }
 
-        pub fn handle_find(&self, args: &ArgMatches) {}
-        pub fn handle_remove(&self, args: &ArgMatches) {}
+        fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+            let Params { entity, account, .. } = CLI::extract_values(args);
+            
+            self.keeper.find(
+                entity,
+                account
+            )
+        }
+        
+        fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+            let Params { entity, account, .. } = CLI::extract_values(args);
+            
+            self.keeper.remove(
+                entity,
+                account
+            )
+        }
     }
 }
 
@@ -66,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn operation_add() {
+    fn operation_add_entity() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -74,7 +109,7 @@ mod tests {
                 let (config, locker) = this.as_path_buf();
                
                 let mut l = locker.clone();
-                l.push("an_entity");
+                l.push("add_entity");
 
                 let mut cli = CLI::new(config, locker);
                 
@@ -92,14 +127,65 @@ mod tests {
                             )
                     ) 
                     .get_matches_from(
-                        vec![ "test", "add", "entity", "an_entity" ]
+                        vec![ "test", "add", "entity", "add_entity" ]
                     ); 
 
                 cli.operation(results);
 
                 assert_eq!(l.as_path().exists(), true);
             }
-        
         };
     }
+
+    #[test]
+    fn operation_add_account() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+               
+                let mut l = locker.clone();
+                l.push("add_account_entity");
+                l.push("add_account");
+
+                let mut cli = CLI::new(config, locker);
+                
+                let results = App::new("test")
+                    .subcommand(
+                        SubCommand::with_name("add")
+                            .setting(AppSettings::SubcommandRequired)
+                            .subcommand(
+                                SubCommand::with_name("account")
+                                    .arg(
+                                        Arg::with_name("account")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                                    .arg(
+                                        Arg::with_name("entity")
+                                            .short("e")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                            )
+                    ) 
+                    .get_matches_from(
+                        vec![ 
+                            "test", 
+                            "add", 
+                            "account", 
+                            "add_account", 
+                            "-e", 
+                            "add_account_entity" 
+                        ]
+                    ); 
+
+                cli.operation(results);
+
+                assert_eq!(l.as_path().exists(), true);
+            }
+        };
+    }
+
 }
