@@ -11,6 +11,20 @@ use managers::traits::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
 
+#[derive(Debug)]
+pub enum Resolve {
+    Add,
+    Find(Vec<String>),
+    Remove
+}
+
+impl Resolve {
+    pub fn to_vec(self) -> Vec<String> {
+        if let Resolve::Find(vec) = self { return vec; }
+        panic!("to_vec should be called on a Resolve::Find only");
+    }
+}
+
 pub struct Keeper {
     // lock: Locker,
     files: FileManager,
@@ -44,7 +58,7 @@ impl Keeper {
         entity: Option<&str>, 
         account: Option<&str>, 
         password: Option<&str>
-    ) -> io::Result<()> {
+    ) -> io::Result<Resolve> {
         let mut paths = Vec::new();
 
         if entity.is_none() && account.is_some() {
@@ -77,14 +91,14 @@ impl Keeper {
             )?; 
         }
 
-        Ok(())
+        Ok(Resolve::Add)
     }
 
     pub fn find(
         &mut self, 
         entity: Option<&str>, 
         account: Option<&str> 
-    ) -> io::Result<Vec<String>> {
+    ) -> io::Result<Resolve> {
         if entity.is_none() && account.is_none() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Neither entity or account provided."
@@ -93,17 +107,18 @@ impl Keeper {
 
         let e = entity.unwrap_or("");
         let a = account.unwrap_or("");
- 
-        self.directories.read(
-            &DirManager::append_path(&e, &a)
-        )
+        let ap = DirManager::append_path(&e, &a);
+
+        let registers = self.directories.read(&ap)?;
+
+        Ok(Resolve::Find(registers))
     }
 
     pub fn remove(
         &mut self,
         entity: Option<&str>,
         account: Option<&str>
-    ) -> io::Result<()> {
+    ) -> io::Result<Resolve> {
         if entity.is_none() && account.is_some() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Entity must be provided when an account is set."
@@ -115,7 +130,9 @@ impl Keeper {
 
         let path = DirManager::append_path(&e, &a);         
         
-        self.directories.remove(&path)
+        self.directories.remove(&path)?;
+
+        Ok(Resolve::Remove)
     }
 
     // pub fn new() -> Keeper<'l, 'd, 'f> {
@@ -350,7 +367,7 @@ mod tests_keeper {
 
                 let result = keeper.find(entity, None).unwrap();
                 
-                assert_eq!(result.len(), 0);
+                assert_eq!(result.to_vec().len(), 0);
             }
         };
     }
@@ -378,7 +395,7 @@ mod tests_keeper {
 
                 let result = keeper.find(entity, None).unwrap();
     
-                assert_eq!(result.len(), 1);
+                assert_eq!(result.to_vec().len(), 1);
             }
         };
     }
