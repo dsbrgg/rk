@@ -1,6 +1,8 @@
 use std::io;
 use std::path::{PathBuf};
 
+// TODO: trait methods need to be private
+// move this into a mod
 pub trait Manager {
     type Output;
 
