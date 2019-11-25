@@ -135,7 +135,7 @@ impl Keeper {
 }
 
 #[cfg(test)]
-mod tests_keeper {
+mod keeper {
     use super::*;
 
     use setup::setup::Setup;
