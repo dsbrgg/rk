@@ -75,20 +75,18 @@ impl Keeper {
             paths.push(a);
 
             let e = entity.unwrap();
+            let p = DirManager::append_paths(e, &paths);
 
-            self.directories.create(
-                &DirManager::append_paths(e, &paths)
-            )?; 
-        }
+            self.directories.create(&p)?; 
+        } 
 
         if let Some(p) = password {
             paths.push(p);
 
             let e = entity.unwrap();
+            let p = FileManager::append_paths(e, &paths);
 
-            self.files.create(
-                &FileManager::append_paths(e, &paths)
-            )?; 
+            self.files.create(&p)?; 
         }
 
         Ok(Resolve::Add)
