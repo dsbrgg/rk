@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
 use std::io::{self, Read, Write, ErrorKind};
 
-use crate::managers::traits::Manager;
+use crate::managers::manager::Manager;
 
 pub struct FileManager {
     config: PathBuf,
@@ -22,7 +22,63 @@ impl FileManager {
         fm.init().expect("Could not initialize FileManager");
 
         fm
-    } 
+    }
+
+    pub fn create_locker(&mut self, path: &str) -> io::Result<()> {
+        self.create(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn read_locker(&mut self, path: &str) -> io::Result<String> {
+        self.read(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn remove_locker(&mut self, path: &str) -> io::Result<()> {
+        self.remove(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn create_config(&mut self, path: &str) -> io::Result<()> {
+        self.create(
+            &self.gen_path("config", path)
+        )
+    }
+
+    pub fn read_config(&mut self, path: &str) -> io::Result<String> {
+        self.read(
+            &self.gen_path("config", path)
+        )
+    }
+
+    pub fn remove_config(&mut self, path: &str) -> io::Result<()> {
+        self.remove(
+            &self.gen_path("config", path)
+        )
+    }
+
+    // NOTE: this can be moved to the Manager Trait
+    // if field traits are implemented in the future
+    fn gen_path(&self, for_path: &str, path: &str) -> String {
+        let mut location = PathBuf::new();
+
+        match for_path {
+            "locker" => {
+                location.push(self.locker.clone());
+                location.push(path);
+            },
+            "config" => {
+                location.push(self.config.clone());
+                location.push(path);
+            },
+            _ => panic!("Unsupported location {:?}", location.as_path().to_str())
+        };
+
+        Self::pb_to_str(&location)
+    }
 
     // TODO: this is pretty ugly, def a better way to do it
     // fn init_default_yaml() -> serde_yaml::Result<()> {
@@ -149,6 +205,11 @@ impl FileManager {
 impl Manager for FileManager {
     type Output = String; 
 
+    // NOTE: maybe this is not needed
+    // both initial process are required
+    // only for DirManager, only moving 
+    // the default settings.yml file is
+    // required on the config_path
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
         let locker_path = self.locker.as_path().to_owned();
@@ -173,11 +234,7 @@ impl Manager for FileManager {
     }
 
     fn create(&mut self, path: &str) -> io::Result<()> {
-        // TODO: tightly coupled with locker, this needs some refactoring
-        let mut locker = self.locker.clone();
-        locker.push(path);
-
-        let p = Path::new(&locker);
+        let p = Path::new(path);
 
         if !p.exists() { File::create(p).expect("Unable to create file"); }
 
@@ -248,31 +305,71 @@ mod test {
     }
 
     #[test] 
-    fn create() {
+    fn create_locker() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (config, mut locker) = this.as_path_buf();
+                
                 let mut fm = FileManager::new(&config, &locker);
-                let hello_path = FileManager::pb_to_str(&config); 
+                let locker_path = FileManager::pb_to_str(&locker); 
 
-                fm.create(&hello_path);
+                locker.push(&locker_path);
+                fm.create_locker(&locker_path);
 
-                assert_eq!(Path::new(&hello_path).exists(), true);
+                assert_eq!(locker.as_path().exists(), true);
             }
         };
     }
 
     #[test] 
-    fn read() {
+    fn create_config() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (mut config, locker) = this.as_path_buf();
+                
+                let mut fm = FileManager::new(&config, &locker);
+                let config_path = FileManager::pb_to_str(&config);
+
+                config.push(&config_path);
+                fm.create_config(&config_path);
+
+                assert_eq!(config.as_path().exists(), true);
+            }
+        };
+    }
+
+    #[test] 
+    fn read_locker() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
+                let locker_path = FileManager::pb_to_str(&locker);
                 let mut fm = FileManager::new(&config, &locker);
-                let file = fm.read(&FileManager::pb_to_str(&config)).unwrap();
+                
+                let file = fm.read_locker(&locker_path).unwrap();
+
+                assert_eq!(file, String::from(""));
+            }
+        };
+    }
+
+    #[test] 
+    fn read_config() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let config_path = FileManager::pb_to_str(&config);
+                let mut fm = FileManager::new(&config, &locker);
+                
+                let file = fm.read_locker(&config_path).unwrap();
 
                 assert_eq!(file, String::from(""));
             }
@@ -280,7 +377,7 @@ mod test {
     }
 
     #[test]
-    fn read_panic() {
+    fn read_locker_panic() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -290,7 +387,7 @@ mod test {
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    fm.read("dump/unknown");
+                    fm.read_locker("dump/unknown");
                 }));
 
                 assert!(result.is_err());
@@ -299,7 +396,44 @@ mod test {
     }
 
     #[test]
-    fn remove() {
+    fn read_config_panic() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&config, &locker);
+
+                // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    fm.read_config("dump/unknown");
+                }));
+
+                assert!(result.is_err());
+            }
+        };
+    }
+
+    #[test]
+    fn remove_locker() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&config, &locker);
+                let path_to_remove = FileManager::pb_to_str(&locker);
+                
+                fm.remove_locker(&path_to_remove);
+
+                let path = Path::new(&path_to_remove);
+                assert_eq!(path.exists(), false);
+            }
+        }; 
+    }
+
+    #[test]
+    fn remove_config() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -308,7 +442,7 @@ mod test {
                 let mut fm = FileManager::new(&config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
                 
-                fm.remove(&path_to_remove);
+                fm.remove_config(&path_to_remove);
 
                 let path = Path::new(&path_to_remove);
                 assert_eq!(path.exists(), false);

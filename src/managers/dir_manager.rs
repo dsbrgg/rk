@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, ErrorKind};
 
-use crate::managers::traits::Manager;
+use crate::managers::manager::Manager;
 
 pub struct DirManager {
     config: PathBuf,
@@ -22,9 +22,63 @@ impl DirManager {
 
         dm
     }
-}
 
-// TODO: having to self.locker.push and .pop all the time seems really bad
+    pub fn create_locker(&mut self, path: &str) -> io::Result<()> {
+        self.create(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn read_locker(&mut self, path: &str) -> io::Result<Vec<String>> {
+        self.read(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn remove_locker(&mut self, path: &str) -> io::Result<()> {
+        self.remove(
+            &self.gen_path("locker", path)
+        )
+    }
+
+    pub fn create_config(&mut self, path: &str) -> io::Result<()> {
+        self.create(
+            &self.gen_path("config", path)
+        )
+    }
+
+    pub fn read_config(&mut self, path: &str) -> io::Result<Vec<String>> {
+        self.read(
+            &self.gen_path("config", path)
+        )
+    }
+
+    pub fn remove_config(&mut self, path: &str) -> io::Result<()> {
+        self.remove(
+            &self.gen_path("config", path)
+        )
+    }
+
+    // NOTE: this can be moved to the Manager Trait
+    // if field traits are implemented in the future
+    fn gen_path(&self, for_path: &str, path: &str) -> String {
+        let mut location = PathBuf::new();
+
+        match for_path {
+            "locker" => {
+                location.push(self.locker.clone());
+                location.push(path);
+            },
+            "config" => {
+                location.push(self.config.clone());
+                location.push(path);
+            },
+            _ => panic!("Unsupported location {:?}", location.as_path().to_str())
+        };
+
+        Self::pb_to_str(&location)
+    }
+}
 
 impl Manager for DirManager {
     type Output = Vec<String>;
@@ -53,37 +107,19 @@ impl Manager for DirManager {
     }
 
     fn create(&mut self, path: &str) -> io::Result<()> {
-        // TODO: tightly coupled with locker, this needs some refactoring
-        let mut locker = self.locker.clone();
-        locker.push(path);
-
-        if let Err(err) = fs::read_dir(&locker) {
+        if let Err(err) = fs::read_dir(path) {
             if err.kind() == ErrorKind::NotFound {
-                fs::create_dir_all(&locker)?;
+                fs::create_dir_all(path)?;
             }
         }
 
         Ok(())
     }
 
-    fn remove(&mut self, path: &str) -> io::Result<()> { 
-        // TODO: tightly coupled with locker, this needs some refactoring
-        let mut locker = self.locker.clone();
-        locker.push(path);
-
-        fs::remove_dir(&locker)?;
-
-        Ok(()) 
-    }
-
     fn read(&mut self, dir: &str) -> io::Result<Self::Output> {
-        // TODO: tightly coupled with locker, this needs some refactoring
-        let mut locker = self.locker.clone();
-        locker.push(dir);
-
         let mut entries = Vec::new();
 
-        for entry in fs::read_dir(&locker)? {
+        for entry in fs::read_dir(&dir)? {
             let dir = entry?;
             
             entries.push(
@@ -92,6 +128,12 @@ impl Manager for DirManager {
         }
 
         Ok(entries)
+    }
+
+    fn remove(&mut self, path: &str) -> io::Result<()> { 
+        fs::remove_dir(&path)?;
+
+        Ok(()) 
     } 
 }
 
@@ -127,7 +169,28 @@ mod test {
     } 
 
     #[test]
-    fn create() {
+    fn create_locker() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, mut locker) = this.as_path_buf();
+
+                let mut dm = DirManager::new(&config, &locker);
+                
+                locker.push("hello");
+
+                let hello_path = DirManager::pb_to_str(&locker);
+
+                dm.create_locker(&hello_path);
+
+                assert_eq!(Path::new(&hello_path).exists(), true);
+            },
+        }; 
+    }
+
+    #[test]
+    fn create_config() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -138,9 +201,9 @@ mod test {
                 
                 config.push("hello");
 
-                let hello_path = config.as_path().to_str().unwrap().to_owned();
+                let hello_path = DirManager::pb_to_str(&config);
 
-                dm.create(&hello_path);
+                dm.create_config(&hello_path);
 
                 assert_eq!(Path::new(&hello_path).exists(), true);
             },
@@ -148,7 +211,7 @@ mod test {
     }
 
     #[test]
-    fn read() {
+    fn read_locker() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -156,8 +219,8 @@ mod test {
                 let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
-                let path = config.as_path().to_str().unwrap().to_owned();
-                let res = dm.read(&path).unwrap();
+                let path = DirManager::pb_to_str(&locker);
+                let res = dm.read_locker(&path).unwrap();
 
                 assert_eq!(res.len(), 0);
             },
@@ -165,7 +228,7 @@ mod test {
     }
 
     #[test]
-    fn remove() {
+    fn read_config() {
         Setup {
             paths: Vec::new(),
             after_each: &after_each,
@@ -173,16 +236,44 @@ mod test {
                 let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
+                let path = DirManager::pb_to_str(&config);
+                let res = dm.read_config(&path).unwrap();
+
+                assert_eq!(res.len(), 0);
+            },
+        };
+    }
+
+    #[test]
+    fn remove_locker() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut dm = DirManager::new(&config, &locker);
+                let path = DirManager::pb_to_str(&locker);
                 
-                let path = config.as_path().to_str().unwrap().to_owned();
-                dm.remove(&path).unwrap();
-
-                assert_eq!(config.as_path().exists(), false);
-
-                let path = locker.as_path().to_str().unwrap().to_owned();
-                dm.remove(&path).unwrap();
+                dm.remove_locker(&path).unwrap();
 
                 assert_eq!(locker.as_path().exists(), false);
+            },
+        }; 
+    }
+
+    #[test]
+    fn remove_config() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut dm = DirManager::new(&config, &locker);
+                let path = DirManager::pb_to_str(&config);
+                
+                dm.remove_config(&path).unwrap();
+
+                assert_eq!(config.as_path().exists(), false);
             },
         }; 
     }
