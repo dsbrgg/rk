@@ -188,4 +188,64 @@ mod tests {
         };
     }
 
+    #[test]
+    fn operation_add_password() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+               
+                let mut l = locker.clone();
+                l.push("entity_for_password");
+                l.push("account_for_password");
+                l.push("very_good_password_1");
+
+                let mut cli = CLI::new(config, locker);
+                
+                let results = App::new("test")
+                    .subcommand(
+                        SubCommand::with_name("add")
+                            .setting(AppSettings::SubcommandRequired)
+                            .subcommand(
+                                SubCommand::with_name("password")
+                                    .arg(
+                                        Arg::with_name("pwd")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                                    .arg(
+                                        Arg::with_name("account")
+                                            .short("a")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                                    .arg(
+                                        Arg::with_name("entity")
+                                            .short("e")
+                                            .takes_value(true)
+                                            .required(true)
+                                    )
+                            )
+                    ) 
+                    .get_matches_from(
+                        vec![ 
+                            "test", 
+                            "add",
+                            "password",
+                            "very_good_password_1", 
+                            "-a",
+                            "account_for_password", 
+                            "-e", 
+                            "entity_for_password" 
+                        ]
+                    ); 
+
+                cli.operation(results);
+
+                assert_eq!(l.as_path().exists(), true);
+            }
+        };
+    }
+
 }
