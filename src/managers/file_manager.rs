@@ -173,7 +173,11 @@ impl Manager for FileManager {
     }
 
     fn create(&mut self, path: &str) -> io::Result<()> {
-        let p = Path::new(path);
+        // TODO: tightly coupled with locker, this needs some refactoring
+        let mut locker = self.locker.clone();
+        locker.push(path);
+
+        let p = Path::new(&locker);
 
         if !p.exists() { File::create(p).expect("Unable to create file"); }
 
@@ -181,7 +185,11 @@ impl Manager for FileManager {
     }
 
     fn read(&mut self, path: &str) -> io::Result<Self::Output> {
-        let p = Path::new(path);
+        // TODO: tightly coupled with locker, this needs some refactoring
+        let mut locker = self.locker.clone();
+        locker.push(path);
+
+        let p = Path::new(&locker);
 
         if !p.exists() { panic!("Trying to open file that does not exist"); }
 
@@ -194,7 +202,11 @@ impl Manager for FileManager {
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> {
-        let p = Path::new(path);
+        // TODO: tightly coupled with locker, this needs some refactoring
+        let mut locker = self.locker.clone();
+        locker.push(path);
+
+        let p = Path::new(&locker);
 
         if p.exists() { fs::remove_file(path)?; }
         

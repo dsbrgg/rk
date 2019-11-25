@@ -53,8 +53,8 @@ impl Manager for DirManager {
     }
 
     fn create(&mut self, path: &str) -> io::Result<()> {
+        // TODO: tightly coupled with locker, this needs some refactoring
         let mut locker = self.locker.clone();
-
         locker.push(path);
 
         if let Err(err) = fs::read_dir(&locker) {
@@ -67,8 +67,8 @@ impl Manager for DirManager {
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> { 
+        // TODO: tightly coupled with locker, this needs some refactoring
         let mut locker = self.locker.clone();
-        
         locker.push(path);
 
         fs::remove_dir(&locker)?;
@@ -77,8 +77,8 @@ impl Manager for DirManager {
     }
 
     fn read(&mut self, dir: &str) -> io::Result<Self::Output> {
+        // TODO: tightly coupled with locker, this needs some refactoring
         let mut locker = self.locker.clone();
-        
         locker.push(dir);
 
         let mut entries = Vec::new();
