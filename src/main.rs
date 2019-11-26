@@ -2,6 +2,7 @@ mod setup;
 mod locker;
 mod handler;
 mod managers;
+mod cli_operations;
 
 use handler::handler::CLI;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
