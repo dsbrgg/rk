@@ -1,11 +1,12 @@
 use clap::{ArgMatches};
+
+use std::io;
 use std::path::{PathBuf};
 
-pub mod handler { 
-    use super::*;
+use rk::{Resolve, Keeper};
 
-    use std::io;
-    use rk::{Resolve, Keeper};
+pub mod handler { 
+    use super::*;    
 
     struct Params<'p> { 
         entity: Option<&'p str>,
@@ -82,12 +83,15 @@ pub mod handler {
 
 #[cfg(test)]
 mod tests {
-    use super::handler::CLI;
-    use crate::setup::setup::Setup;
+    use clap::{App, AppSettings, Arg, SubCommand};
 
     use std::path::Path;
     use std::fs::remove_dir_all;
-    use clap::{App, AppSettings, Arg, SubCommand};
+
+    use super::{Resolve};
+    use super::handler::CLI;
+    use crate::cli_operations;
+    use crate::setup::setup::Setup;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
@@ -112,23 +116,9 @@ mod tests {
                 l.push("add_entity");
 
                 let mut cli = CLI::new(config, locker);
-                
-                let results = App::new("test")
-                    .subcommand(
-                        SubCommand::with_name("add")
-                            .setting(AppSettings::SubcommandRequired)
-                            .subcommand(
-                                SubCommand::with_name("entity")
-                                    .arg(
-                                        Arg::with_name("entity")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                            )
-                    ) 
-                    .get_matches_from(
-                        vec![ "test", "add", "entity", "add_entity" ]
-                    ); 
+               
+                let args = vec![ "test", "add", "entity", "add_entity" ];
+                let results = cli_operations::add_entity(args);
 
                 cli.operation(results);
 
@@ -151,35 +141,8 @@ mod tests {
 
                 let mut cli = CLI::new(config, locker);
                 
-                let results = App::new("test")
-                    .subcommand(
-                        SubCommand::with_name("add")
-                            .setting(AppSettings::SubcommandRequired)
-                            .subcommand(
-                                SubCommand::with_name("account")
-                                    .arg(
-                                        Arg::with_name("account")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                                    .arg(
-                                        Arg::with_name("entity")
-                                            .short("e")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                            )
-                    ) 
-                    .get_matches_from(
-                        vec![ 
-                            "test", 
-                            "add", 
-                            "account", 
-                            "add_account", 
-                            "-e", 
-                            "add_account_entity" 
-                        ]
-                    ); 
+                let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
+                let results = cli_operations::add_account(args);
 
                 cli.operation(results);
 
@@ -202,44 +165,9 @@ mod tests {
                 l.push("very_good_password_1");
 
                 let mut cli = CLI::new(config, locker);
-                
-                let results = App::new("test")
-                    .subcommand(
-                        SubCommand::with_name("add")
-                            .setting(AppSettings::SubcommandRequired)
-                            .subcommand(
-                                SubCommand::with_name("password")
-                                    .arg(
-                                        Arg::with_name("pwd")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                                    .arg(
-                                        Arg::with_name("account")
-                                            .short("a")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                                    .arg(
-                                        Arg::with_name("entity")
-                                            .short("e")
-                                            .takes_value(true)
-                                            .required(true)
-                                    )
-                            )
-                    ) 
-                    .get_matches_from(
-                        vec![ 
-                            "test", 
-                            "add",
-                            "password",
-                            "very_good_password_1", 
-                            "-a",
-                            "account_for_password", 
-                            "-e", 
-                            "entity_for_password" 
-                        ]
-                    ); 
+               
+                let args = vec![ "test", "add","password", "very_good_password_1", "-a", "account_for_password", "-e", "entity_for_password" ];
+                let results =  cli_operations::add_password(args);
 
                 cli.operation(results);
 
@@ -248,4 +176,29 @@ mod tests {
         };
     }
 
+    #[test]
+    fn operation_find_entity() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+               
+                let mut cli = CLI::new(config, locker);
+               
+                let add_args = vec![ "test", "add", "entity", "operation_find_entity" ];
+                let find_args = vec![ "test", "find", "entity", "operation_find_entity" ]; 
+
+                let add_results = cli_operations::add_entity(add_args);
+                cli.operation(add_results);
+
+                let find_results = cli_operations::find_entity(find_args);
+                let found = cli.operation(find_results).unwrap();
+
+                let should_equal_to: Vec<String> = vec![];
+
+                assert_eq!(found.to_vec(), should_equal_to);
+            }
+        };
+    }
 }
