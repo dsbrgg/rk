@@ -201,4 +201,38 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn operation_find_account() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+               
+                let mut cli = CLI::new(config, locker);
+               
+                let add_args = vec![ "test", "add", "account", "account", "-e", "operation_find_account" ];
+                let find_args = vec![ "test", "find", "account", "account", "-e", "operation_find_account" ];
+
+                let add_results = cli_operations::add_account(add_args);
+                cli.operation(add_results);
+
+                let find_results = cli_operations::find_account(find_args);
+                let found = cli.operation(find_results).unwrap();
+
+                let should_equal_to: Vec<String> = vec![];
+
+                assert_eq!(found.to_vec(), should_equal_to);
+
+                let find_args = vec![ "test", "find", "entity", "operation_find_account" ];
+                let find_results = cli_operations::find_entity(find_args);
+                let found = cli.operation(find_results).unwrap();
+
+                let should_equal_to: Vec<String> = vec![String::from("account")];
+
+                assert_eq!(found.to_vec().len(), 1);
+            }
+        };
+    }
 }
