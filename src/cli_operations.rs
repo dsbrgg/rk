@@ -85,3 +85,27 @@ pub fn find_entity(v: Vec<&str>) -> ArgMatches {
         ) 
         .get_matches_from(v)
 }
+
+pub fn find_account(v: Vec<&str>) -> ArgMatches {
+    App::new("test")
+        .subcommand(
+            SubCommand::with_name("find")
+                .setting(AppSettings::SubcommandRequired)
+                .subcommand(
+                    SubCommand::with_name("account")
+                        .about("Find an account")
+                        .arg(
+                            Arg::with_name("account")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                        .arg(
+                            Arg::with_name("entity")
+                                .short("e")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+        ) 
+        .get_matches_from(v)
+}
