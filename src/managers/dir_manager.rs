@@ -131,7 +131,7 @@ impl Manager for DirManager {
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> { 
-        fs::remove_dir(&path)?;
+        fs::remove_dir_all(&path)?;
 
         Ok(()) 
     } 
