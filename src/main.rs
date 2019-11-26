@@ -7,6 +7,10 @@ mod cli_operations;
 use handler::handler::CLI;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
+// TODO:
+// extract cmd -> encrypt/zip all passwords and send it to a specific path
+// set config cmd -> allow for custom config settings (eg. locker location, config location, cypto algo, etc...)
+
 fn main() {
     let mut config = dirs::home_dir().unwrap();
     let mut locker = dirs::home_dir().unwrap();
