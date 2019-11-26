@@ -93,7 +93,6 @@ pub fn find_account(v: Vec<&str>) -> ArgMatches {
                 .setting(AppSettings::SubcommandRequired)
                 .subcommand(
                     SubCommand::with_name("account")
-                        .about("Find an account")
                         .arg(
                             Arg::with_name("account")
                                 .takes_value(true)
@@ -102,6 +101,23 @@ pub fn find_account(v: Vec<&str>) -> ArgMatches {
                         .arg(
                             Arg::with_name("entity")
                                 .short("e")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                )
+        ) 
+        .get_matches_from(v)
+}
+
+pub fn remove_entity(v: Vec<&str>) -> ArgMatches {
+    App::new("test")
+        .subcommand(
+            SubCommand::with_name("remove")
+                .setting(AppSettings::SubcommandRequired)
+                .subcommand(
+                    SubCommand::with_name("entity")
+                        .arg(
+                            Arg::with_name("entity")
                                 .takes_value(true)
                                 .required(true)
                         )
