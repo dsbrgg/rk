@@ -63,7 +63,13 @@ fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("account")
                         .about("Find an account")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("account")
+                                .takes_value(true)
+                                .required(true)
+                        )
+                        .arg(
+                            Arg::with_name("entity")
+                                .short("e")
                                 .takes_value(true)
                                 .required(true)
                         )
