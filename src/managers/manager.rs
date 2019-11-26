@@ -24,17 +24,19 @@ pub trait Manager {
     }
 
     fn append_paths(root: &str, paths: &Vec<&str>) -> String {
-        let mut path = PathBuf::from(root);
+        let mut buf = PathBuf::from(root);
        
-        for p in paths.iter() { path.push(p); }
+        for path in paths.iter() { 
+            if !path.is_empty() { buf.push(path); }
+        }
 
-        Self::pb_to_str(&path)
+        Self::pb_to_str(&buf)
     }
 
     fn append_path(root: &str, path: &str) -> String {
         let mut buf = PathBuf::from(root);
-       
-        buf.push(path);
+      
+        if !path.is_empty() { buf.push(path); }
 
         Self::pb_to_str(&buf)
     }
