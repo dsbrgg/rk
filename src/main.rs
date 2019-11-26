@@ -133,7 +133,7 @@ fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("entity")
                         .about("Remove an entity")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("entity")
                                 .takes_value(true)
                                 .required(true)
                         )
@@ -142,16 +142,13 @@ fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("account")
                         .about("Remove an account")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("account")
                                 .takes_value(true)
                                 .required(true)
                         )
-                )
-                .subcommand(
-                    SubCommand::with_name("password")
-                        .about("Remove a password")
                         .arg(
-                            Arg::with_name("pwd")
+                            Arg::with_name("entity")
+                                .short("e")
                                 .takes_value(true)
                                 .required(true)
                         )
