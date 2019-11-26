@@ -11,7 +11,7 @@ use managers::manager::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
     Find(Vec<String>),
