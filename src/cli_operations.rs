@@ -1,4 +1,10 @@
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{
+    App, 
+    AppSettings, 
+    Arg, 
+    ArgMatches, 
+    SubCommand
+};
 
 pub fn add_entity(v: Vec<&str>) -> ArgMatches {
     App::new("test")
