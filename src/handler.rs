@@ -17,7 +17,7 @@ pub mod handler {
     pub struct CLI { keeper: Keeper }
 
     impl<'p> CLI {
-        pub fn new(config: PathBuf, locker: PathBuf) -> CLI {
+        pub fn start(config: PathBuf, locker: PathBuf) -> CLI {
             CLI {
                 keeper: Keeper::new(config, locker)
             }
@@ -83,13 +83,12 @@ pub mod handler {
 
 #[cfg(test)]
 mod tests {
-    use clap::{App, AppSettings, Arg, SubCommand};
-
     use std::path::Path;
     use std::fs::remove_dir_all;
 
     use super::{Resolve};
     use super::handler::CLI;
+    
     use crate::cli_operations;
     use crate::setup::setup::Setup;
 
@@ -115,7 +114,7 @@ mod tests {
                 let mut l = locker.clone();
                 l.push("add_entity");
 
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                
                 let args = vec![ "test", "add", "entity", "add_entity" ];
                 let results = cli_operations::add_entity(args);
@@ -139,7 +138,7 @@ mod tests {
                 l.push("add_account_entity");
                 l.push("add_account");
 
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                 
                 let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
                 let results = cli_operations::add_account(args);
@@ -164,7 +163,7 @@ mod tests {
                 l.push("account_for_password");
                 l.push("very_good_password_1");
 
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                
                 let args = vec![ "test", "add","password", "very_good_password_1", "-a", "account_for_password", "-e", "entity_for_password" ];
                 let results = cli_operations::add_password(args);
@@ -183,7 +182,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "operation_find_entity" ];
                 let add_results = cli_operations::add_entity(add_args);
@@ -208,7 +207,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "account", "account", "-e", "operation_find_account" ];
                 let add_results = cli_operations::add_account(add_args);
@@ -237,7 +236,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::new(config, locker);
+                let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "entity" ];
 
