@@ -85,8 +85,8 @@ mod tests {
     use super::CLI;
     use super::{Resolve};
     
-    use crate::setup::Setup;
-    use crate::cli_operations::{command, Commands};
+    use crate::mocks::setup::Setup;
+    use crate::cli::commands::{command, Commands};
 
     use Commands::*;
 
