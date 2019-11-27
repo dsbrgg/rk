@@ -138,7 +138,7 @@ impl Keeper {
 mod keeper {
     use super::*;
 
-    use setup::setup::Setup;
+    use setup::Setup;
 
     use std::path::Path;
     use std::fs::remove_dir_all;

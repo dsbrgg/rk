@@ -10,7 +10,7 @@ mod cli_operations;
 // set config cmd -> allow for custom config settings (eg. locker location, config location, cypto algo, etc...)
 
 fn main() {
-    use handler::handler::CLI;
+    use handler::CLI;
 
     let args = app::execute();
 
