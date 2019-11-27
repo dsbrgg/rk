@@ -5,79 +5,75 @@ use std::path::{PathBuf};
 
 use rk::{Resolve, Keeper};
 
-pub mod handler { 
-    use super::*;    
+struct Params<'p> { 
+    entity: Option<&'p str>,
+    account: Option<&'p str>,
+    password: Option<&'p str>
+}
 
-    struct Params<'p> { 
-        entity: Option<&'p str>,
-        account: Option<&'p str>,
-        password: Option<&'p str>
+pub struct CLI { keeper: Keeper }
+
+impl<'p> CLI {
+    pub fn start(config: PathBuf, locker: PathBuf) -> CLI {
+        CLI {
+            keeper: Keeper::new(config, locker)
+        }
     }
 
-    pub struct CLI { keeper: Keeper }
-
-    impl<'p> CLI {
-        pub fn start(config: PathBuf, locker: PathBuf) -> CLI {
-            CLI {
-                keeper: Keeper::new(config, locker)
-            }
+    pub fn operation(&mut self, args: ArgMatches) -> io::Result<Resolve> {
+        match args.subcommand() {
+            ("add", Some(add)) => { self.handle_add(add) },
+            ("find", Some(find)) => { self.handle_find(find) },
+            ("remove", Some(remove)) => { self.handle_remove(remove) }
+            (_, _) => { panic!("Unknown operation in CLI"); }
         }
+    }
 
-        pub fn operation(&mut self, args: ArgMatches) -> io::Result<Resolve> {
-            match args.subcommand() {
-                ("add", Some(add)) => { self.handle_add(add) },
-                ("find", Some(find)) => { self.handle_find(find) },
-                ("remove", Some(remove)) => { self.handle_remove(remove) }
-                (_, _) => { panic!("Unknown operation in CLI"); }
-            }
-        }
+    fn extract_values(args: &'p ArgMatches) -> Params<'p> {
+        let (_, arg) = args.subcommand();
+        let options = arg.unwrap();
 
-        fn extract_values(args: &'p ArgMatches) -> Params<'p> {
-            let (_, arg) = args.subcommand();
-            let options = arg.unwrap();
-
-            let password = options.value_of("pwd");
-            let account = options.value_of("account");
-            let entity = options.value_of("entity");
-            
-            Params {
-                entity,
-                account,
-                password
-            }
-        }
-
-        fn handle_add(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
-            let Params { 
-                entity, 
-                account, 
-                password 
-            } = CLI::extract_values(args);
-
-            self.keeper.add(
-                entity,
-                account,
-                password
-            )
-        }
-
-        fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
-            let Params { entity, account, .. } = CLI::extract_values(args);
-            
-            self.keeper.find(
-                entity,
-                account
-            )
-        }
+        let password = options.value_of("pwd");
+        let account = options.value_of("account");
+        let entity = options.value_of("entity");
         
-        fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
-            let Params { entity, account, .. } = CLI::extract_values(args);
-            
-            self.keeper.remove(
-                entity,
-                account
-            )
+        Params {
+            entity,
+            account,
+            password
         }
+    }
+
+    fn handle_add(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let Params { 
+            entity, 
+            account, 
+            password 
+        } = CLI::extract_values(args);
+
+        self.keeper.add(
+            entity,
+            account,
+            password
+        )
+    }
+
+    fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let Params { entity, account, .. } = CLI::extract_values(args);
+        
+        self.keeper.find(
+            entity,
+            account
+        )
+    }
+    
+    fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let Params { entity, account, .. } = CLI::extract_values(args);
+        
+        self.keeper.remove(
+            entity,
+            account
+        )
     }
 }
 
@@ -86,11 +82,11 @@ mod tests {
     use std::path::Path;
     use std::fs::remove_dir_all;
 
+    use super::CLI;
     use super::{Resolve};
-    use super::handler::CLI;
     
     use crate::cli_operations;
-    use crate::setup::setup::Setup;
+    use crate::setup::Setup;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
