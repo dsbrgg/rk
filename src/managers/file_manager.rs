@@ -212,19 +212,10 @@ impl Manager for FileManager {
     // required on the config_path
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
-        let locker_path = self.locker.as_path().to_owned();
 
         if !config_path.exists() { 
             self.create(
                 config_path
-                    .to_str()
-                    .unwrap()
-            )?;
-        }
-
-        if !locker_path.exists() { 
-            self.create(
-                locker_path
                     .to_str()
                     .unwrap()
             )?;
@@ -278,8 +269,9 @@ mod test {
             let exists = Path::new(&path).exists();
 
             if exists {
-                remove_file(path)
-                    .expect("Could not remove file in `file_manager.rs` test");
+                let msg = format!("Could not remove {} in `file_manager.rs` test", path);
+                
+                remove_file(path).expect(&msg);
             }
         }
     }
@@ -340,9 +332,12 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
-                let locker_path = FileManager::pb_to_str(&locker);
+                let (config, mut locker) = this.as_path_buf();
+                
                 let mut fm = FileManager::new(&config, &locker);
+                let locker_path = FileManager::pb_to_str(&locker); 
+
+                fm.create_locker(&locker_path);
                 
                 let file = fm.read_locker(&locker_path).unwrap();
 
@@ -379,6 +374,7 @@ mod test {
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
+                    // TODO: use PathBuf here
                     fm.read_locker("dump/unknown");
                 }));
 
@@ -398,6 +394,7 @@ mod test {
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
+                    // TODO: use PathBuf here
                     fm.read_config("dump/unknown");
                 }));
 
