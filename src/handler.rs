@@ -85,16 +85,19 @@ mod tests {
     use super::CLI;
     use super::{Resolve};
     
-    use crate::cli_operations;
     use crate::setup::Setup;
+    use crate::cli_operations::{command, Commands};
+
+    use Commands::*;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
             let exists = Path::new(path).exists();
 
             if exists {
-                remove_dir_all(path)
-                    .expect("Could not remove file in `handlers.rs` test");
+                let msg = format!("Could not remove {} in `handlers.rs` test", path);
+                
+                remove_dir_all(path).expect(&msg);
             } 
         }
     }
@@ -113,7 +116,7 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                
                 let args = vec![ "test", "add", "entity", "add_entity" ];
-                let results = cli_operations::add_entity(args);
+                let results = command(AddEntity, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -137,7 +140,7 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                 
                 let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
-                let results = cli_operations::add_account(args);
+                let results = command(AddAccount, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -162,7 +165,7 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                
                 let args = vec![ "test", "add","password", "very_good_password_1", "-a", "account_for_password", "-e", "entity_for_password" ];
-                let results = cli_operations::add_password(args);
+                let results = command(AddPassword, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -181,13 +184,13 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "operation_find_entity" ];
-                let add_results = cli_operations::add_entity(add_args);
+                let add_results = command(AddEntity, add_args);
                 let add = cli.operation(add_results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
 
                 let find_args = vec![ "test", "find", "entity", "operation_find_entity" ]; 
-                let find_results = cli_operations::find_entity(find_args);
+                let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 let should_equal_to: Vec<String> = vec![];
@@ -206,18 +209,18 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "account", "account", "-e", "operation_find_account" ];
-                let add_results = cli_operations::add_account(add_args);
+                let add_results = command(AddAccount, add_args);
                 cli.operation(add_results);
 
                 let find_args = vec![ "test", "find", "account", "account", "-e", "operation_find_account" ];
-                let find_results = cli_operations::find_account(find_args);
+                let find_results = command(FindAccount, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 let should_equal_to: Vec<String> = vec![];
                 assert_eq!(found.to_vec(), should_equal_to);
 
                 let find_args = vec![ "test", "find", "entity", "operation_find_account" ];
-                let find_results = cli_operations::find_entity(find_args);
+                let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 assert_eq!(found.to_vec().len(), 1);
@@ -235,14 +238,13 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "entity" ];
-
-                let add_results = cli_operations::add_entity(add_args);
+                let add_results = command(AddEntity, add_args);
                 let add = cli.operation(add_results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
 
                 let remove_args = vec![ "test", "remove", "entity", "entity" ];
-                let remove_results = cli_operations::remove_entity(remove_args);
+                let remove_results = command(RemoveEntity, remove_args);
                 let removed = cli.operation(remove_results).unwrap();
 
                 assert_eq!(removed, Resolve::Remove);
