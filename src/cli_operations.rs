@@ -6,128 +6,129 @@ use clap::{
     SubCommand
 };
 
-pub fn add_entity(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
-        .subcommand(
-            SubCommand::with_name("add")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("entity")
-                        .arg(
-                            Arg::with_name("entity")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                )
-        ) 
-        .get_matches_from(v)
+pub enum Commands {
+    AddEntity,
+    AddAccount,
+    AddPassword,
+    FindEntity,
+    FindAccount,
+    RemoveEntity,
+    RemoveAccount
 }
 
-pub fn add_account(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
-        .subcommand(
-            SubCommand::with_name("add")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("account")
-                        .arg(
-                            Arg::with_name("account")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                        .arg(
-                            Arg::with_name("entity")
-                                .short("e")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                )
-        ) 
-        .get_matches_from(v)
+pub fn command(cmd: Commands, args: Vec<&str>) -> ArgMatches<'static> {
+   let app = App::new("test");
+
+    match cmd {
+        Commands::AddEntity => app.subcommand(add_entity()).get_matches_from(args),
+        Commands::AddAccount => app.subcommand(add_account()).get_matches_from(args),
+        Commands::AddPassword => app.subcommand(add_password()).get_matches_from(args),
+        Commands::FindEntity => app.subcommand(find_entity()).get_matches_from(args),
+        Commands::FindAccount => app.subcommand(find_account()).get_matches_from(args),
+        Commands::RemoveEntity => app.subcommand(remove_entity()).get_matches_from(args),
+        // Commands::RemoveAccount => app.subcommand(remove_account()).get_matches_from(args),
+        _ => panic!("Unknown command requested"),
+    }
 }
 
-pub fn add_password(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
+fn add_entity() -> App<'static, 'static> {
+    SubCommand::with_name("add")
+        .setting(AppSettings::SubcommandRequired)
         .subcommand(
-            SubCommand::with_name("add")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("password")
-                        .arg(
-                            Arg::with_name("pwd")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                        .arg(
-                            Arg::with_name("account")
-                                .short("a")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                        .arg(
-                            Arg::with_name("entity")
-                                .short("e")
-                                .takes_value(true)
-                                .required(true)
-                        )
+            SubCommand::with_name("entity")
+                .arg(
+                    Arg::with_name("entity")
+                        .takes_value(true)
+                        .required(true)
                 )
-        ) 
-        .get_matches_from(v)
+        )
 }
 
-pub fn find_entity(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
+fn add_account() -> App<'static, 'static> {
+    SubCommand::with_name("add")
+        .setting(AppSettings::SubcommandRequired)
         .subcommand(
-            SubCommand::with_name("find")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("entity")
-                        .arg(
-                            Arg::with_name("entity")
-                                .takes_value(true)
-                                .required(true)
-                        )
+            SubCommand::with_name("account")
+                .arg(
+                    Arg::with_name("account")
+                        .takes_value(true)
+                        .required(true)
                 )
-        ) 
-        .get_matches_from(v)
+                .arg(
+                    Arg::with_name("entity")
+                        .short("e")
+                        .takes_value(true)
+                        .required(true)
+                )
+        )
 }
 
-pub fn find_account(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
+fn add_password() -> App<'static, 'static> {
+    SubCommand::with_name("add")
+        .setting(AppSettings::SubcommandRequired)
         .subcommand(
-            SubCommand::with_name("find")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("account")
-                        .arg(
-                            Arg::with_name("account")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                        .arg(
-                            Arg::with_name("entity")
-                                .short("e")
-                                .takes_value(true)
-                                .required(true)
-                        )
+            SubCommand::with_name("password")
+                .arg(
+                    Arg::with_name("pwd")
+                        .takes_value(true)
+                        .required(true)
                 )
-        ) 
-        .get_matches_from(v)
+                .arg(
+                    Arg::with_name("account")
+                        .short("a")
+                        .takes_value(true)
+                        .required(true)
+                )
+                .arg(
+                    Arg::with_name("entity")
+                        .short("e")
+                        .takes_value(true)
+                        .required(true)
+                )
+        )
 }
 
-pub fn remove_entity(v: Vec<&str>) -> ArgMatches {
-    App::new("test")
+fn find_entity() -> App<'static, 'static> {
+    SubCommand::with_name("find")
+        .setting(AppSettings::SubcommandRequired)
         .subcommand(
-            SubCommand::with_name("remove")
-                .setting(AppSettings::SubcommandRequired)
-                .subcommand(
-                    SubCommand::with_name("entity")
-                        .arg(
-                            Arg::with_name("entity")
-                                .takes_value(true)
-                                .required(true)
-                        )
+            SubCommand::with_name("entity")
+                .arg(
+                    Arg::with_name("entity")
+                        .takes_value(true)
+                        .required(true)
                 )
-        ) 
-        .get_matches_from(v)
+        )
+}
+
+fn find_account() -> App<'static, 'static> {
+    SubCommand::with_name("find")
+        .setting(AppSettings::SubcommandRequired)
+        .subcommand(
+            SubCommand::with_name("account")
+                .arg(
+                    Arg::with_name("account")
+                        .takes_value(true)
+                        .required(true)
+                )
+                .arg(
+                    Arg::with_name("entity")
+                        .short("e")
+                        .takes_value(true)
+                        .required(true)
+                )
+        )
+}
+
+fn remove_entity() -> App<'static, 'static> {
+    SubCommand::with_name("remove")
+        .setting(AppSettings::SubcommandRequired)
+        .subcommand(
+            SubCommand::with_name("entity")
+                .arg(
+                    Arg::with_name("entity")
+                        .takes_value(true)
+                        .required(true)
+                )
+        )
 }
