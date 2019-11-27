@@ -1,6 +1,6 @@
-mod setup;
 mod locker;
 mod managers;
+mod mocks;
 
 use std::io;
 use std::path::{PathBuf};
@@ -138,7 +138,7 @@ impl Keeper {
 mod keeper {
     use super::*;
 
-    use setup::Setup;
+    use mocks::setup::Setup;
 
     use std::path::Path;
     use std::fs::remove_dir_all;

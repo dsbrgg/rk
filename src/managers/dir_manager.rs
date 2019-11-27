@@ -143,8 +143,8 @@ mod test {
     
     use std::env::current_dir;
     use std::fs::remove_dir_all;
-    
-    use crate::setup::Setup;
+
+    use crate::mocks::setup::Setup;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
