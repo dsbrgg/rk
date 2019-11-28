@@ -132,7 +132,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-               
+
                 let mut l = locker.clone();
                 l.push("add_account_entity");
                 l.push("add_account");
@@ -156,15 +156,19 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-               
+ 
                 let mut l = locker.clone();
                 l.push("entity_for_password");
                 l.push("account_for_password");
                 l.push("very_good_password_1");
 
                 let mut cli = CLI::start(config, locker);
-               
-                let args = vec![ "test", "add","password", "very_good_password_1", "-a", "account_for_password", "-e", "entity_for_password" ];
+
+                let args = vec![ 
+                    "test", "add", "password", "very_good_password_1", 
+                    "-a", "account_for_password", "-e", "entity_for_password" 
+                ];
+
                 let results = command(AddPassword, args);
                 let add = cli.operation(results).unwrap();
 
