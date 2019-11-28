@@ -6,7 +6,6 @@ use std::io;
 use std::path::{PathBuf};
 
 use locker::Locker;
-
 use managers::manager::Manager;
 use managers::dir_manager::DirManager;
 use managers::file_manager::FileManager;
@@ -175,12 +174,11 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
-      
-                dump.push("add_entity");
-                let e = this.add_to_paths(&dump);
 
+                dump.push("add_entity");
+
+                let e = this.add_to_paths(&dump);
                 let entity = Some(e.as_str());
                 let account = None;
                 let password = None;
@@ -199,7 +197,6 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
@@ -223,7 +220,6 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
 
                 dump.push("add_account_1");
@@ -251,7 +247,6 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
 
                 dump.push("add_password_1");
@@ -280,7 +275,6 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
 
                 dump.push("find_entity_1");
@@ -304,7 +298,6 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
 
                 dump.push("find_entity_account_1");
@@ -331,7 +324,6 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(config, locker);
                 
                 let operation = keeper.find(None, None);
