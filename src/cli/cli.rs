@@ -255,4 +255,28 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn operation_remove_account() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+                let mut cli = CLI::start(config, locker);
+               
+                let add_args = vec![ "test", "add", "account", "new_account", "-e", "new_entity" ];
+                let add_results = command(AddAccount, add_args);
+                let add = cli.operation(add_results).unwrap();
+
+                assert_eq!(add, Resolve::Add);
+
+                let remove_args = vec![ "test", "remove", "account", "new_account", "-e", "new_entity" ];
+                let remove_results = command(RemoveAccount, remove_args);
+                let removed = cli.operation(remove_results).unwrap();
+
+                assert_eq!(removed, Resolve::Remove);
+            }
+        };
+    }
 }
