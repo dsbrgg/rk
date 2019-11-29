@@ -1,2 +1,4 @@
 paths: 
+  index: ~/.rk/index 
   locker: ~/.rk
+  config: ~/.config/rk
