@@ -26,8 +26,7 @@ pub fn command(cmd: Commands, args: Vec<&str>) -> ArgMatches<'static> {
         Commands::FindEntity => app.subcommand(find_entity()).get_matches_from(args),
         Commands::FindAccount => app.subcommand(find_account()).get_matches_from(args),
         Commands::RemoveEntity => app.subcommand(remove_entity()).get_matches_from(args),
-        // Commands::RemoveAccount => app.subcommand(remove_account()).get_matches_from(args),
-        _ => panic!("Unknown command requested"),
+        Commands::RemoveAccount => app.subcommand(remove_account()).get_matches_from(args),
     }
 }
 
@@ -127,6 +126,25 @@ fn remove_entity() -> App<'static, 'static> {
             SubCommand::with_name("entity")
                 .arg(
                     Arg::with_name("entity")
+                        .takes_value(true)
+                        .required(true)
+                )
+        )
+}
+
+fn remove_account() -> App<'static, 'static> {
+    SubCommand::with_name("remove")
+        .setting(AppSettings::SubcommandRequired)
+        .subcommand(
+            SubCommand::with_name("account")
+                .arg(
+                    Arg::with_name("account")
+                        .takes_value(true)
+                        .required(true)
+                )
+                .arg(
+                    Arg::with_name("entity")
+                        .short("e")
                         .takes_value(true)
                         .required(true)
                 )
