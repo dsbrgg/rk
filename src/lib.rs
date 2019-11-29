@@ -59,6 +59,7 @@ impl Keeper {
         password: Option<&str>
     ) -> io::Result<Resolve> {
         let mut paths = Vec::new();
+        let mut index = PathBuf::new();
 
         if entity.is_none() && account.is_some() {
             return Err(io::Error::new(
@@ -66,11 +67,14 @@ impl Keeper {
             ));
         }
 
-        if let Some(e) = entity { 
+        if let Some(e) = entity {
+            index.push(e);
+
             self.directories.create_locker(e)?; 
         }
 
         if let Some(a) = account {
+            index.push(a);
             paths.push(a);
 
             let e = entity.unwrap();
@@ -87,6 +91,8 @@ impl Keeper {
 
             self.files.create_locker(&p)?; 
         }
+
+        // TODO: add Index struct to manage index file
 
         Ok(Resolve::Add)
     }
