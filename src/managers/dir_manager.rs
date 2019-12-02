@@ -65,16 +65,13 @@ impl DirManager {
         let mut location = PathBuf::new();
 
         match for_path {
-            "locker" => {
-                location.push(self.locker.clone());
-                location.push(path);
-            },
-            "config" => {
-                location.push(self.config.clone());
-                location.push(path);
-            },
+            "locker" => { location.push(self.locker.clone()); },
+            "config" => { location.push(self.config.clone()); },
             _ => panic!("Unsupported location {:?}", location.as_path().to_str())
         };
+
+        
+        location.push(path);
 
         Self::pb_to_str(&location)
     }
@@ -149,12 +146,9 @@ mod test {
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
             let exists = Path::new(&path).exists();
+            let msg = format!("Could not remove {} in `dir_manager.rs` test", path);
 
-            if exists {
-                let msg = format!("Could not remove {} in `dir_manager.rs` test", path);
-                
-                remove_dir_all(path).expect(&msg);
-            } 
+            if exists { remove_dir_all(path).expect(&msg); } 
         } 
     }
 
@@ -164,7 +158,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 DirManager::new(&config, &locker);
             },
         }; 
@@ -176,7 +170,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, mut locker) = this.as_path_buf();
+                let (.., config, mut locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -197,7 +191,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (mut config, locker) = this.as_path_buf();
+                let (.., mut config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -218,7 +212,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
@@ -235,7 +229,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
@@ -252,7 +246,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
                 
@@ -269,7 +263,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
                 
