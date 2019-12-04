@@ -7,6 +7,13 @@ use std::io::{self, Read, Write, ErrorKind};
 
 use crate::managers::manager::Manager;
 
+enum ManagerOption {
+    Config,
+    Locker,
+}
+
+use ManagerOption::*;
+
 pub struct FileManager {
     config: PathBuf,
     locker: PathBuf,
@@ -24,58 +31,70 @@ impl FileManager {
         fm.init().expect("Could not initialize FileManager");
 
         fm
-    }
+    } 
 
     pub fn create_locker(&mut self, path: &str) -> io::Result<()> {
         self.create(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn read_locker(&mut self, path: &str) -> io::Result<String> {
         self.read(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn remove_locker(&mut self, path: &str) -> io::Result<()> {
         self.remove(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn create_config(&mut self, path: &str) -> io::Result<()> {
         self.create(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
     pub fn read_config(&mut self, path: &str) -> io::Result<String> {
         self.read(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
     pub fn remove_config(&mut self, path: &str) -> io::Result<()> {
         self.remove(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
-    fn gen_path(&self, for_path: &str, path: &str) -> String {
+    pub fn read_index(&mut self) -> io::Result<String> {
+        self.read(
+           &Self::pb_to_str(&self.index) 
+        )
+    }
+
+    pub fn write_index(&mut self, new_index: &str) -> io::Result<()> {
+        let mut buffer = File::create(self.index.as_path())?;
+        
+        write!(buffer, "{}", new_index)?;
+
+        Ok(())
+    }
+
+    fn gen_path(&self, for_path: ManagerOption, path: &str) -> String {
         let mut location = PathBuf::new();
 
         match for_path {
-            "index" => { location.push(self.index.clone()); },
-            "locker" => { location.push(self.locker.clone()); },
-            "config" => { location.push(self.config.clone()); },
-            _ => panic!("Unsupported location {:?}", location.as_path().to_str())
+            Config => { location.push(self.config.clone()); },
+            Locker => { location.push(self.locker.clone()); },
         };
 
         location.push(path);
 
         Self::pb_to_str(&location)
-    }
+    } 
 
     // TODO: this is pretty ugly, def a better way to do it
     // fn init_default_yaml() -> serde_yaml::Result<()> {
@@ -235,7 +254,7 @@ impl Manager for FileManager {
 
         if !p.exists() { 
             File::create(p)
-                .expect(&format!("Unable to create file {:?}", p)); 
+                .expect(&format!("Unable to create/write file {:?}", p)); 
         }
 
         Ok(()) 
@@ -448,6 +467,22 @@ mod test {
                 assert_eq!(path.exists(), false);
             }
         }; 
+    }
+
+    #[test]
+    fn write_index() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
+                
+                fm.write_index("new_index");
+
+                assert_eq!(fm.read_index().unwrap(), "new_index");
+            }
+        };
     }
 
     #[test]
