@@ -1,9 +1,10 @@
 use serde_yaml::{Mapping, Value};
 
+use std::fmt::Write;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
-use std::io::{self, Read, Write, ErrorKind};
+use std::io::{self, Read, ErrorKind};
 
 use crate::managers::manager::Manager;
 
@@ -76,9 +77,13 @@ impl FileManager {
     }
 
     pub fn write_index(&mut self, new_index: &str) -> io::Result<()> {
-        let mut buffer = File::create(self.index.as_path())?;
-        
-        write!(buffer, "{}", new_index)?;
+        let index_path = Self::pb_to_str(&self.index.clone());
+        let previous_index = self.read(&index_path)?;
+
+        let append_index = format!("{}{}\n", previous_index, new_index);
+        let error_msg = format!("Unable to write {} to index at path {}", new_index, index_path);
+
+        fs::write(&index_path, append_index).expect(&error_msg);
 
         Ok(())
     }
@@ -479,8 +484,9 @@ mod test {
                 let mut fm = FileManager::new(&index, &config, &locker);
                 
                 fm.write_index("new_index");
+                fm.write_index("another_index");
 
-                assert_eq!(fm.read_index().unwrap(), "new_index");
+                assert_eq!(fm.read_index().unwrap(), "new_index\nanother_index\n");
             }
         };
     }
