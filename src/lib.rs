@@ -91,8 +91,9 @@ impl Keeper {
 
             self.files.create_locker(&p)?; 
         }
-
-        
+ 
+        let index_str = index.to_str().unwrap();
+        self.files.write_index(index_str)?;
 
         Ok(Resolve::Add)
     }
