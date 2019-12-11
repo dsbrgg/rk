@@ -82,7 +82,7 @@ impl FileManager {
 
         let append_index = format!("{}{}\n", previous_index, new_index);
         let error_msg = format!("Unable to write {} to index at path {}", new_index, index_path);
-
+        
         fs::write(&index_path, append_index).expect(&error_msg);
 
         Ok(())
