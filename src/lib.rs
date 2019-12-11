@@ -92,7 +92,7 @@ impl Keeper {
             self.files.create_locker(&p)?; 
         }
 
-        // TODO: add Index struct to manage index file
+        
 
         Ok(Resolve::Add)
     }
@@ -198,7 +198,7 @@ mod keeper {
 
                 keeper.add(entity, account, password);
 
-                assert!(dump.as_path().exists());
+                assert!(dump.exists());
             }
         };
     }
@@ -247,7 +247,7 @@ mod keeper {
 
                 keeper.add(entity, account, password);
 
-                assert!(dump.as_path().exists());
+                assert!(dump.exists());
             }
         };
     }
@@ -275,7 +275,7 @@ mod keeper {
 
                 dump.push("password");
 
-                assert!(dump.as_path().exists());
+                assert!(dump.exists());
             }
         };
     }
