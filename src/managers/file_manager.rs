@@ -139,7 +139,7 @@ impl FileManager {
     //     let mut config_dir = dirs::home_dir().unwrap();
     //     config_dir.push(".config/rk/settings.yml");
     //     
-    //     config_dir.as_path().exists()
+    //     config_dir.exists()
     // }
 
     // fn get_config_file_path() -> PathBuf {
@@ -336,7 +336,7 @@ mod test {
                 locker.push(&locker_path);
                 fm.create_locker(&locker_path);
 
-                assert_eq!(locker.as_path().exists(), true);
+                assert_eq!(locker.exists(), true);
             }
         };
     }
@@ -355,7 +355,7 @@ mod test {
                 config.push(&config_path);
                 fm.create_config(&config_path);
 
-                assert_eq!(config.as_path().exists(), true);
+                assert_eq!(config.exists(), true);
             }
         };
     }

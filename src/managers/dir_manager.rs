@@ -252,7 +252,7 @@ mod test {
                 
                 dm.remove_locker(&path).unwrap();
 
-                assert_eq!(locker.as_path().exists(), false);
+                assert_eq!(locker.exists(), false);
             },
         }; 
     }
@@ -269,7 +269,7 @@ mod test {
                 
                 dm.remove_config(&path).unwrap();
 
-                assert_eq!(config.as_path().exists(), false);
+                assert_eq!(config.exists(), false);
             },
         }; 
     }
