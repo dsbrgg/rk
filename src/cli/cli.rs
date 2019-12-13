@@ -3,6 +3,7 @@ use clap::{ArgMatches};
 use std::io;
 use std::path::{PathBuf};
 
+use rk::args::Args;
 use rk::{Resolve, Keeper};
 
 struct Params<'p> { 
@@ -51,11 +52,13 @@ impl<'p> CLI {
             password 
         } = CLI::extract_values(args);
 
-        self.keeper.add(
+        let args = Args::new(
             entity,
             account,
             password
-        )
+        );
+
+        self.keeper.add(args)
     }
 
     fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
