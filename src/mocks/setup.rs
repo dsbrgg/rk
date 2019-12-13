@@ -62,19 +62,17 @@ impl<'s> Setup<'s> {
         path_str
     }
 
-    pub fn as_path_buf(&mut self) -> (PathBuf, PathBuf, PathBuf) {
+    pub fn as_path_buf(&mut self) -> (PathBuf, PathBuf) {
         (
-            self.gen_path(),
             self.gen_path(), 
             self.gen_path()
         )
     }
 
-    pub fn as_path_str(&mut self) -> (String, String, String) {
-        let (index, config, locker) = self.as_path_buf();
+    pub fn as_path_str(&mut self) -> (String, String) {
+        let (config, locker) = self.as_path_buf();
 
         (
-            index.as_path().to_str().unwrap().to_owned(),
             config.as_path().to_str().unwrap().to_owned(), 
             locker.as_path().to_str().unwrap().to_owned()
         )

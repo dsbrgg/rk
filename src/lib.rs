@@ -25,33 +25,24 @@ impl Resolve {
 }
 
 pub struct Keeper {
-    // lock: Locker,
+    lock: Locker,
     files: FileManager,
     directories: DirManager,
 }
 
 impl Keeper {
-    pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Keeper {
-        // NOTE: just for future reference
-        // let mut config_path = dirs::home_dir().unwrap();
-        // let mut locker_path = dirs::home_dir().unwrap();
-
-        // let lock = Locker::new();
+    pub fn new(config: PathBuf, locker: PathBuf) -> Keeper {
+        let lock = Locker::new();
         let directories = DirManager::new(&config, &locker);
-        let files = FileManager::new(&index, &config, &locker);
+        let files = FileManager::new(&config, &locker);
 
-        Keeper { files, directories }
+        Keeper { lock, files, directories }
     }
 
     // TODO: this stil has to handle when an entity/account
     // is already created. so it doesn't erases previous
     // registers. 
-    //
-    // It also needs to hash/encrypt values appropriately.
-    //
-    // It also needs to create an index with the 
-    // entities and accounts hashes for further searching
-    // operations
+    
     pub fn add(
         &mut self, 
         entity: Option<&str>, 
@@ -59,7 +50,6 @@ impl Keeper {
         password: Option<&str>
     ) -> io::Result<Resolve> {
         let mut paths = Vec::new();
-        let mut index = PathBuf::new();
 
         if entity.is_none() && account.is_some() {
             return Err(io::Error::new(
@@ -67,15 +57,14 @@ impl Keeper {
             ));
         }
 
-        if let Some(e) = entity {
-            index.push(e);
-
-            self.directories.create_locker(e)?; 
+        if let Some(ent) = entity {
+            self.directories.create_locker(
+                &self.lock.hash(ent) // TODO: create payload struct to automatically hash this
+            )?;
         }
 
-        if let Some(a) = account {
-            index.push(a);
-            paths.push(a);
+        if let Some(acc) = account {
+            paths.push(acc);
 
             let e = entity.unwrap();
             let p = DirManager::append_paths(e, &paths);
@@ -83,18 +72,15 @@ impl Keeper {
             self.directories.create_locker(&p)?; 
         } 
 
-        if let Some(p) = password {
-            paths.push(p);
+        if let Some(pwd) = password {
+            paths.push(pwd);
 
             let e = entity.unwrap();
             let p = FileManager::append_paths(e, &paths);
-
+            
             self.files.create_locker(&p)?; 
         }
  
-        let index_str = index.to_str().unwrap();
-        self.files.write_index(index_str)?;
-
         Ok(Resolve::Add)
     }
 
@@ -174,8 +160,8 @@ mod keeper {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                Keeper::new(config, locker);
             },
         }; 
     }
@@ -187,8 +173,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let mut dump = this.dump_path();
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 dump.push("add_entity");
 
@@ -210,8 +196,8 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     keeper.add(
@@ -233,8 +219,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let mut dump = this.dump_path();
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 dump.push("add_account_1");
                 let e = this.add_to_paths(&dump);
@@ -260,8 +246,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let mut dump = this.dump_path();
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 dump.push("add_password_1");
                 let e = this.add_to_paths(&dump);
@@ -288,8 +274,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let mut dump = this.dump_path();
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 dump.push("find_entity_1");
                 let e = this.add_to_paths(&dump);
@@ -311,8 +297,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let mut dump = this.dump_path();
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
 
                 dump.push("find_entity_account_1");
                 let e = this.add_to_paths(&dump);
@@ -337,8 +323,8 @@ mod keeper {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
                 
                 let operation = keeper.find(None, None);
                 
@@ -357,8 +343,8 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
                 
                 let entity = Some("entity");
                 let account = Some("account");
@@ -389,8 +375,8 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker);
                 
                 let entity = Some("entity");
 
@@ -420,8 +406,8 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf(); 
-                let mut keeper = Keeper::new(index, config, locker);
+                let (config, locker) = this.as_path_buf(); 
+                let mut keeper = Keeper::new(config, locker);
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     keeper.remove(None, Some("account")).unwrap();

@@ -13,19 +13,15 @@ fn main() {
 
     let args = app::execute();
 
-    let mut index = dirs::home_dir().unwrap();
     let mut config = dirs::home_dir().unwrap();
     let mut locker = dirs::home_dir().unwrap();
     
-    index.push(".rk");
-    index.push("index");
-
     config.push(".config");
     config.push("rk");
     
     locker.push(".rk");
 
-    CLI::start(index, config, locker)
+    CLI::start(config, locker)
         .operation(args)
         .expect("Error on app operation");
 }
