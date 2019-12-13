@@ -58,9 +58,7 @@ impl Keeper {
         }
 
         if let Some(ent) = entity {
-            self.directories.create_locker(
-                &self.lock.hash(ent) // TODO: create payload struct to automatically hash this
-            )?;
+            self.directories.create_locker(ent)?;
         }
 
         if let Some(acc) = account {
