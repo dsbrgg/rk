@@ -1,3 +1,4 @@
+pub mod args;
 mod locker;
 mod managers;
 mod mocks;
@@ -5,6 +6,7 @@ mod mocks;
 use std::io;
 use std::path::{PathBuf};
 
+use args::Args;
 use locker::Locker;
 use managers::manager::Manager;
 use managers::dir_manager::DirManager;
@@ -43,42 +45,37 @@ impl Keeper {
     // is already created. so it doesn't erases previous
     // registers. 
     
-    pub fn add(
-        &mut self, 
-        entity: Option<&str>, 
-        account: Option<&str>, 
-        password: Option<&str>
-    ) -> io::Result<Resolve> {
-        let mut paths = Vec::new();
+    pub fn add(&mut self, args: Args) -> io::Result<Resolve> {
+        let Args {
+            entity,
+            account,
+            password
+        } = args;
 
-        if entity.is_none() && account.is_some() {
+        if entity.is_empty() && account.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Entity must be provided when an account is set."
             ));
         }
 
-        if let Some(ent) = entity {
-            self.directories.create_locker(ent)?;
+        let mut path = PathBuf::new();
+        
+        path.push(&entity);
+        path.push(&account);
+        path.push(&password);
+
+        let components = path.iter().fold(0, |acc, _x| acc + 1);
+
+        if components <= 2 {
+            self.directories.create_locker(
+                path.to_str().unwrap()
+            )?;
+        } else {
+            self.files.create_locker(
+                path.to_str().unwrap()
+            )?;
         }
 
-        if let Some(acc) = account {
-            paths.push(acc);
-
-            let e = entity.unwrap();
-            let p = DirManager::append_paths(e, &paths);
-
-            self.directories.create_locker(&p)?; 
-        } 
-
-        if let Some(pwd) = password {
-            paths.push(pwd);
-
-            let e = entity.unwrap();
-            let p = FileManager::append_paths(e, &paths);
-            
-            self.files.create_locker(&p)?; 
-        }
- 
         Ok(Resolve::Add)
     }
 
