@@ -1,13 +1,13 @@
 use crate::locker::Locker;
 
 pub struct Args {
-    entity: String,
-    account: String,
-    password: String
+    pub entity: String,
+    pub account: String,
+    pub password: String
 }
 
 impl Args {
-    fn new(
+    pub fn new(
         entity: Option<&str>,
         account: Option<&str>,
         password: Option<&str>
@@ -20,12 +20,12 @@ impl Args {
 
         if let Some(e) = entity { ent = locker.hash(e); }
         if let Some(a) = account { acc = locker.hash(a); }
-        if let Some(p) = password { pwd = locker.hash(p); }
+        if let Some(p) = password { pwd = p.to_string(); }
 
         Args {
             entity: ent,
             account: acc,
-            password: pwd
+            password: pwd 
         }
     }
 }
@@ -40,7 +40,7 @@ mod tests {
         
         let entity = locker.hash("entity");
         let account = locker.hash("account");
-        let password = locker.hash("password");
+        let password = String::from("password"); // TODO: encrypt
 
         let args = Args::new(
             Some("entity"),
