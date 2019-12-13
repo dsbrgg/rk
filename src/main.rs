@@ -1,5 +1,6 @@
 mod app;
 mod cli;
+mod args;
 mod locker;
 mod managers;
 mod mocks;
