@@ -63,20 +63,26 @@ impl<'p> CLI {
 
     fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
         let Params { entity, account, .. } = CLI::extract_values(args);
-        
-        self.keeper.find(
+       
+        let args = Args::new(
             entity,
-            account
-        )
+            account,
+            None 
+        );
+
+        self.keeper.find(args)
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
         let Params { entity, account, .. } = CLI::extract_values(args);
-        
-        self.keeper.remove(
+       
+        let args = Args::new(
             entity,
-            account
-        )
+            account,
+            None 
+        );
+
+        self.keeper.remove(args)
     }
 }
 
@@ -88,7 +94,8 @@ mod tests {
     use super::CLI;
     use super::{Resolve};
     
-    use crate::mocks::setup::Setup;
+    use crate::locker::Locker;
+    use crate::mocks::setup::Setup; 
     use crate::cli::commands::{command, Commands};
 
     use Commands::*;
@@ -118,9 +125,11 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-               
+                let locker_instance = Locker::new();
+
                 let mut l = locker.clone();
-                l.push("add_entity");
+                let entity_hash = locker_instance.hash("add_entity");
+                l.push(entity_hash);
 
                 let mut cli = CLI::start(config, locker);
                
@@ -141,10 +150,14 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
+                let locker_instance = Locker::new();
 
                 let mut l = locker.clone();
-                l.push("add_account_entity");
-                l.push("add_account");
+                let entity_hash = locker_instance.hash("add_account_entity");
+                let account_hash = locker_instance.hash("add_account");
+
+                l.push(entity_hash);
+                l.push(account_hash);
 
                 let mut cli = CLI::start(config, locker);
                 
@@ -165,11 +178,16 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
- 
+                let locker_instance = Locker::new();
+
                 let mut l = locker.clone();
-                l.push("entity_for_password");
-                l.push("account_for_password");
-                l.push("very_good_password_1");
+                let entity_hash = locker_instance.hash("entity_for_password");
+                let account_hash = locker_instance.hash("account_for_password");
+                let password_hash = "very_good_password_1"; // TODO: will need to encrypt later
+
+                l.push(entity_hash);
+                l.push(account_hash);
+                l.push(password_hash);
 
                 let mut cli = CLI::start(config, locker);
 
