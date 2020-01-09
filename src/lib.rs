@@ -52,7 +52,7 @@ impl Keeper {
             password
         } = args;
 
-        if entity.is_empty() && account.is_empty() {
+        if entity.is_empty() && !account.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Entity must be provided when an account is set."
             ));
@@ -64,56 +64,65 @@ impl Keeper {
         path.push(&account);
         path.push(&password);
 
-        let components = path.iter().fold(0, |acc, _x| acc + 1);
+        path
+            .iter()
+            .fold((1, PathBuf::new()), |(acc, mut full_path), component| {
+                let path_string = component.to_str().unwrap();
+                
+                full_path.push(path_string);
 
-        if components <= 2 {
-            self.directories.create_locker(
-                path.to_str().unwrap()
-            )?;
-        } else {
-            self.files.create_locker(
-                path.to_str().unwrap()
-            )?;
-        }
+                let path_string = full_path.to_str().unwrap();
+
+                if acc <= 2 {
+                    self.directories
+                        .create_locker(path_string)
+                        .expect("Unable to create locker directory");
+                } else {
+                    self.files
+                        .create_locker(path_string)
+                        .expect("Unable to create locker file");
+                }
+
+                (acc + 1, full_path)
+            }); 
 
         Ok(Resolve::Add)
     }
 
-    pub fn find(
-        &mut self, 
-        entity: Option<&str>, 
-        account: Option<&str> 
-    ) -> io::Result<Resolve> {
-        if entity.is_none() && account.is_none() {
+    pub fn find(&mut self, args: Args) -> io::Result<Resolve> {
+        let Args {
+            entity,
+            account,
+            ..
+        } = args;
+
+        if entity.is_empty() && account.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Neither entity or account provided."
             ));
         }
+        
+        let path = DirManager::append_path(&entity, &account);
 
-        let e = entity.unwrap_or("");
-        let a = account.unwrap_or("");
-        let ap = DirManager::append_path(&e, &a);
-
-        let registers = self.directories.read_locker(&ap)?;
+        let registers = self.directories.read_locker(&path)?;
 
         Ok(Resolve::Find(registers))
     }
 
-    pub fn remove(
-        &mut self,
-        entity: Option<&str>,
-        account: Option<&str>
-    ) -> io::Result<Resolve> {
-        if entity.is_none() && account.is_some() {
+    pub fn remove(&mut self, args: Args ) -> io::Result<Resolve> {
+        let Args {
+            entity,
+            account,
+            ..
+        } = args;
+
+        if entity.is_empty() && account.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Entity must be provided when an account is set."
             ));
         }
 
-        let e = entity.unwrap_or("");
-        let a = account.unwrap_or("");
-
-        let path = DirManager::append_path(&e, &a);         
+        let path = DirManager::append_path(&entity, &account); 
         
         self.directories.remove_locker(&path)?;
 
@@ -169,16 +178,26 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(config, locker);
+                
+                let mut keeper = Keeper::new(config, locker.clone());
+                let mut locker_instance = Locker::new();
 
-                dump.push("add_entity");
-
-                let e = this.add_to_paths(&dump);
-                let entity = Some(e.as_str());
+                let entity = Some("add_entity_1");
                 let account = None;
                 let password = None;
 
-                keeper.add(entity, account, password);
+                let args = Args::new(
+                    entity,
+                    account,
+                    password
+                );
+
+                dump.push(locker);
+                dump.push(
+                    locker_instance.hash("add_entity_1")
+                );
+
+                keeper.add(args);
 
                 assert!(dump.exists());
             }
@@ -194,12 +213,14 @@ mod keeper {
                 let (config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(config, locker);
 
+                let args = Args::new(
+                    None,
+                    Some("account"),
+                    None
+                );
+
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.add(
-                        None, 
-                        Some("account"),
-                        None
-                    ).unwrap();
+                    keeper.add(args).unwrap();
                 }));
 
                 assert_eq!(result.is_err(), true);
@@ -213,21 +234,30 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(config, locker);
+                
+                let mut dump = this.dump_path();
+                let mut keeper = Keeper::new(config, locker.clone());
+                let mut locker_instance = Locker::new();
 
-                dump.push("add_account_1");
-                let e = this.add_to_paths(&dump);
-
-                dump.push("add_account_2");
-                let a = this.add_to_paths(&dump);
-
-                let entity = Some(e.as_str());
-                let account = Some(a.as_str());
+                let entity = Some("add_account_1");
+                let account = Some("add_account_2");
                 let password = None;
 
-                keeper.add(entity, account, password);
+                let args = Args::new(
+                    entity,
+                    account,
+                    password
+                );
+
+                let entity_hash = locker_instance.hash("add_account_1");
+                let account_hash = locker_instance.hash("add_account_2");
+
+                dump.push(locker);
+                dump.push(entity_hash);
+                dump.push(account_hash);
+
+                keeper.add(args);
 
                 assert!(dump.exists());
             }
@@ -240,22 +270,31 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(config, locker);
 
-                dump.push("add_password_1");
-                let e = this.add_to_paths(&dump);
+                let mut dump = this.dump_path();
+                let mut keeper = Keeper::new(config, locker.clone());
+                let mut locker_instance = Locker::new();
 
-                dump.push("add_password_2");
-                let a = this.add_to_paths(&dump);
+                let entity = Some("add_password_1");
+                let account = Some("add_password_2");
+   
+                let args = Args::new(
+                    entity,
+                    account,
+                    Some("password") 
+                );
 
-                let entity = Some(e.as_str());
-                let account = Some(a.as_str());
-    
-                keeper.add(entity, account, Some("password"));
+                let entity_hash = locker_instance.hash("add_password_1");
+                let account_hash = locker_instance.hash("add_password_2");
+                let password_hash = "password"; // TODO: will need to encrypt later
 
-                dump.push("password");
+                dump.push(locker);
+                dump.push(entity_hash);
+                dump.push(account_hash);
+                dump.push(password_hash);
+
+                keeper.add(args);
 
                 assert!(dump.exists());
             }
@@ -268,18 +307,29 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(config, locker);
 
-                dump.push("find_entity_1");
-                let e = this.add_to_paths(&dump);
-                let entity = Some(e.as_str());
-    
-                keeper.add(entity, None, None);
+                let mut dump = this.dump_path();
+                let mut keeper = Keeper::new(config, locker.clone());
+                let mut locker_instance = Locker::new();
 
-                let result = keeper.find(entity, None).unwrap();
-                
+                let entity = Some("find_entity_1");
+                let entity_hash = locker_instance.hash("find_entity_1");
+  
+                let args = Args::new(
+                    entity,
+                    None,
+                    None 
+                );
+
+                dump.push(locker);
+                dump.push(entity_hash);
+
+                keeper.add(args.clone());
+
+                let result = keeper.find(args).unwrap();
+               
+                assert!(dump.exists());
                 assert_eq!(result.to_vec().len(), 0);
             }
         };
@@ -291,21 +341,29 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let mut dump = this.dump_path();
                 let (config, locker) = this.as_path_buf();
+
                 let mut keeper = Keeper::new(config, locker);
+                let mut locker_instance = Locker::new();
 
-                dump.push("find_entity_account_1");
-                let e = this.add_to_paths(&dump);
-                let entity = Some(e.as_str());
-   
-                dump.push("find_entity_account_2");
-                let a = this.add_to_paths(&dump);
-                let account = Some(a.as_str());
+                let entity = Some("find_entity_account_1");
+                let account = Some("find_entity_account_2");
 
-                keeper.add(entity, account, None);
+                let args_add = Args::new(
+                    entity,
+                    account,
+                    None 
+                );
 
-                let result = keeper.find(entity, None).unwrap();
+                keeper.add(args_add);
+
+                let args_find = Args::new(
+                    entity,
+                    None,
+                    None 
+                );
+
+                let result = keeper.find(args_find).unwrap();
     
                 assert_eq!(result.to_vec().len(), 1);
             }
@@ -320,8 +378,14 @@ mod keeper {
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(config, locker);
-                
-                let operation = keeper.find(None, None);
+               
+                let args = Args::new(
+                    None,
+                    None,
+                    None
+                );
+
+                let operation = keeper.find(args);
                 
                 assert!(operation.is_err());
                 assert_eq!(
@@ -344,19 +408,17 @@ mod keeper {
                 let entity = Some("entity");
                 let account = Some("account");
 
-                keeper.add(
-                    entity, 
-                    account, 
-                    None
+                let args = Args::new(
+                    entity,
+                    account,
+                    None 
                 );
 
-                keeper.remove(
-                    entity, 
-                    account
-                ); 
+                keeper.add(args.clone());
+                keeper.remove(args.clone());
                
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.find(entity, account).unwrap();
+                    keeper.find(args).unwrap();
                 }));
 
                 assert_eq!(result.is_err(), true);
@@ -375,19 +437,17 @@ mod keeper {
                 
                 let entity = Some("entity");
 
-                keeper.add(
-                    entity, 
+                let args = Args::new(
+                    entity,
                     None,
-                    None
+                    None 
                 );
 
-                keeper.remove(
-                    entity,
-                    None
-                ); 
+                keeper.add(args.clone());
+                keeper.remove(args.clone());
                
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.find(entity, None).unwrap();
+                    keeper.find(args).unwrap();
                 }));
 
                 assert_eq!(result.is_err(), true);
@@ -405,7 +465,13 @@ mod keeper {
                 let mut keeper = Keeper::new(config, locker);
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.remove(None, Some("account")).unwrap();
+                    let args = Args::new(
+                        None,
+                        Some("account"),
+                        None
+                    );
+
+                    keeper.remove(args).unwrap();
                 }));
 
                 assert_eq!(result.is_err(), true);
