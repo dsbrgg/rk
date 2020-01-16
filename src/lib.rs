@@ -8,9 +8,9 @@ use std::path::{PathBuf};
 
 use args::Args;
 use locker::Locker;
-use managers::manager::Manager;
-use managers::dir_manager::DirManager;
-use managers::file_manager::FileManager;
+use managers::Manager;
+use managers::DirManager;
+use managers::FileManager;
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
@@ -134,7 +134,7 @@ impl Keeper {
 mod keeper {
     use super::*;
 
-    use mocks::setup::Setup;
+    use mocks::Setup;
 
     use std::path::Path;
     use std::fs::{remove_dir_all, remove_file};
