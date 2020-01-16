@@ -10,7 +10,7 @@ mod mocks;
 // set config cmd -> allow for custom config settings (eg. locker location, config location, cypto algo, etc...)
 
 fn main() {
-    use cli::cli::CLI;
+    use cli::CLI;
 
     let args = app::execute();
 
