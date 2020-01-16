@@ -270,7 +270,7 @@ mod test {
     use std::fs::remove_file;
     use std::panic::{AssertUnwindSafe, catch_unwind};
     
-    use crate::mocks::setup::Setup;
+    use crate::mocks::Setup;
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
