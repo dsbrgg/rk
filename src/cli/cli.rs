@@ -94,8 +94,8 @@ mod tests {
     use super::CLI;
     use super::{Resolve};
     
+    use crate::mocks::Setup; 
     use crate::locker::Locker;
-    use crate::mocks::setup::Setup; 
     use crate::cli::commands::{command, Commands};
 
     use Commands::*;
