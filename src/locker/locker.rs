@@ -100,13 +100,13 @@ impl Locker {
             .fold(String::from("0x"), |string, hx| format!("{}{}", string, hx))
     }
 
-    fn encrypt<'a>(&self, data: &[u8]) -> Vec<u8> {
+    fn encrypt(&self, data: &[u8]) -> Vec<u8> {
         Aes128Cbc::new_var(&self.key, &self.iv)
             .unwrap()
             .encrypt_vec(data)
     }
 
-    fn decrypt<'a>(&self, data: &Vec<u8>) -> Vec<u8> {
+    fn decrypt(&self, data: &Vec<u8>) -> Vec<u8> {
         Aes128Cbc::new_var(&self.key, &self.iv)
            .unwrap()
            .decrypt_vec(data)
