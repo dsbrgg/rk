@@ -9,7 +9,7 @@ use crypto_hash::{Algorithm, hex_digest};
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
 
-use crate::locker::bytes::Bytes;
+use crate::locker::Bytes;
 
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
