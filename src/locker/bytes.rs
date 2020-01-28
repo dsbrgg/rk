@@ -24,7 +24,7 @@ impl Bytes {
             ByteSize::U64 => Bytes::random_u64(),
         };
 
-        let hex = Bytes::bin_to_hex(binary.clone());
+        let hex = Bytes::bin_to_hex(&binary);
 
         Bytes {
             hex,
@@ -33,7 +33,7 @@ impl Bytes {
     }
 
     pub fn from_bin(binary: Vec<u8>) -> Bytes {
-        let hex = Bytes::bin_to_hex(binary.clone());
+        let hex = Bytes::bin_to_hex(&binary);
 
         Bytes {
             hex,
@@ -42,7 +42,7 @@ impl Bytes {
     }
 
     pub fn from_hex(hex: String) -> Bytes {
-        let binary = Bytes::hex_to_bin(hex.clone());
+        let binary = Bytes::hex_to_bin(&hex);
 
         Bytes {
             hex,
@@ -53,17 +53,21 @@ impl Bytes {
     /* Hex operations */
     
     pub fn hex(&self) -> String { self.hex.clone() }
-    fn alloc_hex(&mut self, hex: String) { 
-        self.hex = hex.clone();
-        self.binary = Bytes::hex_to_bin(hex);
+    fn alloc_hex(&mut self, hex: String) {
+        let binary = Bytes::hex_to_bin(&hex);
+
+        self.hex = hex;
+        self.binary = binary;
     }
 
     /* Binary operations */
     
     pub fn raw(&self) -> Vec<u8> { self.binary.clone() }
     fn alloc_raw(&mut self, binary: Vec<u8>) { 
-        self.binary = binary.clone();
-        self.hex = Bytes::bin_to_hex(binary);
+        let hex = Bytes::bin_to_hex(&binary);
+
+        self.hex = hex;
+        self.binary = binary;
     }
 
     /* Associated functions */
@@ -71,8 +75,6 @@ impl Bytes {
     fn random_u16() -> Vec<u8> {
         let mut rng = OsRng::new().ok().unwrap();
         let mut random_bytes: [u8; 16] = [0; 16];
-
-        println!("{:?}", random_bytes);
 
         rng.fill_bytes(&mut random_bytes);
 
@@ -97,14 +99,14 @@ impl Bytes {
         random_bytes.to_vec()
     }
 
-    fn bin_to_hex(bytes: Vec<u8>) -> String {
+    pub fn bin_to_hex(bytes: &Vec<u8>) -> String {
         bytes
             .iter()
             .map(|byte| format!("{:02x}", byte))
             .fold(String::from("0x"), |string, hx| format!("{}{}", string, hx))
     }
 
-    fn hex_to_bin(hex: String) -> Vec<u8> {
+    pub fn hex_to_bin(hex: &String) -> Vec<u8> {
         if !hex.is_empty() {
             return hex::decode(&hex[2..]).unwrap();
         }
