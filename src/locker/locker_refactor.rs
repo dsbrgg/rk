@@ -17,7 +17,7 @@ type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 pub struct Locker {
     iv: Bytes,
     key: Bytes,
-    enc: Bytes,
+    pub dat: Bytes,
 }
 
 impl Locker {
@@ -26,32 +26,44 @@ impl Locker {
     // having to read from disk
 
     pub fn new() -> Locker {
-        let iv = Bytes::new_u16();
-        let key = Bytes::new_u16();
-        let enc = None;
+        let iv = Bytes::new(U16);
+        let key = Bytes::new(U16);
+        let dat = Bytes::new(E);
 
         // TODO: store iv and key along with data to 
         // persist manipulating data further
         Locker {
             iv,
             key,
-            enc
+            dat
         }
     }
 
-    fn encrypt(&self, data: &mut String) -> Vec<u8> {
+    fn encrypt(&mut self, data: &mut String) {
+        let iv = self.iv.raw();
+        let key = self.key.raw();
         let bytes = data.as_bytes();
 
-        Aes128Cbc::new_var(&self.key, &self.iv)
+        let encrypted = Aes128Cbc::new_var(&key[..], &iv[..])
             .unwrap()
-            .encrypt_vec(data)
+            .encrypt_vec(bytes);
+
+        self.dat.alloc_raw(encrypted);
     }
 
-    fn decrypt(&self, data: &Vec<u8>) -> Vec<u8> {
-        Aes128Cbc::new_var(&self.key, &self.iv)
+    fn decrypt(&self) -> String {
+        let iv = self.iv.raw();
+        let key = self.key.raw();
+        let dat = self.dat.raw();
+
+        let decrypted = Aes128Cbc::new_var(&key[..], &iv[..])
            .unwrap()
-           .decrypt_vec(data)
-           .unwrap()
+           .decrypt_vec(&dat[..])
+           .unwrap();
+
+        str::from_utf8(&decrypted)
+            .unwrap()
+            .to_string()
     }
 
     pub fn hash(&self, string: &str) -> String {
@@ -60,22 +72,17 @@ impl Locker {
             string.as_bytes()
         )
     }
+}
 
-    // TODO: implement method to rotate key and iv
-    // from within Locker instance
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    pub fn input_encryption(&self, data: &mut String) -> String {
-        Locker::bytes_to_hex(
-            self.encrypt(data.as_bytes())
-        )
-    }
+    #[test]
+    fn new() {
+        let locker = Locker::new();
 
-    pub fn input_decryption(&self, data: &String) -> String {
-        let decoded = Locker::decode_hex(data);
-        let binary = self.decrypt(&decoded); 
-
-        str::from_utf8(&binary)
-            .unwrap()
-            .to_string()
+        assert_eq!(locker.dat.raw().len(), 0);
+        assert_eq!(locker.iv.raw().len(), 16);
     }
 }
