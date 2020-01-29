@@ -2,9 +2,10 @@ use rand::{Rng, OsRng};
 
 #[derive(Debug)]
 pub enum ByteSize {
-  U16,
-  U32,
-  U64
+    E,
+    U16,
+    U32,
+    U64
 }
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ impl Bytes {
 
     pub fn new(size: ByteSize) -> Bytes {
         let binary = match size {
+            ByteSize::E => Bytes::empty(),
             ByteSize::U16 => Bytes::random_u16(),
             ByteSize::U32 => Bytes::random_u32(),
             ByteSize::U64 => Bytes::random_u64(),
@@ -53,7 +55,7 @@ impl Bytes {
     /* Hex operations */
     
     pub fn hex(&self) -> String { self.hex.clone() }
-    fn alloc_hex(&mut self, hex: String) {
+    pub fn alloc_hex(&mut self, hex: String) {
         let binary = Bytes::hex_to_bin(&hex);
 
         self.hex = hex;
@@ -63,7 +65,7 @@ impl Bytes {
     /* Binary operations */
     
     pub fn raw(&self) -> Vec<u8> { self.binary.clone() }
-    fn alloc_raw(&mut self, binary: Vec<u8>) { 
+    pub fn alloc_raw(&mut self, binary: Vec<u8>) { 
         let hex = Bytes::bin_to_hex(&binary);
 
         self.hex = hex;
@@ -71,6 +73,8 @@ impl Bytes {
     }
 
     /* Associated functions */
+
+    fn empty() -> Vec<u8> { Vec::new() }
 
     fn random_u16() -> Vec<u8> {
         let mut rng = OsRng::new().ok().unwrap();
@@ -107,11 +111,11 @@ impl Bytes {
     }
 
     pub fn hex_to_bin(hex: &String) -> Vec<u8> {
-        if !hex.is_empty() {
-            return hex::decode(&hex[2..]).unwrap();
+        if hex.is_empty() || !hex.starts_with("0x") {
+            panic!("Wrong hex format!");
         }
 
-        Vec::new()
+        hex::decode(&hex[2..]).unwrap()
     }
 }
 
@@ -120,6 +124,15 @@ mod tests {
     use super::*;
 
     use ByteSize::*;
+
+    #[test]
+    fn new_empty() {
+        let mut byte = Bytes::new(E);
+        let empty_vec: Vec<u8> = Vec::new();
+
+        assert_eq!(byte.raw(), empty_vec);
+        assert_eq!(byte.hex(), String::from("0x"));
+    }
 
     #[test]
     fn new_u16() {
@@ -181,5 +194,22 @@ mod tests {
 
         assert_eq!(byte.raw(), [1]);
         assert_eq!(byte.hex(), String::from("0x01"));
+    } 
+
+    #[test]
+    fn from_hex() {
+        let hex = String::from("0x01");
+        let mut byte = Bytes::from_hex(hex);
+
+        assert_eq!(byte.raw(), [1]);
+        assert_eq!(byte.hex(), String::from("0x01"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Wrong hex format!")]
+    fn from_hex_panic() {
+        let hex = String::from("00");
+        
+        Bytes::from_hex(hex);
     }
 }
