@@ -14,6 +14,7 @@ use ByteSize::*;
 
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
+#[derive(Debug)]
 pub struct Locker {
     iv: Bytes,
     key: Bytes,
@@ -21,17 +22,12 @@ pub struct Locker {
 }
 
 impl Locker {
-    // TODO: Keep encrypted data within structure
-    // to make it easier to manipulate it without
-    // having to read from disk
-
+    // TODO: implement different byte sizes
     pub fn new() -> Locker {
+        let dat = Bytes::new(E);
         let iv = Bytes::new(U16);
         let key = Bytes::new(U16);
-        let dat = Bytes::new(E);
 
-        // TODO: store iv and key along with data to 
-        // persist manipulating data further
         Locker {
             iv,
             key,
@@ -84,5 +80,20 @@ mod tests {
 
         assert_eq!(locker.dat.raw().len(), 0);
         assert_eq!(locker.iv.raw().len(), 16);
+        assert_eq!(locker.key.raw().len(), 16);
+    }
+
+    #[test]
+    fn encrypt() {
+        let mut locker = Locker::new();
+        let mut to_encrypt = String::from("encrypt me!");
+
+        locker.encrypt(&mut to_encrypt);
+
+        // TODO: finish this test
+
+        println!("{:?}", locker.dat);
+
+        panic!("Paniced");
     }
 }
