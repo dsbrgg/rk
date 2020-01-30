@@ -3,10 +3,10 @@ use std::str;
 use aes_soft as aes;
 
 use aes::Aes128;
-use crypto_hash::{Algorithm, hex_digest};
 
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
+use crypto_hash::{Algorithm, hex_digest};
 
 use crate::locker::{Bytes, ByteSize};
 
@@ -22,6 +22,9 @@ pub struct Locker {
 }
 
 impl Locker {
+
+    /* Initialisers */
+
     // TODO: implement different byte sizes
     pub fn new() -> Locker {
         let dat = Bytes::new(E);
@@ -34,6 +37,8 @@ impl Locker {
             dat
         }
     }
+
+    /* Methods */
 
     fn encrypt(&mut self, data: &mut String) {
         let iv = self.iv.raw();
@@ -90,10 +95,19 @@ mod tests {
 
         locker.encrypt(&mut to_encrypt);
 
-        // TODO: finish this test
+        assert_eq!(locker.dat.raw().len(), 16); 
+        assert_eq!(locker.dat.hex().len(), 34); // Two extra bytes from 0x
+    }
 
-        println!("{:?}", locker.dat);
+    #[test]
+    fn decrypt() {
+        let mut locker = Locker::new();
+        let mut to_encrypt = String::from("encrypt me!");
 
-        panic!("Paniced");
+        locker.encrypt(&mut to_encrypt);
+        
+        let decrypted = locker.decrypt();
+
+        assert_eq!(decrypted, String::from("encrypt me!"));
     }
 }
