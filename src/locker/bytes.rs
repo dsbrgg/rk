@@ -10,6 +10,7 @@ pub enum ByteSize {
 
 #[derive(Debug)]
 pub struct Bytes {
+    size: ByteSize,
     hex: String,
     binary: Vec<u8>
 }
@@ -29,28 +30,49 @@ impl Bytes {
         let hex = Bytes::bin_to_hex(&binary);
 
         Bytes {
+            size,
             hex,
             binary
         }
     }
 
     pub fn from_bin(binary: Vec<u8>) -> Bytes {
+        let size = match binary.len() {
+            0 => ByteSize::E,
+            16 => ByteSize::U16,
+            32 => ByteSize::U32,
+            64 => ByteSize::U64,
+            _ => panic!("Invalid vec length!"),
+        };
+
         let hex = Bytes::bin_to_hex(&binary);
 
         Bytes {
+            size,
             hex,
             binary
         }
     }
 
     pub fn from_hex(hex: String) -> Bytes {
+        let size = match &hex[2..].len() {
+            0 => ByteSize::E,
+            32 => ByteSize::U16,
+            64 => ByteSize::U32,
+            128 => ByteSize::U64,
+            _ => panic!("Invalid hex length!"),
+        };
+        
         let binary = Bytes::hex_to_bin(&hex);
 
         Bytes {
+            size,
             hex,
             binary
         }
     }
+
+    pub fn rotate(self) -> Bytes { Bytes::new(self.size) }
 
     /* Hex operations */
     
@@ -139,6 +161,7 @@ mod tests {
         let byte = Bytes::new(U16);
 
         assert_eq!(byte.raw().len(), 16);
+        assert_eq!(byte.hex().len(), 34); // Two extra bytes from 0x
     }
 
     #[test]
@@ -146,6 +169,7 @@ mod tests {
         let byte = Bytes::new(U32);
 
         assert_eq!(byte.raw().len(), 32);
+        assert_eq!(byte.hex().len(), 66); // Two extra bytes from 0x
     }
 
     #[test]
@@ -153,61 +177,98 @@ mod tests {
         let byte = Bytes::new(U64);
 
         assert_eq!(byte.raw().len(), 64);
+        assert_eq!(byte.hex().len(), 130); // Two extra bytes from 0x
     }
 
     #[test]
     fn from_bin() {
-        let vec = [0].to_vec();
-        let byte = Bytes::from_bin(vec);
+        let vec = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ].to_vec();
+        let vec_string = String::from("0x00000000000000000000000000000000");
+        
+        let byte = Bytes::from_bin(vec.clone());
 
-        assert_eq!(byte.raw(), [0]);
-        assert_eq!(byte.hex(), String::from("0x00"));
+        assert_eq!(byte.raw(), vec);
+        assert_eq!(byte.hex(), vec_string);
     }
 
     #[test]
-    fn alloc_raw() {
-        let vec = [0].to_vec();
-        let other_vec = [1].to_vec();
-
-        let mut byte = Bytes::from_bin(vec);
-       
-        assert_eq!(byte.raw(), [0]);
-        assert_eq!(byte.hex(), String::from("0x00"));
-
-        byte.alloc_raw(other_vec);
-
-        assert_eq!(byte.raw(), [1]);
-        assert_eq!(byte.hex(), String::from("0x01"));
-    }
-
-    #[test]
-    fn alloc_hex() {
-        let vec = [0].to_vec();
-        let hex = String::from("0x01");
-
-        let mut byte = Bytes::from_bin(vec);
-       
-        assert_eq!(byte.raw(), [0]);
-        assert_eq!(byte.hex(), String::from("0x00"));
-
-        byte.alloc_hex(hex);
-
-        assert_eq!(byte.raw(), [1]);
-        assert_eq!(byte.hex(), String::from("0x01"));
+    #[should_panic(expected = "Invalid vec length!")]
+    fn from_bin_panic() {
+        let vec = [ 0, 0, 0 ].to_vec();
+        
+        Bytes::from_bin(vec);
     } 
 
     #[test]
     fn from_hex() {
-        let hex = String::from("0x01");
-        let mut byte = Bytes::from_hex(hex);
+        let vec = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ];
+        let hex = String::from("0x00000000000000000000000000000001");
 
-        assert_eq!(byte.raw(), [1]);
-        assert_eq!(byte.hex(), String::from("0x01"));
+        let mut byte = Bytes::from_hex(hex.clone());
+
+        assert_eq!(byte.raw(), vec);
+        assert_eq!(byte.hex(), hex);
     }
 
     #[test]
-    #[should_panic(expected = "Wrong hex format!")]
+    #[should_panic(expected = "Invalid hex length!")]
     fn from_hex_panic() {
+        let hex = String::from("0x00");
+        
+        Bytes::from_hex(hex);
+    }
+
+    #[test]
+    fn rotate() {
+        let mut byte = Bytes::new(U16);
+
+        byte = byte.rotate();
+
+        assert_eq!(byte.raw().len(), 16);
+        assert_eq!(byte.hex().len(), 34); // Two extra bytes from 0x
+    }
+
+    #[test]
+    fn alloc_raw() {
+        let vec = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ].to_vec();
+        let other_vec = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ].to_vec();
+
+        let vec_string = String::from("0x00000000000000000000000000000000");
+        let other_vec_string = String::from("0x00000000000000000000000000000001");
+
+        let mut byte = Bytes::from_bin(vec.clone());
+       
+        assert_eq!(byte.raw(), vec);
+        assert_eq!(byte.hex(), vec_string);
+
+        byte.alloc_raw(other_vec.clone());
+
+        assert_eq!(byte.raw(), other_vec);
+        assert_eq!(byte.hex(), other_vec_string);
+    }
+
+    #[test]
+    fn alloc_hex() {
+        let hex_bin = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ].to_vec();
+        let hex = String::from("0x00000000000000000000000000000001");
+        
+        let vec = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ].to_vec();
+        let vec_string = String::from("0x00000000000000000000000000000000");
+
+        let mut byte = Bytes::from_bin(vec.clone());
+       
+        assert_eq!(byte.raw(), vec);
+        assert_eq!(byte.hex(), vec_string);
+
+        byte.alloc_hex(hex.clone());
+
+        assert_eq!(byte.raw(),hex_bin);
+        assert_eq!(byte.hex(), hex);
+    }  
+
+    #[test]
+    #[should_panic(expected = "Wrong hex format!")]
+    fn from_hex_panic_format() {
         let hex = String::from("00");
         
         Bytes::from_hex(hex);
