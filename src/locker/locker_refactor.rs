@@ -40,19 +40,21 @@ impl Locker {
 
     /* Methods */
 
-    fn encrypt(&mut self, data: &mut String) {
+    pub fn encrypt(&mut self, data: &str) -> String {
         let iv = self.iv.raw();
         let key = self.key.raw();
-        let bytes = data.as_bytes();
+        let mut bytes = data.as_bytes();
 
         let encrypted = Aes128Cbc::new_var(&key[..], &iv[..])
             .unwrap()
             .encrypt_vec(bytes);
 
         self.dat.alloc_raw(encrypted);
+
+        self.dat.hex()
     }
 
-    fn decrypt(&self) -> String {
+    pub fn decrypt(&self) -> String {
         let iv = self.iv.raw();
         let key = self.key.raw();
         let dat = self.dat.raw();
@@ -91,20 +93,21 @@ mod tests {
     #[test]
     fn encrypt() {
         let mut locker = Locker::new();
-        let mut to_encrypt = String::from("encrypt me!");
+        let to_encrypt = "encrypt me!";
 
-        locker.encrypt(&mut to_encrypt);
+        let encrypted = locker.encrypt(to_encrypt);
 
         assert_eq!(locker.dat.raw().len(), 16); 
         assert_eq!(locker.dat.hex().len(), 34); // Two extra bytes from 0x
+        assert_eq!(encrypted, locker.dat.hex());
     }
 
     #[test]
     fn decrypt() {
         let mut locker = Locker::new();
-        let mut to_encrypt = String::from("encrypt me!");
+        let to_encrypt = "encrypt me!";
 
-        locker.encrypt(&mut to_encrypt);
+        locker.encrypt(to_encrypt);
         
         let decrypted = locker.decrypt();
 
