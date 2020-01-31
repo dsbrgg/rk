@@ -1,4 +1,5 @@
 use crate::locker::Locker;
+use crate::locker::locker_refactor;
 
 #[derive(Clone)]
 pub struct Args {
@@ -13,7 +14,7 @@ impl Args {
         account: Option<&str>,
         password: Option<&str>
     ) -> Args {
-        let locker = Locker::new();
+        let mut locker = locker_refactor::Locker::new();
         
         let mut ent = String::new();
         let mut acc = String::new();
@@ -21,7 +22,7 @@ impl Args {
 
         if let Some(e) = entity { ent = locker.hash(e); }
         if let Some(a) = account { acc = locker.hash(a); }
-        if let Some(p) = password { pwd = p.to_string(); }
+        if let Some(p) = password { pwd = locker.encrypt(p); }
 
         Args {
             entity: ent,
@@ -37,11 +38,10 @@ mod tests {
 
     #[test]
     fn new() {
-        let locker = Locker::new();
+        let locker = locker_refactor::Locker::new();
         
         let entity = locker.hash("entity");
         let account = locker.hash("account");
-        let password = String::from("password"); // TODO: encrypt
 
         let args = Args::new(
             Some("entity"),
@@ -51,7 +51,8 @@ mod tests {
 
         assert_eq!(entity, args.entity);
         assert_eq!(account, args.account);
-        assert_eq!(password, args.password);
+        // TODO: have to test encryption here
+        assert_eq!("password".to_string(), args.password);
     }
 }
 
