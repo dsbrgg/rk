@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, ErrorKind};
 
-use crate::managers::manager::Manager;
+use crate::managers::Manager;
 
 pub struct DirManager {
     config: PathBuf,
