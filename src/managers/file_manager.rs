@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
 use std::io::{self, Read, ErrorKind};
 
-use crate::managers::manager::Manager;
+use crate::managers::Manager;
 
 enum ManagerOption {
     Config,
