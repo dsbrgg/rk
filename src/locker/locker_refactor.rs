@@ -110,4 +110,16 @@ mod tests {
 
         assert_eq!(decrypted, String::from("encrypt me!"));
     }
+
+    #[test]
+    fn hash() {
+        let locker = Locker::new();
+
+        let string = String::from("hash this");
+        let hashed = String::from("19467788bc0cf11790a075ea718452cecf0e79db59d1964670475e5fe2e4a611");
+
+        let hash = locker.hash(&string);
+
+        assert_eq!(hash, hashed);
+    }
 }
