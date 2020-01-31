@@ -3,7 +3,7 @@ use clap::{ArgMatches};
 use std::io;
 use std::path::{PathBuf};
 
-use rk::args::Args;
+use rk::Args;
 use rk::{Resolve, Keeper};
 
 struct Params<'p> { 
