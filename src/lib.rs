@@ -1,4 +1,4 @@
-pub mod args;
+mod args;
 mod locker;
 mod managers;
 mod mocks;
@@ -6,11 +6,13 @@ mod mocks;
 use std::io;
 use std::path::{PathBuf};
 
-use args::Args;
+pub use args::Args;
 use locker::Locker;
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
+
+use locker::locker_refactor;
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
