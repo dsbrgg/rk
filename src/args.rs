@@ -1,5 +1,4 @@
 use crate::locker::Locker;
-use crate::locker::locker_refactor;
 
 #[derive(Clone)]
 pub struct Args {
@@ -14,7 +13,7 @@ impl Args {
         account: Option<&str>,
         password: Option<&str>
     ) -> Args {
-        let mut locker = locker_refactor::Locker::new();
+        let mut locker = Locker::new();
         
         let mut ent = String::new();
         let mut acc = String::new();
@@ -38,7 +37,7 @@ mod tests {
 
     #[test]
     fn new() {
-        let locker = locker_refactor::Locker::new();
+        let locker = Locker::new();
         
         let entity = locker.hash("entity");
         let account = locker.hash("account");
