@@ -7,7 +7,6 @@ use std::io;
 use std::path::{PathBuf};
 
 pub use args::Args;
-use locker::Locker;
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
@@ -27,18 +26,16 @@ impl Resolve {
 }
 
 pub struct Keeper {
-    lock: Locker,
     files: FileManager,
     directories: DirManager,
 }
 
 impl Keeper {
     pub fn new(config: PathBuf, locker: PathBuf) -> Keeper {
-        let lock = Locker::new();
         let directories = DirManager::new(&config, &locker);
         let files = FileManager::new(&config, &locker);
 
-        Keeper { lock, files, directories }
+        Keeper { files, directories }
     }
 
     // TODO: this stil has to handle when an entity/account
@@ -64,27 +61,33 @@ impl Keeper {
         path.push(&account);
         path.push(&password);
 
-        path
-            .iter()
-            .fold((1, PathBuf::new()), |(acc, mut full_path), component| {
-                let path_string = component.to_str().unwrap();
-                
-                full_path.push(path_string);
 
-                let path_string = full_path.to_str().unwrap();
+        let mut total_components = 0;
+        let mut full_path = PathBuf::new();
 
-                if acc <= 2 {
-                    self.directories
-                        .create_locker(path_string)
-                        .expect("Unable to create locker directory");
-                } else {
-                    self.files
-                        .create_locker(path_string)
-                        .expect("Unable to create locker file");
-                }
+        for component in path.iter() {
+            let path_string = component
+                .to_str()
+                .unwrap();
+            
+            full_path.push(path_string);
 
-                (acc + 1, full_path)
-            }); 
+            let path_string = full_path
+                .to_str()
+                .unwrap();
+
+            if total_components <= 2 {
+                self.directories
+                    .create_locker(path_string)
+                    .expect("Unable to create locker directory");
+            } else {
+                self.files
+                    .create_locker(path_string)
+                    .expect("Unable to create locker file");
+            }
+
+            total_components += 1;
+        }
 
         Ok(Resolve::Add)
     }
@@ -135,6 +138,7 @@ mod keeper {
     use super::*;
 
     use mocks::Setup;
+    use locker::Locker;
 
     use std::path::Path;
     use std::fs::{remove_dir_all, remove_file};
