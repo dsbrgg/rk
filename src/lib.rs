@@ -12,8 +12,6 @@ use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
 
-use locker::locker_refactor;
-
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
