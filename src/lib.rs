@@ -289,16 +289,23 @@ mod keeper {
 
                 let entity_hash = locker_instance.hash("add_password_1");
                 let account_hash = locker_instance.hash("add_password_2");
-                let password_hash = "password"; // TODO: will need to encrypt later
 
                 dump.push(locker);
                 dump.push(entity_hash);
                 dump.push(account_hash);
-                dump.push(password_hash);
 
                 keeper.add(args);
 
                 assert!(dump.exists());
+                assert!(dump.is_dir());
+
+                let account_dir = dump.read_dir().expect("Account dir not created!");
+
+                for entry in account_dir {
+                    if let Ok(entry) = entry {
+                        assert!(entry.path().exists());
+                    }
+                } 
             }
         };
     }
