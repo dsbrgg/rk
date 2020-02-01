@@ -51,7 +51,12 @@ impl Locker {
 
         self.dat.alloc_raw(encrypted);
 
-        self.dat.hex()
+        format!(
+            "{}{}{}", 
+            self.dat.hex(),
+            &self.iv.hex()[2..],
+            &self.key.hex()[2..],
+        )
     }
 
     pub fn decrypt(&self) -> String {
@@ -96,10 +101,17 @@ mod tests {
         let to_encrypt = "encrypt me!";
 
         let encrypted = locker.encrypt(to_encrypt);
+        
+        let formated = format!(
+            "{}{}{}",
+            locker.dat.hex(),
+            &locker.iv.hex()[2..],
+            &locker.key.hex()[2..]
+        );
 
         assert_eq!(locker.dat.raw().len(), 16); 
         assert_eq!(locker.dat.hex().len(), 34); // Two extra bytes from 0x
-        assert_eq!(encrypted, locker.dat.hex());
+        assert_eq!(encrypted, formated);
     }
 
     #[test]
