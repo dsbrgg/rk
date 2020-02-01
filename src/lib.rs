@@ -7,6 +7,7 @@ use std::io;
 use std::path::{PathBuf};
 
 pub use args::Args;
+use locker::Bytes;
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
@@ -56,11 +57,18 @@ impl Keeper {
         }
 
         let mut path = PathBuf::new();
+
+        let bytes: Vec<u8> = password.as_bytes().to_vec();
+        // TODO: fix this after creating Encrypted struct
+
+        println!("---- {:?}", bytes);
+        let pass_str = Bytes::bytes_string(&bytes[..34]);
         
+        println!("---- {:?}", pass_str);
+
         path.push(&entity);
         path.push(&account);
-        path.push(&password);
-
+        path.push(&pass_str);
 
         let mut total_components = 0;
         let mut full_path = PathBuf::new();
@@ -262,7 +270,7 @@ mod keeper {
                 dump.push(account_hash);
 
                 keeper.add(args);
-
+                
                 assert!(dump.exists());
             }
         };
