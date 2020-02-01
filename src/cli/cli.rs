@@ -183,11 +183,10 @@ mod tests {
                 let mut l = locker.clone();
                 let entity_hash = locker_instance.hash("entity_for_password");
                 let account_hash = locker_instance.hash("account_for_password");
-                let password_hash = "very_good_password_1"; // TODO: will need to encrypt later
+                let password_hash = "very_good_password_1"; 
 
                 l.push(entity_hash);
                 l.push(account_hash);
-                l.push(password_hash);
 
                 let mut cli = CLI::start(config, locker);
 
@@ -200,7 +199,14 @@ mod tests {
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
-                assert_eq!(l.as_path().exists(), true);
+
+                let account_dir = l.read_dir().expect("Account dir not created!");
+
+                for entry in account_dir {
+                    if let Ok(entry) = entry {
+                        assert!(entry.path().exists());
+                    }
+                }
             }
         };
     }
