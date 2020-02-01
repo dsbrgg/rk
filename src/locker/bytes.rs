@@ -1,4 +1,7 @@
+use std::str;
 use rand::{Rng, OsRng};
+
+// TODO: create Encrypted struct 
 
 #[derive(Debug)]
 pub enum ByteSize {
@@ -123,6 +126,12 @@ impl Bytes {
         rng.fill_bytes(&mut random_bytes);
 
         random_bytes.to_vec()
+    }
+
+    pub fn bytes_string(string: &[u8]) -> String {
+        str::from_utf8(&string)
+            .unwrap()
+            .to_string()
     }
 
     pub fn bin_to_hex(bytes: &Vec<u8>) -> String {
