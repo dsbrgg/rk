@@ -51,8 +51,6 @@ mod tests {
 
         assert_eq!(entity, args.entity);
         assert_eq!(account, args.account);
-        // TODO: have to test encryption here
-        assert_eq!("password".to_string(), args.password);
     }
 }
 
