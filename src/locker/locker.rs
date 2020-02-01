@@ -1,5 +1,3 @@
-use std::str;
-
 use aes_soft as aes;
 
 use aes::Aes128;
@@ -69,9 +67,7 @@ impl Locker {
            .decrypt_vec(&dat[..])
            .unwrap();
 
-        str::from_utf8(&decrypted)
-            .unwrap()
-            .to_string()
+        Bytes::bytes_string(&decrypted)
     }
 
     pub fn hash(&self, string: &str) -> String {
