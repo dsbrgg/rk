@@ -6,12 +6,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{HashMap, BTreeMap};
 use std::io::{self, Read, ErrorKind};
 
-use crate::managers::Manager;
-
-enum ManagerOption {
-    Config,
-    Locker,
-}
+use crate::managers::{Manager, ManagerOption};
 
 use ManagerOption::*;
 
@@ -68,6 +63,12 @@ impl FileManager {
         )
     }
 
+    pub fn write_locker(&mut self, path: &str, content: &str) -> io::Result<()> {
+        let p = self.gen_path(Locker, path);
+        fs::write(&p, &content)?;
+        Ok(())
+    }
+
     fn gen_path(&self, for_path: ManagerOption, path: &str) -> String {
         let mut location = PathBuf::new();
 
@@ -119,9 +120,9 @@ impl Manager for FileManager {
         let p = Path::new(path);
 
         if !p.exists() {
-            panic!(
-                format!("Trying to open file {:?} that does not exist", path)
-            ); 
+            let msg = format!("Trying to open file {:?} that does not exist", path);
+            
+            panic!(msg); 
         }
 
         let mut file = File::open(p)?;
@@ -228,7 +229,7 @@ mod test {
                 assert_eq!(file, String::from(""));
             }
         };
-    }
+    } 
 
     #[test] 
     fn read_config() {
@@ -322,6 +323,27 @@ mod test {
                 assert_eq!(path.exists(), false);
             }
         }; 
+    }
+
+    #[test]
+    fn write_locker() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, mut locker) = this.as_path_buf();
+                
+                let mut fm = FileManager::new(&config, &locker);
+                let locker_path = FileManager::pb_to_str(&locker); 
+
+                fm.create_locker(&locker_path);
+                fm.write_locker(&locker_path, "test");
+
+                let file = fm.read_locker(&locker_path).unwrap();
+
+                assert_eq!(file, "test");
+            }
+        };
     }
 
     #[test]
