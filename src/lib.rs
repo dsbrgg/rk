@@ -56,19 +56,21 @@ impl Keeper {
             ));
         }
 
-        let mut path = PathBuf::new();
-
-        let bytes: Vec<u8> = password.as_bytes().to_vec();
-        // TODO: fix this after creating Encrypted struct
-
-        println!("---- {:?}", bytes);
-        let pass_str = Bytes::bytes_string(&bytes[..34]);
-        
-        println!("---- {:?}", pass_str);
+        let mut p = String::new();
+        let mut pa = String::new();
+        let mut path = PathBuf::new(); 
 
         path.push(&entity);
-        path.push(&account);
-        path.push(&pass_str);
+        path.push(&account); 
+        
+        if !password.is_empty() {
+            let bytes: Vec<u8> = password.as_bytes().to_vec();
+            
+            p = Bytes::bytes_string(&bytes[..34]);
+            pa = Bytes::bytes_string(&bytes[34..]);
+
+            path.push(&p);
+        } 
 
         let mut total_components = 0;
         let mut full_path = PathBuf::new();
@@ -90,8 +92,12 @@ impl Keeper {
                     .expect("Unable to create locker directory");
             } else {
                 self.files
-                    .create_locker(path_string)
+                    .create_locker(&path_string)
                     .expect("Unable to create locker file");
+
+                self.files
+                    .write_locker(&path_string, &pa)
+                    .expect("Unable to write to locker file");
             }
 
             total_components += 1;
@@ -309,7 +315,7 @@ mod keeper {
                 assert!(dump.exists());
                 assert!(dump.is_dir());
 
-                let account_dir = dump.read_dir().expect("Account dir not created!");
+                let account_dir = dump.read_dir().expect("Account directory not created!");
 
                 for entry in account_dir {
                     if let Ok(entry) = entry {
