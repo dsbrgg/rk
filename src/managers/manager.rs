@@ -1,8 +1,6 @@
 use std::io;
 use std::path::{PathBuf};
 
-// TODO: trait methods need to be private
-// move this into a mod
 pub trait Manager {
     type Output;
 
@@ -16,7 +14,6 @@ pub trait Manager {
 
     fn pb_to_str(path: &PathBuf) -> String {
         path
-            .clone()
             .as_path()
             .to_str()
             .unwrap()
