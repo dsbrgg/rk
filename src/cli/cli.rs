@@ -63,7 +63,7 @@ impl<'p> CLI {
 
     fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
         let Params { entity, account, .. } = CLI::extract_values(args);
-       
+
         let args = Args::new(
             entity,
             account,
