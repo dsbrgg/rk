@@ -4,7 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write, ErrorKind};
 
-use crate::managers::Manager;
+use crate::managers::{Manager, ManagerOption};
+
+use ManagerOption::*;
 
 pub struct DirManager {
     config: PathBuf,
@@ -25,48 +27,48 @@ impl DirManager {
 
     pub fn create_locker(&mut self, path: &str) -> io::Result<()> {
         self.create(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn read_locker(&mut self, path: &str) -> io::Result<Vec<String>> {
         self.read(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn remove_locker(&mut self, path: &str) -> io::Result<()> {
         self.remove(
-            &self.gen_path("locker", path)
+            &self.gen_path(Locker, path)
         )
     }
 
     pub fn create_config(&mut self, path: &str) -> io::Result<()> {
         self.create(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
     pub fn read_config(&mut self, path: &str) -> io::Result<Vec<String>> {
         self.read(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
     pub fn remove_config(&mut self, path: &str) -> io::Result<()> {
         self.remove(
-            &self.gen_path("config", path)
+            &self.gen_path(Config, path)
         )
     }
 
     // NOTE: this can be moved to the Manager Trait
     // if field traits are implemented in the future
-    fn gen_path(&self, for_path: &str, path: &str) -> String {
+    fn gen_path(&self, for_path: ManagerOption, path: &str) -> String {
         let mut location = PathBuf::new();
 
         match for_path {
-            "locker" => { location.push(self.locker.clone()); },
-            "config" => { location.push(self.config.clone()); },
+            Locker => { location.push(self.locker.clone()); },
+            Config => { location.push(self.config.clone()); },
             _ => panic!("Unsupported location {:?}", location.as_path().to_str())
         };
 
@@ -170,7 +172,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, mut locker) = this.as_path_buf();
+                let (config, mut locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -191,7 +193,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., mut config, locker) = this.as_path_buf();
+                let (mut config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -212,7 +214,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
@@ -229,7 +231,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
@@ -246,7 +248,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
                 
@@ -263,7 +265,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
                 
