@@ -38,7 +38,7 @@ pub fn execute() -> ArgMatches<'static> {
                     SubCommand::with_name("entity")
                         .about("Find an entity")
                         .arg(
-                            Arg::with_name("name")
+                            Arg::with_name("entity")
                                 .takes_value(true)
                                 .required(true)
                         )
