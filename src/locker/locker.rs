@@ -36,6 +36,19 @@ impl Locker {
         }
     }
 
+    // TODO: make a unit test for this method
+    pub fn from(iv: String, key: String, dat: String) -> Locker {
+        let biv = Bytes::from_hex(iv);
+        let bkey = Bytes::from_hex(key);
+        let bdat = Bytes::from_hex(dat);
+
+        Locker {
+            iv: biv,
+            key: bkey,
+            dat: bdat
+        }
+    }
+    
     /* Methods */
 
     pub fn encrypt(&mut self, data: &str) -> String {
