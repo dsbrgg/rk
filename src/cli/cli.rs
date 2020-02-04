@@ -1,4 +1,5 @@
 use clap::{ArgMatches};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 use std::io;
 use std::path::{PathBuf};
@@ -70,7 +71,23 @@ impl<'p> CLI {
             None 
         );
 
-        self.keeper.find(args)
+        let found = self.keeper.find(args)?.to_vec();
+       
+        if found.len() > 1 {
+            // TODO: get last component from account path
+            // also, put this into another file
+            let parsed_options = found.map(||);
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Pick account")
+                .default(0)
+                .items(&found[..])
+                .interact()
+                .unwrap();
+
+            println!("{:?}", selection);
+        }
+
+        Ok(Resolve::Find(found))
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
