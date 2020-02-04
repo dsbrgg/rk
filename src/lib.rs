@@ -120,13 +120,8 @@ impl Keeper {
         }
         
         let path = DirManager::append_path(&entity, &account);
-
         let registers = self.directories.read_locker(&path)?;
-       
-        // TODO: start decryption here when registers found
-        // and it's an account search
-        println!("{:?}", registers);
-
+     
         Ok(Resolve::Find(registers))
     }
 
