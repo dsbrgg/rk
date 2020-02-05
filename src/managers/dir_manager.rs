@@ -31,7 +31,7 @@ impl DirManager {
         )
     }
 
-    pub fn read_locker(&mut self, path: &str) -> io::Result<Vec<String>> {
+    pub fn read_locker(&mut self, path: &str) -> io::Result<Vec<PathBuf>> {
         self.read(
             &self.gen_path(Locker, path)
         )
@@ -49,7 +49,7 @@ impl DirManager {
         )
     }
 
-    pub fn read_config(&mut self, path: &str) -> io::Result<Vec<String>> {
+    pub fn read_config(&mut self, path: &str) -> io::Result<Vec<PathBuf>> {
         self.read(
             &self.gen_path(Config, path)
         )
@@ -80,7 +80,7 @@ impl DirManager {
 }
 
 impl Manager for DirManager {
-    type Output = Vec<String>;
+    type Output = Vec<PathBuf>;
 
     fn init(&mut self) -> io::Result<()> {
         let config_path = self.config.as_path().to_owned();
@@ -121,9 +121,7 @@ impl Manager for DirManager {
         for entry in fs::read_dir(&dir)? {
             let dir = entry?;
             
-            entries.push(
-               DirManager::pb_to_str(&dir.path())
-            );
+            entries.push(dir.path());
         }
 
         Ok(entries)
