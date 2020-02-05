@@ -1,11 +1,11 @@
 use clap::{ArgMatches};
-use dialoguer::{theme::ColorfulTheme, Select};
 
 use std::io;
 use std::path::{PathBuf};
 
 use rk::Args;
 use rk::{Resolve, Keeper};
+use crate::cli::select;
 
 struct Params<'p> { 
     entity: Option<&'p str>,
@@ -72,22 +72,9 @@ impl<'p> CLI {
         );
 
         let found = self.keeper.find(args)?.to_vec();
-       
-        if found.len() > 1 {
-            // TODO: get last component from account path
-            // also, put this into another file
-            let parsed_options = found.map(||);
-            let selection = Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Pick account")
-                .default(0)
-                .items(&found[..])
-                .interact()
-                .unwrap();
+        let selected = select(found);
 
-            println!("{:?}", selection);
-        }
-
-        Ok(Resolve::Find(found))
+        Ok(Resolve::Found)
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
@@ -105,7 +92,7 @@ impl<'p> CLI {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::fs::{remove_dir_all, remove_file};
 
     use super::CLI;
@@ -247,8 +234,7 @@ mod tests {
                 let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                let should_equal_to: Vec<String> = vec![];
-                assert_eq!(found.to_vec(), should_equal_to);
+                assert_eq!(found, Resolve::Found);
             }
         };
     }
@@ -270,14 +256,13 @@ mod tests {
                 let find_results = command(FindAccount, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                let should_equal_to: Vec<String> = vec![];
-                assert_eq!(found.to_vec(), should_equal_to);
+                assert_eq!(found, Resolve::Found);
 
                 let find_args = vec![ "test", "find", "entity", "operation_find_account" ];
                 let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found.to_vec().len(), 1);
+                assert_eq!(found, Resolve::Found);
             }
         };
     }
