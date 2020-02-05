@@ -36,7 +36,6 @@ impl Locker {
         }
     }
 
-    // TODO: make a unit test for this method
     pub fn from(iv: String, key: String, dat: String) -> Locker {
         let biv = Bytes::from_hex(iv);
         let bkey = Bytes::from_hex(key);
@@ -102,6 +101,23 @@ mod tests {
         assert_eq!(locker.dat.raw().len(), 0);
         assert_eq!(locker.iv.raw().len(), 16);
         assert_eq!(locker.key.raw().len(), 16);
+    }
+
+    #[test]
+    fn from() {
+        let iv = String::from("0x00000000000000000000000000000000");
+        let key = String::from("0x00000000000000000000000000000001");
+        let dat = String::from("0x00000000000000000000000000000002");
+
+        let iv_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let key_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
+        let dat_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+        
+        let locker = Locker::from(iv, key, dat);
+
+        assert_eq!(locker.iv.raw(), iv_raw);
+        assert_eq!(locker.key.raw(), key_raw);
+        assert_eq!(locker.dat.raw(), dat_raw);
     }
 
     #[test]
