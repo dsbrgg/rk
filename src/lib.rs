@@ -15,12 +15,13 @@ use managers::FileManager;
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
-    Find(Vec<String>),
+    Find(Vec<PathBuf>),
+    Found,
     Remove
 }
 
 impl Resolve {
-    pub fn to_vec(self) -> Vec<String> {
+    pub fn to_vec(self) -> Vec<PathBuf> {
         if let Resolve::Find(vec) = self { return vec; }
         panic!("to_vec should be called on a Resolve::Find only");
     }
