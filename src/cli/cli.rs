@@ -71,8 +71,12 @@ impl<'p> CLI {
             None 
         );
 
-        let found = self.keeper.find(args)?.to_vec();
+        let found = self.keeper
+            .find(args)?
+            .to_vec();
+
         let selected = select(found);
+        let read = self.keeper.read(selected);
 
         Ok(Resolve::Found)
     }
