@@ -7,14 +7,15 @@ use std::io;
 use std::path::{PathBuf};
 
 pub use args::Args;
-use locker::Bytes;
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
+use locker::{Locker, Bytes};
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
+    // Two variants just for finding registers?
     Find(Vec<PathBuf>),
     Found,
     Remove
@@ -67,8 +68,8 @@ impl Keeper {
         if !password.is_empty() {
             let bytes: Vec<u8> = password.as_bytes().to_vec();
             
-            p = Bytes::bytes_string(&bytes[..34]);
-            pa = Bytes::bytes_string(&bytes[34..]);
+            p = Bytes::bytes_string(&bytes[..66]);
+            pa = Bytes::bytes_string(&bytes[66..]);
 
             path.push(&p);
         } 
@@ -124,6 +125,29 @@ impl Keeper {
         let registers = self.directories.read_locker(&path)?;
      
         Ok(Resolve::Find(registers))
+    }
+
+    // NOTE: only function with a different signature :/
+    pub fn read(&mut self, path: PathBuf) -> io::Result<String> {
+        // TODO: will have to rethink directories
+        // hash -> encrypt
+
+        if path.is_file() {
+            let path_to_str = FileManager::pb_to_str(&path);
+            let content = self.files.read_locker(&path_to_str)?;
+            
+            let iv = format!("0x{}", &content[..32]);
+            let key = format!("0x{}", &content[32..]);
+            let dat = path.file_name().unwrap().to_str()
+                .unwrap()
+                .to_string();
+
+            let locker = Locker::from(iv, key, dat);
+
+            return Ok(locker.decrypt());
+        }
+
+        Ok(FileManager::pb_to_str(&path))
     }
 
     pub fn remove(&mut self, args: Args ) -> io::Result<Resolve> {
@@ -367,9 +391,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
-
                 let mut keeper = Keeper::new(config, locker);
-                let mut locker_instance = Locker::new();
 
                 let entity = Some("find_entity_account_1");
                 let account = Some("find_entity_account_2");
@@ -395,6 +417,47 @@ mod keeper {
         };
     }
 
+    #[test]
+    fn read_account_password() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+
+                let mut dump = this.dump_path();
+                let mut locker_instance = Locker::new();
+                let mut keeper = Keeper::new(config, locker.clone());
+
+                let entity_hash = locker_instance.hash("read_account_password");
+                let account_hash = locker_instance.hash("read_account_password");
+
+                let entity = Some("read_account_password");
+                let account = Some("read_account_password");
+                let password = Some("read_account_password");
+
+                let args_add = Args::new(
+                    entity,
+                    account,
+                    password
+                );
+
+                let password_encrypted = args_add.password.clone();
+                
+                dump.push(locker);
+                dump.push(entity_hash);
+                dump.push(account_hash);
+                dump.push(&password_encrypted[..66]);
+
+                keeper.add(args_add); 
+
+                let result = keeper.read(dump).unwrap();
+
+                assert_eq!(result, "read_account_password");
+            }
+        };
+    }
+    
     #[test]
     fn find_without_params_returns_error() {
         Setup {
