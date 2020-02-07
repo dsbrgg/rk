@@ -66,11 +66,8 @@ impl Keeper {
         path.push(&account); 
         
         if !password.is_empty() {
-            let bytes: Vec<u8> = password.as_bytes().to_vec();
-            
-            p = Bytes::bytes_string(&bytes[..66]);
-            pa = Bytes::bytes_string(&bytes[66..]);
-
+            p = String::from(&password[..34]);
+            pa = String::from(&password[34..]);
             path.push(&p);
         } 
 
@@ -131,13 +128,14 @@ impl Keeper {
     pub fn read(&mut self, path: PathBuf) -> io::Result<String> {
         // TODO: will have to rethink directories
         // hash -> encrypt
-
+        
         if path.is_file() {
             let path_to_str = FileManager::pb_to_str(&path);
             let content = self.files.read_locker(&path_to_str)?;
             
             let iv = format!("0x{}", &content[..32]);
             let key = format!("0x{}", &content[32..]);
+            
             let dat = path.file_name().unwrap().to_str()
                 .unwrap()
                 .to_string();
