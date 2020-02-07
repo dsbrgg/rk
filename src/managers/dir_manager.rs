@@ -117,12 +117,15 @@ impl Manager for DirManager {
 
     fn read(&mut self, dir: &str) -> io::Result<Self::Output> {
         let mut entries = Vec::new();
+        let exists = PathBuf::from(dir).exists();
 
-        for entry in fs::read_dir(&dir)? {
-            let dir = entry?;
-            
-            entries.push(dir.path());
-        }
+        if exists {
+            for entry in fs::read_dir(&dir)? {
+                let dir = entry?;
+                
+                entries.push(dir.path());
+            }
+        } 
 
         Ok(entries)
     }
