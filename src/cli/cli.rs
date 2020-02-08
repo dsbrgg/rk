@@ -78,6 +78,8 @@ impl<'p> CLI {
         let selected = select(found);
         let read = self.keeper.read(selected);
 
+        // TODO: copy value to clipboard
+
         Ok(Resolve::Found)
     }
     
