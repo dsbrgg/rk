@@ -1,6 +1,6 @@
 use crate::locker::Locker;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Args {
     pub entity: String,
     pub account: String,
