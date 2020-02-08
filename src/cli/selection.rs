@@ -1,4 +1,4 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn select(found: Vec<PathBuf>) -> PathBuf {
