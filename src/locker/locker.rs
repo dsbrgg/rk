@@ -88,6 +88,40 @@ impl Locker {
             string.as_bytes()
         )
     }
+
+    /* Associated functions */
+
+    // TODO: unit test
+    pub fn distinguish(pwd: &String) -> (String, String, String) {
+        let mut d = String::new();
+        let mut i = String::new();
+        let mut k = String::new();
+
+        match pwd.as_bytes().len() {
+            98 => {
+                d = String::from(&pwd[..34]);
+                i = String::from(&pwd[34..66]);
+                k = String::from(&pwd[66..]);
+
+                (i, k, d)
+            },
+            130 => {
+                d = String::from(&pwd[..66]);
+                i = String::from(&pwd[66..98]);
+                k = String::from(&pwd[98..]);
+
+                (i, k, d)
+            },
+            162 => {
+                d = String::from(&pwd[..98]);
+                i = String::from(&pwd[98..130]);
+                k = String::from(&pwd[130..]);
+
+                (i, k, d)
+            },
+            _ => panic!("Unsupported encryption length"),
+        }
+    }
 }
 
 #[cfg(test)]
