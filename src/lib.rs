@@ -66,8 +66,11 @@ impl Keeper {
         path.push(&account); 
         
         if !password.is_empty() {
-            p = String::from(&password[..34]);
-            pa = String::from(&password[34..]);
+            let (i, k, d) = Locker::distinguish(&password);
+
+            p = d;
+            pa = format!("{}{}", i, k);
+
             path.push(&p);
         } 
 
@@ -132,7 +135,9 @@ impl Keeper {
         if path.is_file() {
             let path_to_str = FileManager::pb_to_str(&path);
             let content = self.files.read_locker(&path_to_str)?;
-            
+          
+            // TODO: this will have to be disinguished
+            // when iv and key can be longer than 16 bytes
             let iv = format!("0x{}", &content[..32]);
             let key = format!("0x{}", &content[32..]);
             
@@ -434,20 +439,21 @@ mod keeper {
                 let account = Some("read_account_password");
                 let password = Some("read_account_password");
 
-                let args_add = Args::new(
+                let args = Args::new(
                     entity,
                     account,
                     password
                 );
 
-                let password_encrypted = args_add.password.clone();
-                
+                let password_encrypted = args.password.clone();
+                let values = Locker::distinguish(&password_encrypted);
+
                 dump.push(locker);
                 dump.push(entity_hash);
                 dump.push(account_hash);
-                dump.push(&password_encrypted[..66]);
-
-                keeper.add(args_add); 
+                dump.push(values.2);
+                
+                keeper.add(args); 
 
                 let result = keeper.read(dump).unwrap();
 
@@ -502,12 +508,10 @@ mod keeper {
 
                 keeper.add(args.clone());
                 keeper.remove(args.clone());
-               
-                let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.find(args).unwrap();
-                }));
+              
+                let result = keeper.find(args).unwrap();
 
-                assert_eq!(result.is_err(), true);
+                assert_eq!(result.to_vec().len(), 0);
             }
         };
     }
@@ -532,11 +536,9 @@ mod keeper {
                 keeper.add(args.clone());
                 keeper.remove(args.clone());
                
-                let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.find(args).unwrap();
-                }));
+                let result = keeper.find(args).unwrap();
 
-                assert_eq!(result.is_err(), true);
+                assert_eq!(result.to_vec().len(), 0);
             }
         };
     }
