@@ -62,6 +62,9 @@ impl Bytes {
             0 => ByteSize::E,
             32 => ByteSize::U16,
             64 => ByteSize::U32,
+            // TODO: encryption can be other
+            // multiples of 16 bytes, currently
+            // 96 => ByteSize::U32,
             128 => ByteSize::U64,
             _ => panic!("Invalid hex length!"),
         };
