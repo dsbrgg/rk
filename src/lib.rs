@@ -15,6 +15,7 @@ use locker::{Locker, Bytes};
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
+    Read(String),
     // Two variants just for finding registers?
     Find(Vec<PathBuf>),
     Found,
@@ -25,6 +26,11 @@ impl Resolve {
     pub fn to_vec(self) -> Vec<PathBuf> {
         if let Resolve::Find(vec) = self { return vec; }
         panic!("to_vec should be called on a Resolve::Find only");
+    }
+
+    pub fn to_string(self) -> String {
+        if let Resolve::Read(string) = self { return string; }
+        panic!("to_string should be called on a Resolve::Read only");
     }
 }
 
@@ -46,17 +52,19 @@ impl Keeper {
     // registers. 
     
     pub fn add(&mut self, args: Args) -> io::Result<Resolve> {
-        let Args {
-            entity,
-            account,
-            password
-        } = args;
-
-        if entity.is_empty() && !account.is_empty() {
+        if args.has_account() && !args.has_entity() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Entity must be provided when an account is set."
             ));
         }
+       
+        let has_pass = args.has_all();
+
+        let Args {
+            entity,
+            account,
+            password
+        } = args; 
 
         let mut p = String::new();
         let mut pa = String::new();
@@ -65,12 +73,9 @@ impl Keeper {
         path.push(&entity);
         path.push(&account); 
         
-        if !password.is_empty() {
+        if has_pass {
             let (i, k, d) = Locker::distinguish(&password);
-
-            p = d;
-            pa = format!("{}{}", i, k);
-
+            p = d; pa = format!("{}{}", i, k);
             path.push(&p);
         } 
 
@@ -109,17 +114,17 @@ impl Keeper {
     }
 
     pub fn find(&mut self, args: Args) -> io::Result<Resolve> {
-        let Args {
-            entity,
-            account,
-            ..
-        } = args;
-
-        if entity.is_empty() && account.is_empty() {
+        if !args.has_entity() && !args.has_account() {
             return Err(io::Error::new(
                 io::ErrorKind::Other, "Neither entity or account provided."
             ));
         }
+        
+        let Args {
+            entity,
+            account,
+            ..
+        } = args; 
         
         let path = DirManager::append_path(&entity, &account);
         let registers = self.directories.read_locker(&path)?;
@@ -127,30 +132,26 @@ impl Keeper {
         Ok(Resolve::Find(registers))
     }
 
-    // NOTE: only function with a different signature :/
-    pub fn read(&mut self, path: PathBuf) -> io::Result<String> {
+    pub fn read(&mut self, path: PathBuf) -> io::Result<Resolve> {
         // TODO: will have to rethink directories
         // hash -> encrypt
         
-        if path.is_file() {
-            let path_to_str = FileManager::pb_to_str(&path);
-            let content = self.files.read_locker(&path_to_str)?;
-          
-            // TODO: this will have to be disinguished
-            // when iv and key can be longer than 16 bytes
-            let iv = format!("0x{}", &content[..32]);
-            let key = format!("0x{}", &content[32..]);
-            
-            let dat = path.file_name().unwrap().to_str()
-                .unwrap()
-                .to_string();
+        let path_to_str = FileManager::pb_to_str(&path);
+        let content = self.files.read_locker(&path_to_str)?;
+      
+        // TODO: this will have to be disinguished
+        // when iv and key can be longer than 16 bytes
+        let iv = format!("0x{}", &content[..32]);
+        let key = format!("0x{}", &content[32..]);
+        
+        let dat = path.file_name().unwrap().to_str()
+            .unwrap()
+            .to_string();
 
-            let locker = Locker::from(iv, key, dat);
+        let locker = Locker::from(iv, key, dat);
+        let read = locker.decrypt();
 
-            return Ok(locker.decrypt());
-        }
-
-        Ok(FileManager::pb_to_str(&path))
+        Ok(Resolve::Read(read))
     }
 
     pub fn remove(&mut self, args: Args ) -> io::Result<Resolve> {
@@ -455,7 +456,7 @@ mod keeper {
                 
                 keeper.add(args); 
 
-                let result = keeper.read(dump).unwrap();
+                let result = keeper.read(dump).unwrap().to_string();
 
                 assert_eq!(result, "read_account_password");
             }
