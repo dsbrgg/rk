@@ -118,12 +118,12 @@ impl Manager for FileManager {
 
     fn read(&mut self, path: &str) -> io::Result<Self::Output> {
         let p = Path::new(path);
+        
+        let not_found_msg = format!("Trying to open file {:?} that does not exist", path);
+        let not_a_file_msg = format!("{:?} is a directory. FileManager can't open it", path);
 
-        if !p.exists() {
-            let msg = format!("Trying to open file {:?} that does not exist", path);
-            
-            panic!(msg); 
-        }
+        if !p.exists() { panic!(not_found_msg); }
+        if !p.is_file() { panic!(not_a_file_msg); }
 
         let mut file = File::open(p)?;
         let mut contents = String::new();
@@ -146,6 +146,7 @@ impl Manager for FileManager {
 mod test {
     use super::*;
 
+    use std::path::PathBuf;
     use std::env::current_dir;
     use std::fs::remove_file;
     use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -260,7 +261,6 @@ mod test {
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    // TODO: use PathBuf here
                     fm.read_locker("dump/unknown");
                 }));
 
@@ -280,7 +280,6 @@ mod test {
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    // TODO: use PathBuf here
                     fm.read_config("dump/unknown");
                 }));
 
