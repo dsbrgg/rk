@@ -71,14 +71,20 @@ impl<'p> CLI {
             None 
         );
 
+        let to_read = args.has_all();
+
         let found = self.keeper
             .find(args)?
             .to_vec();
 
         let selected = select(found);
-        let read = self.keeper.read(selected);
 
-        // TODO: copy value to clipboard
+        if let Some(option) = selected {
+            if to_read {
+                let read = self.keeper.read(option);
+                // TODO: copy value to clipboard
+            } 
+        }
 
         Ok(Resolve::Found)
     }
