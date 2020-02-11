@@ -91,7 +91,6 @@ impl Locker {
 
     /* Associated functions */
 
-    // TODO: unit test
     pub fn distinguish(pwd: &String) -> (String, String, String) {
         let mut d = String::new();
         let mut i = String::new();
@@ -195,5 +194,24 @@ mod tests {
         let hash = locker.hash(&string);
 
         assert_eq!(hash, hashed);
+    }
+
+    #[test]
+    fn distinguish_98() {
+        let string = "0x19467788bc0cf11790a075ea718452cecf0e79db59d196467019467788bc0cf11790a075ea718452cecf0e79db59d196".to_string();
+
+        let (iv, key, dat) = Locker::distinguish(&string);
+
+        assert_eq!(iv, "cf0e79db59d196467019467788bc0cf1");
+        assert_eq!(key, "1790a075ea718452cecf0e79db59d196");
+        assert_eq!(dat, "0x19467788bc0cf11790a075ea718452ce");
+    }
+
+    #[test]
+    #[should_panic(expected = "Unsupported encryption length")]
+    fn distinguish_panic() {
+        let string = "0x19467788bc0cf11790a075ea718452cecf0".to_string();
+
+        Locker::distinguish(&string);
     }
 }
