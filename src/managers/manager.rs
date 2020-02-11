@@ -12,6 +12,8 @@ pub trait Manager {
 
     fn read(&mut self, path: &str) -> io::Result<Self::Output>;
 
+    fn write(&mut self, path: &str, content: &str) -> io::Result<()> { Ok(()) }
+
     fn pb_to_str(path: &PathBuf) -> String {
         path
             .as_path()
