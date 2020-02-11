@@ -149,9 +149,9 @@ impl Keeper {
             .to_string();
 
         let locker = Locker::from(iv, key, dat);
-        let read = locker.decrypt();
-
-        Ok(Resolve::Read(read))
+        let decrypted = locker.decrypt();
+        
+        Ok(Resolve::Read(decrypted))
     }
 
     pub fn remove(&mut self, args: Args ) -> io::Result<Resolve> {
