@@ -64,9 +64,10 @@ impl FileManager {
     }
 
     pub fn write_locker(&mut self, path: &str, content: &str) -> io::Result<()> {
-        let p = self.gen_path(Locker, path);
-        fs::write(&p, &content)?;
-        Ok(())
+        self.write(
+            &self.gen_path(Locker, path),
+            content
+        )
     }
 
     fn gen_path(&self, for_path: ManagerOption, path: &str) -> String {
@@ -134,11 +135,14 @@ impl Manager for FileManager {
     }
 
     fn remove(&mut self, path: &str) -> io::Result<()> {
-        let p = Path::new(path);
-
-        if p.exists() { fs::remove_file(path)?; }
+        if Path::new(path).exists() { fs::remove_file(path)?; }
         
         Ok(()) 
+    }
+
+    fn write(&mut self, path: &str, content: &str) -> io::Result<()> {
+        fs::write(&path, &content)?;
+        Ok(())
     }
 }
 
