@@ -3,6 +3,8 @@ use clap::{ArgMatches};
 use std::io;
 use std::path::{PathBuf};
 
+use clipboard::{ClipboardProvider, ClipboardContext};
+
 use rk::Args;
 use rk::{Resolve, Keeper};
 use crate::cli::select;
@@ -63,7 +65,11 @@ impl<'p> CLI {
     }
 
     fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
-        let Params { entity, account, .. } = CLI::extract_values(args);
+        let Params { 
+            entity, 
+            account, 
+            .. 
+        } = CLI::extract_values(args);
 
         let args = Args::new(
             entity,
@@ -71,18 +77,20 @@ impl<'p> CLI {
             None 
         );
 
-        let to_read = args.has_all();
+        let to_read = args.has_entity() && args.has_account();
 
         let found = self.keeper
             .find(args)?
             .to_vec();
 
         let selected = select(found);
-
+        
         if let Some(option) = selected {
             if to_read {
-                let read = self.keeper.read(option);
-                // TODO: copy value to clipboard
+                let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                let read = self.keeper.read(option)?.to_string();
+                
+                ctx.set_contents(read).unwrap();
             } 
         }
 
@@ -90,7 +98,11 @@ impl<'p> CLI {
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
-        let Params { entity, account, .. } = CLI::extract_values(args);
+        let Params { 
+            entity, 
+            account, 
+            .. 
+        } = CLI::extract_values(args);
        
         let args = Args::new(
             entity,
