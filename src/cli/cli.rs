@@ -3,7 +3,8 @@ use clap::{ArgMatches};
 use std::io;
 use std::path::{PathBuf};
 
-use clipboard::{ClipboardProvider, ClipboardContext};
+use copypasta::ClipboardContext;
+use copypasta::ClipboardProvider;
 
 use rk::Args;
 use rk::{Resolve, Keeper};
@@ -87,10 +88,12 @@ impl<'p> CLI {
         
         if let Some(option) = selected {
             if to_read {
-                let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                // NOTE: having issues on linux to copy/paste on clipboard:
+                // https://github.com/alacritty/alacritty/issues/2795
+                // let mut ctx = ClipboardContext::new().unwrap();
                 let read = self.keeper.read(option)?.to_string();
-                
-                ctx.set_contents(read).unwrap();
+                println!("{:?}", read);
+                // ctx.set_contents(read).unwrap();
             } 
         }
 
