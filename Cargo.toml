@@ -10,7 +10,7 @@ dialoguer = "0.5.0"
 dirs = "2.0"
 rand = "^0.3"
 hex = "0.3.2"
-serde = "1.0"
+serde =  { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 aes-soft = "0.3.3"
 block-modes = "0.3.3"
