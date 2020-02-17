@@ -5,7 +5,7 @@ authors = ["dsbrgg <dsbrgg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-clipboard = "0.5.0"
+copypasta = "0.6.2"
 dialoguer = "0.5.0"
 dirs = "2.0"
 rand = "^0.3"
