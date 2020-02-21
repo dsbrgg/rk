@@ -93,6 +93,15 @@ impl Manager for FileManager {
     // the default settings.yml file is
     // required on the config_path
     fn init(&mut self) -> io::Result<()> {
+        let mut config = self.config.clone();
+        let filename = config.file_name().unwrap().to_str();
+
+        if let Some(name) = filename {
+            if name != "settings.yml" {
+                self.config.push("settings.yml");
+            }
+        }
+
         let config_path = self.config.as_path().to_owned();
         
         if !config_path.exists() { 
@@ -101,6 +110,8 @@ impl Manager for FileManager {
                     .to_str()
                     .unwrap()
             )?;
+
+            // TODO: self.write com o config serialized 
         }
 
         Ok(())
@@ -142,6 +153,7 @@ impl Manager for FileManager {
 
     fn write(&mut self, path: &str, content: &str) -> io::Result<()> {
         fs::write(&path, &content)?;
+        
         Ok(())
     }
 }
