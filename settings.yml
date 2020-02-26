@@ -1,4 +1,4 @@
 paths: 
-  index: '' 
-  locker: ''
-  config: ''
+  index: '$HOME/.rk/index' 
+  locker: '$HOME/.rk'
+  config: '$HOME/.config/rk/settings.yml'
