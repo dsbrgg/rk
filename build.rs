@@ -1,11 +1,16 @@
 use std::env;
+use std::fs::File;
+use std::io::prelude::*;
 
 fn main() {
-    // TODO: use serde to deserialize settings.yml
-    // and apply changes to settings.yml and let FileManager
-    // and DirManager handle file creation
-    println!("cargo:warning=building...");
-    for (key, value) in env::vars() {
-        println!("cargo:warning={}: {}", key, value);
-    }
+    let home = env::var("HOME").unwrap();
+    let mut settings = String::new();
+    let mut file = File::open("settings.yml").unwrap();
+
+    file.read_to_string(&mut settings)
+        .expect("Unable to read settings.yml");
+
+    let replaced = settings.replace("$HOME", &home);
+    let mut tmp = File::create("settings_tmp.yml").unwrap();
+    tmp.write_all(replaced.as_bytes());
 }
