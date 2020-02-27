@@ -50,9 +50,9 @@ mod test {
         let config = String::from("config");
         let locker = String::from("locker");
 
-        let index_value =  Value::String("".to_string());
-        let config_value = Value::String("".to_string());
-        let locker_value = Value::String("".to_string());
+        let index_value =  Value::String("$HOME/.rk/index".to_string());
+        let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
+        let locker_value = Value::String("$HOME/.rk".to_string());
         
         default_paths.insert(index, index_value);
         default_paths.insert(config, config_value);
