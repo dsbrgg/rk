@@ -3,3 +3,5 @@ dump/*
 
 /target
 **/*.rs.bk
+
+/settings_tmp.yml
