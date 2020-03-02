@@ -4,15 +4,15 @@ use serde_yaml:: Value;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-struct Config {
+struct Settings {
     paths: HashMap<String, Value>
 }
 
-impl Config {
+impl Settings {
 
     /* Initialisers */
 
-    fn from_yaml(yaml: &str) -> Result<Config, serde_yaml::Error> {
+    fn from_yaml(yaml: &str) -> Result<Settings, serde_yaml::Error> {
         serde_yaml::from_str(yaml)
     }
 
@@ -43,7 +43,7 @@ mod test {
 
         config_file.read_to_string(&mut yaml).unwrap();
 
-        let deserialized = Config::from_yaml(&yaml).unwrap();
+        let deserialized = Settings::from_yaml(&yaml).unwrap();
         let mut default_paths: HashMap<String, Value> = HashMap::new();
 
         let index = String::from("index");
@@ -58,7 +58,7 @@ mod test {
         default_paths.insert(config, config_value);
         default_paths.insert(locker, locker_value);
 
-        let default_config = Config {
+        let default_config = Settings {
             paths: default_paths
         };
 
