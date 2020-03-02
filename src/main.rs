@@ -6,7 +6,7 @@ mod args;
 mod locker;
 mod managers;
 mod mocks;
-mod config;
+mod settings;
 
 // TODO:
 // extract cmd -> encrypt/zip all passwords and send it to a specific path
@@ -16,7 +16,7 @@ fn main() {
     use cli::CLI;
 
     let args = app::execute();
-
+    
     let mut config = dirs::home_dir().unwrap();
     let mut locker = dirs::home_dir().unwrap();
     
