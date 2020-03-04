@@ -1,3 +1,4 @@
+use std::default::Default;
 use std::collections::HashMap;
 
 use serde_yaml:: Value;
@@ -6,6 +7,28 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct Settings {
     paths: HashMap<String, Value>
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        let mut paths: HashMap<String, Value> = HashMap::new();
+
+        let index = String::from("index");
+        let config = String::from("config");
+        let locker = String::from("locker");
+
+        let index_value =  Value::String("$HOME/.rk/index".to_string());
+        let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
+        let locker_value = Value::String("$HOME/.rk".to_string());
+
+        paths.insert(index, index_value);
+        paths.insert(config, config_value);
+        paths.insert(locker, locker_value);
+
+        Settings {
+            paths
+        }
+    }
 }
 
 impl Settings {
@@ -30,6 +53,28 @@ mod test {
     use std::env;
     use std::fs::File;
     use std::io::Read;
+
+    #[test]
+    fn default() {
+        let mut paths: HashMap<String, Value> = HashMap::new();
+
+        let index = String::from("index");
+        let config = String::from("config");
+        let locker = String::from("locker");
+
+        let index_value =  Value::String("$HOME/.rk/index".to_string());
+        let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
+        let locker_value = Value::String("$HOME/.rk".to_string());
+        
+        paths.insert(index, index_value);
+        paths.insert(config, config_value);
+        paths.insert(locker, locker_value);
+
+        let settings = Settings { paths };
+        let default_settings: Settings = Default::default();
+
+        assert_eq!(settings, default_settings);
+    }
 
     #[test]
     fn from_yaml() {
