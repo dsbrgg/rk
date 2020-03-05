@@ -9,28 +9,6 @@ struct Settings {
     paths: HashMap<String, Value>
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        let mut paths: HashMap<String, Value> = HashMap::new();
-
-        let index = String::from("index");
-        let config = String::from("config");
-        let locker = String::from("locker");
-
-        let index_value =  Value::String("$HOME/.rk/index".to_string());
-        let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
-        let locker_value = Value::String("$HOME/.rk".to_string());
-
-        paths.insert(index, index_value);
-        paths.insert(config, config_value);
-        paths.insert(locker, locker_value);
-
-        Settings {
-            paths
-        }
-    }
-}
-
 impl Settings {
 
     /* Initialisers */
@@ -43,6 +21,44 @@ impl Settings {
 
     fn to_yaml(&self) -> Result<String, serde_yaml::Error> {
         serde_yaml::to_string(self) 
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        let mut paths: HashMap<String, Value> = HashMap::new();
+
+        let index = String::from("index");
+        let locker = String::from("locker");
+        let config = String::from("config");
+
+        let mut index_dir = dirs::home_dir().unwrap();
+        let mut locker_dir = dirs::home_dir().unwrap();
+        let mut config_dir = dirs::config_dir().unwrap();
+
+        locker_dir.push(".rk");
+        
+        index_dir.push(".rk");
+        index_dir.push("index");
+
+        config_dir.push("rk");
+        config_dir.push("settings.yml");
+
+        let index_location = index_dir.to_str().unwrap().to_string();
+        let locker_location = locker_dir.to_str().unwrap().to_string();
+        let config_location = config_dir.to_str().unwrap().to_string();
+
+        let index_value =  Value::String(index_location);
+        let config_value = Value::String(config_location);
+        let locker_value = Value::String(locker_location);
+
+        paths.insert(index, index_value);
+        paths.insert(config, config_value);
+        paths.insert(locker, locker_value);
+
+        Settings {
+            paths
+        }
     }
 }
 
@@ -59,13 +75,29 @@ mod test {
         let mut paths: HashMap<String, Value> = HashMap::new();
 
         let index = String::from("index");
-        let config = String::from("config");
         let locker = String::from("locker");
+        let config = String::from("config");
 
-        let index_value =  Value::String("$HOME/.rk/index".to_string());
-        let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
-        let locker_value = Value::String("$HOME/.rk".to_string());
+        let mut index_dir = dirs::home_dir().unwrap();
+        let mut locker_dir = dirs::home_dir().unwrap();
+        let mut config_dir = dirs::config_dir().unwrap();
+
+        locker_dir.push(".rk");
         
+        index_dir.push(".rk");
+        index_dir.push("index");
+
+        config_dir.push("rk");
+        config_dir.push("settings.yml");
+
+        let index_location = index_dir.to_str().unwrap().to_string();
+        let locker_location = locker_dir.to_str().unwrap().to_string();
+        let config_location = config_dir.to_str().unwrap().to_string();
+
+        let index_value =  Value::String(index_location);
+        let config_value = Value::String(config_location);
+        let locker_value = Value::String(locker_location);
+
         paths.insert(index, index_value);
         paths.insert(config, config_value);
         paths.insert(locker, locker_value);
