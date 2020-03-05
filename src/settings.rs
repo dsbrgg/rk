@@ -5,7 +5,7 @@ use serde_yaml:: Value;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-struct Settings {
+pub struct Settings {
     paths: HashMap<String, Value>
 }
 
