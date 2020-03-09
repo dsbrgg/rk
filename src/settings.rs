@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+use std::convert::From;
 use std::default::Default;
 use std::collections::HashMap;
 
@@ -7,6 +9,33 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Settings {
     paths: HashMap<String, Value>
+}
+
+pub enum SettingsOpts {
+    Index,
+    Locker,
+    Config,
+}
+
+impl From<&str> for SettingsOpts {
+    fn from(string: &str) -> Self {
+        match string {
+            "index" => SettingsOpts::Index,
+            "locker" => SettingsOpts::Locker,
+            "config" => SettingsOpts::Config,
+            _ => panic!("Unknown SettingsOpts option")
+        }
+    }
+}
+
+impl SettingsOpts {
+    fn to_str<'a>(self) -> &'a str {
+        match self {
+            SettingsOpts::Index => "index",
+            SettingsOpts::Locker => "locker",
+            SettingsOpts::Config => "config",
+        }
+    }
 }
 
 impl Settings {
@@ -21,6 +50,19 @@ impl Settings {
 
     fn to_yaml(&self) -> Result<String, serde_yaml::Error> {
         serde_yaml::to_string(self) 
+    }
+
+    // TODO: unit test missing
+    pub fn get(&self, path: SettingsOpts) -> PathBuf {
+        let option = path.to_str();
+
+        let path = self.paths
+            .get(option)
+            .unwrap()
+            .as_str()
+            .unwrap();
+
+        PathBuf::from(path)
     }
 }
 
@@ -65,7 +107,7 @@ impl Default for Settings {
 #[cfg(test)]
 mod test {
     use super::*;
-    
+   
     use std::env;
     use std::fs::File;
     use std::io::Read;
@@ -140,5 +182,16 @@ mod test {
         };
 
         assert_eq!(deserialized, default_config);
+    }
+
+    #[test]
+    fn settings_opts_to_str() {
+        let index_option = SettingsOpts::Index;
+        let locker_option = SettingsOpts::Locker;
+        let config_option = SettingsOpts::Config;
+
+        assert_eq!(index_option.to_str(), "index");
+        assert_eq!(locker_option.to_str(), "locker");
+        assert_eq!(config_option.to_str(), "config");
     }
 }
