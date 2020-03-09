@@ -14,15 +14,17 @@ mod settings;
 
 fn main() {
     use cli::CLI;
-    use settings::Settings;
+    use settings::{
+        Settings, 
+        SettingsOpts::*
+    };
 
     let args = app::execute();
-    let Settings { paths } = Settings::default();
+    let settings = Settings::default();
+    
+    let config = settings.get(Config);
+    let locker = settings.get(Locker);
 
-    let config = paths.get("config").unwrap();
-    let locker = paths.get("locker").unwrap();
-
-    // TODO: impl PathBuf for Values
     CLI::start(config, locker)
         .operation(args)
         .expect("Error on app operation");
