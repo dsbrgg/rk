@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::convert::From;
 use std::default::Default;
 use std::collections::HashMap;
 
@@ -15,17 +14,6 @@ pub enum SettingsOpts {
     Index,
     Locker,
     Config,
-}
-
-impl From<&str> for SettingsOpts {
-    fn from(string: &str) -> Self {
-        match string {
-            "index" => SettingsOpts::Index,
-            "locker" => SettingsOpts::Locker,
-            "config" => SettingsOpts::Config,
-            _ => panic!("Unknown SettingsOpts option")
-        }
-    }
 }
 
 impl SettingsOpts {
@@ -52,7 +40,6 @@ impl Settings {
         serde_yaml::to_string(self) 
     }
 
-    // TODO: unit test missing
     pub fn get(&self, path: SettingsOpts) -> PathBuf {
         let option = path.to_str();
 
@@ -182,6 +169,33 @@ mod test {
         };
 
         assert_eq!(deserialized, default_config);
+    }
+
+    #[test]
+    fn get() {
+        let mut paths = HashMap::new();
+        
+        let index = String::from("index");
+        let index_value = Value::String("index".to_string());
+
+        let locker = String::from("locker");
+        let locker_value = Value::String("locker".to_string());
+
+        let config = String::from("config");
+        let config_value = Value::String("config".to_string());
+        
+        paths.insert(index, index_value);
+        paths.insert(locker, locker_value);
+        paths.insert(config, config_value);
+
+        let settings = Settings { paths };
+        let get_index = settings.get(SettingsOpts::Index);
+        let get_locker = settings.get(SettingsOpts::Locker);
+        let get_config = settings.get(SettingsOpts::Config);
+
+        assert_eq!(get_index, PathBuf::from("index"));
+        assert_eq!(get_locker, PathBuf::from("locker"));
+        assert_eq!(get_config, PathBuf::from("config"));
     }
 
     #[test]
