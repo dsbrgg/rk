@@ -98,8 +98,6 @@ impl Manager for FileManager {
                     .to_str()
                     .unwrap()
             )?;
-
-            // TODO: self.write com o config serialized 
         }
 
         Ok(())
