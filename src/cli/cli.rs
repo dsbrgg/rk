@@ -91,13 +91,16 @@ impl<'p> CLI {
                 // NOTE: having issues on linux to copy/paste on clipboard:
                 // https://github.com/alacritty/alacritty/issues/2795
                 // let mut ctx = ClipboardContext::new().unwrap();
-                let read = self.keeper.read(option)?.to_string();
-                println!("{:?}", read);
                 // ctx.set_contents(read).unwrap();
+                let read = self.keeper.read(option)?.to_string();
+                
+                println!("{:?}", read);
+
+                return Ok(Resolve::Read(read));
             } 
         }
 
-        Ok(Resolve::Found)
+        Ok(Resolve::Read("".to_string()))
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
@@ -261,7 +264,7 @@ mod tests {
                 let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Found);
+                assert_eq!(found, Resolve::Read("".to_string()));
             }
         };
     }
@@ -283,13 +286,13 @@ mod tests {
                 let find_results = command(FindAccount, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Found);
+                assert_eq!(found, Resolve::Read("".to_string()));
 
                 let find_args = vec![ "test", "find", "entity", "operation_find_account" ];
                 let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Found);
+                assert_eq!(found, Resolve::Read("".to_string()));
             }
         };
     }
