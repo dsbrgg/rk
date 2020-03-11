@@ -16,9 +16,7 @@ use locker::{Locker, Bytes};
 pub enum Resolve {
     Add,
     Read(String),
-    // Two variants just for finding registers?
     Find(Vec<PathBuf>),
-    Found,
     Remove
 }
 
@@ -144,7 +142,9 @@ impl Keeper {
         let iv = format!("0x{}", &content[..32]);
         let key = format!("0x{}", &content[32..]);
         
-        let dat = path.file_name().unwrap().to_str()
+        let dat = path.file_name()
+            .unwrap()
+            .to_str()
             .unwrap()
             .to_string();
 
