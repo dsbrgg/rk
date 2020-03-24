@@ -6,7 +6,7 @@ mod args;
 mod locker;
 mod managers;
 mod mocks;
-mod settings;
+mod yaml;
 
 // TODO:
 // extract cmd -> encrypt/zip all passwords and send it to a specific path
@@ -14,7 +14,7 @@ mod settings;
 
 fn main() {
     use cli::CLI;
-    use settings::{
+    use yaml::{
         Settings, 
         SettingsOpts::*
     };
