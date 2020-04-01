@@ -22,10 +22,11 @@ fn main() {
     let args = app::execute();
     let settings = Settings::default();
     
+    let index = settings.get(Index);
     let config = settings.get(Config);
     let locker = settings.get(Locker);
 
-    CLI::start(config, locker)
+    CLI::start(index, config, locker)
         .operation(args)
         .expect("Error on app operation");
 }
