@@ -170,7 +170,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 FileManager::new(&config, &locker);
             }
         }; 
@@ -182,7 +182,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, mut locker) = this.as_path_buf();
+                let (.., config, mut locker) = this.as_path_buf();
                 
                 let mut fm = FileManager::new(&config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
@@ -201,7 +201,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (mut config, locker) = this.as_path_buf();
+                let (.., mut config, locker) = this.as_path_buf();
                 
                 let mut fm = FileManager::new(&config, &locker);
                 let config_path = FileManager::pb_to_str(&config);
@@ -220,7 +220,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, mut locker) = this.as_path_buf();
+                let (.., config, mut locker) = this.as_path_buf();
                 
                 let mut fm = FileManager::new(&config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
@@ -240,7 +240,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 
                 let config_path = FileManager::pb_to_str(&config);
                 let mut fm = FileManager::new(&config, &locker);
@@ -258,7 +258,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(&config, &locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
@@ -277,7 +277,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(&config, &locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
@@ -296,7 +296,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(&config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&locker);
                 
@@ -314,7 +314,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut fm = FileManager::new(&config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
                 
@@ -332,7 +332,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, mut locker) = this.as_path_buf();
+                let (.., config, mut locker) = this.as_path_buf();
                 
                 let mut fm = FileManager::new(&config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
