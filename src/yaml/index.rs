@@ -1,4 +1,7 @@
+use std::io::Read;
+use std::fs::File;
 use std::error::Error;
+use std::path::{PathBuf};
 use std::collections::HashMap;
 
 use serde_yaml::Value;
@@ -13,13 +16,37 @@ impl Index {
 
     /* Initialisers */
 
-    fn from_yaml(yaml: &str) -> Result<Index, serde_yaml::Error> {
+    pub fn from_yaml(yaml: &str) -> Result<Index, serde_yaml::Error> {
         serde_yaml::from_str(yaml)
+    }
+
+    pub fn from_pathbuf(yaml: PathBuf) -> Result<Index, serde_yaml::Error> {
+        if !yaml.as_path().exists() { 
+            let msg = format!("Unable to create index file at {:?}", yaml);
+            
+            File::create(&yaml).expect(&msg); 
+        }
+
+        let mut contents = String::new();
+        let mut file = File::open(yaml).expect("Unable to open index file");
+
+        file.read_to_string(&mut contents)
+            .expect("Unable to read index file into string");
+
+        if contents.is_empty() {
+            let empty_index = Index {
+                accounts: HashMap::new()
+            };
+
+            return Ok(empty_index);
+        }
+
+        serde_yaml::from_str(&contents)
     }
 
     /* Methods */
 
-    fn to_yaml(&self) -> Result<String, serde_yaml::Error> {
+    pub fn to_yaml(&self) -> Result<String, serde_yaml::Error> {
         serde_yaml::to_string(self) 
     }
 
@@ -35,8 +62,10 @@ impl Index {
 
     pub fn get(&mut self, entity: String, account: String) -> String {
         let entry = self.accounts.entry(entity).or_default();
-        
-        entry.iter().filter(|acc| **acc == Value::String(account.to_owned()))
+        let filter =  |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
+
+        entry.iter()
+            .filter(filter)
             .next()
             .unwrap()
             .as_str()
