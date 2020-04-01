@@ -173,7 +173,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, mut locker) = this.as_path_buf();
+                let (.., config, mut locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -194,7 +194,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (mut config, locker) = this.as_path_buf();
+                let (.., mut config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 
@@ -215,7 +215,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
@@ -232,7 +232,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
 
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
@@ -249,7 +249,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
                 
@@ -266,7 +266,7 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (.., config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
                 
