@@ -28,7 +28,7 @@ impl<'s> Setup<'s> {
         self.buf_to_str(&dump)
     } 
 
-    fn gen_path(&mut self) -> PathBuf {
+    fn gen_path(&mut self, ) -> PathBuf {
         let path = self.rand_path();
         
         self.paths.push(path.clone());
@@ -62,17 +62,19 @@ impl<'s> Setup<'s> {
         path_str
     }
 
-    pub fn as_path_buf(&mut self) -> (PathBuf, PathBuf) {
+    pub fn as_path_buf(&mut self) -> (PathBuf, PathBuf, PathBuf) {
         (
+            self.gen_path(),
             self.gen_path(), 
             self.gen_path()
         )
     }
 
-    pub fn as_path_str(&mut self) -> (String, String) {
-        let (config, locker) = self.as_path_buf();
+    pub fn as_path_str(&mut self) -> (String, String, String) {
+        let (index, config, locker) = self.as_path_buf();
 
         (
+            index.as_path().to_str().unwrap().to_owned(),
             config.as_path().to_str().unwrap().to_owned(), 
             locker.as_path().to_str().unwrap().to_owned()
         )
