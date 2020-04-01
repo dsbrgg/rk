@@ -33,8 +33,15 @@ impl Index {
         Ok(())
     }
 
-    pub fn get(&self, entity: String, account: Option<String>) -> String {
-       String::new() 
+    pub fn get(&mut self, entity: String, account: String) -> String {
+        let entry = self.accounts.entry(entity).or_default();
+        
+        entry.iter().filter(|acc| **acc == Value::String(account.to_owned()))
+            .next()
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string()
     }
 }
 
@@ -128,5 +135,20 @@ mod test {
         index.add("entity_hash".to_string(), Some("new_account".to_string()));
 
         assert_eq!(index.accounts, accounts);
+    }
+
+    #[test]
+    fn get() {
+        let yaml = "---\naccounts:\n  entity_hash:\n    - account_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+        index.add("entity_hash".to_string(), Some("new_account".to_string()));
+
+        let entity = String::from("entity_hash");
+        let account = String::from("new_account");
+
+        assert_eq!(
+            index.get(entity, account), 
+            String::from("new_account")
+        );
     }
 }
