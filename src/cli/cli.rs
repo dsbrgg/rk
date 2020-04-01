@@ -8,6 +8,7 @@ use copypasta::ClipboardProvider;
 
 use rk::Args;
 use rk::{Resolve, Keeper};
+
 use crate::cli::select;
 
 struct Params<'p> { 
@@ -19,9 +20,9 @@ struct Params<'p> {
 pub struct CLI { keeper: Keeper }
 
 impl<'p> CLI {
-    pub fn start(config: PathBuf, locker: PathBuf) -> CLI {
+    pub fn start(index: PathBuf, config: PathBuf, locker: PathBuf) -> CLI {
         CLI {
-            keeper: Keeper::new(config, locker)
+            keeper: Keeper::new(index, config, locker)
         }
     }
 
@@ -158,14 +159,14 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (index, config, locker) = this.as_path_buf();
                 let locker_instance = Locker::new();
 
                 let mut l = locker.clone();
                 let entity_hash = locker_instance.hash("add_entity");
                 l.push(entity_hash);
 
-                let mut cli = CLI::start(config, locker);
+                let mut cli = CLI::start(index, config, locker);
                
                 let args = vec![ "test", "add", "entity", "add_entity" ];
                 let results = command(AddEntity, args);
@@ -183,7 +184,7 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (index, config, locker) = this.as_path_buf();
                 let locker_instance = Locker::new();
 
                 let mut l = locker.clone();
@@ -193,7 +194,7 @@ mod tests {
                 l.push(entity_hash);
                 l.push(account_hash);
 
-                let mut cli = CLI::start(config, locker);
+                let mut cli = CLI::start(index, config, locker);
                 
                 let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
                 let results = command(AddAccount, args);
@@ -211,7 +212,7 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
+                let (index, config, locker) = this.as_path_buf();
                 let locker_instance = Locker::new();
 
                 let mut l = locker.clone();
@@ -222,7 +223,7 @@ mod tests {
                 l.push(entity_hash);
                 l.push(account_hash);
 
-                let mut cli = CLI::start(config, locker);
+                let mut cli = CLI::start(index, config, locker);
 
                 let args = vec![ 
                     "test", "add", "password", "very_good_password_1", 
@@ -251,8 +252,8 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::start(config, locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut cli = CLI::start(index, config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "operation_find_entity" ];
                 let add_results = command(AddEntity, add_args);
@@ -275,8 +276,8 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::start(config, locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut cli = CLI::start(index, config, locker);
                
                 let add_args = vec![ "test", "add", "account", "account", "-e", "operation_find_account" ];
                 let add_results = command(AddAccount, add_args);
@@ -303,8 +304,8 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::start(config, locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut cli = CLI::start(index, config, locker);
                
                 let add_args = vec![ "test", "add", "entity", "entity" ];
                 let add_results = command(AddEntity, add_args);
@@ -327,8 +328,8 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (config, locker) = this.as_path_buf();
-                let mut cli = CLI::start(config, locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut cli = CLI::start(index, config, locker);
                
                 let add_args = vec![ "test", "add", "account", "new_account", "-e", "new_entity" ];
                 let add_results = command(AddAccount, add_args);
