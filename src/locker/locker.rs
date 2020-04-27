@@ -13,6 +13,13 @@ use ByteSize::*;
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
 #[derive(Debug)]
+pub struct Distinguished {
+    pub iv: String,
+    pub key: String,
+    pub dat: String
+}
+
+#[derive(Debug)]
 pub struct Locker {
     iv: Bytes,
     key: Bytes,
@@ -91,7 +98,7 @@ impl Locker {
 
     /* Associated functions */
 
-    pub fn distinguish(pwd: &String) -> (String, String, String) {
+    pub fn distinguish(pwd: &String) -> Distinguished {
         let mut d = String::new();
         let mut i = String::new();
         let mut k = String::new();
@@ -100,25 +107,25 @@ impl Locker {
             98 => {
                 d = String::from(&pwd[..34]);
                 i = String::from(&pwd[34..66]);
-                k = String::from(&pwd[66..]);
-
-                (i, k, d)
+                k = String::from(&pwd[66..]); 
             },
             130 => {
                 d = String::from(&pwd[..66]);
                 i = String::from(&pwd[66..98]);
                 k = String::from(&pwd[98..]);
-
-                (i, k, d)
             },
             162 => {
                 d = String::from(&pwd[..98]);
                 i = String::from(&pwd[98..130]);
                 k = String::from(&pwd[130..]);
-
-                (i, k, d)
             },
             _ => panic!("Unsupported encryption length"),
+        }
+
+        Distinguished {
+            iv: i,
+            key: k,
+            dat: d
         }
     }
 }
@@ -200,7 +207,7 @@ mod tests {
     fn distinguish_98() {
         let string = "0x19467788bc0cf11790a075ea718452cecf0e79db59d196467019467788bc0cf11790a075ea718452cecf0e79db59d196".to_string();
 
-        let (iv, key, dat) = Locker::distinguish(&string);
+        let Distinguished { iv, key, dat } = Locker::distinguish(&string);
 
         assert_eq!(iv, "cf0e79db59d196467019467788bc0cf1");
         assert_eq!(key, "1790a075ea718452cecf0e79db59d196");
