@@ -11,7 +11,7 @@ pub use args::Args;
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
-use locker::{Locker, Bytes};
+use locker::{Locker, Distinguished, Bytes};
 use yaml::Index;
 
 #[derive(Debug, PartialEq)]
@@ -64,56 +64,34 @@ impl Keeper {
             ));
         }
        
-        let has_pass = args.has_all();
+        for (mut path, Distinguished { iv, key, dat }, is_dir) in args {
+            let pa = format!("{}{}", iv, key);
 
-        let Args {
-            entity,
-            account,
-            password
-        } = args; 
-
-        let mut p = String::new();
-        let mut pa = String::new();
-        let mut path = PathBuf::new(); 
-
-        path.push(&entity);
-        path.push(&account); 
-        
-        if has_pass {
-            let (i, k, d) = Locker::distinguish(&password);
-            p = d; pa = format!("{}{}", i, k);
-            path.push(&p);
-        } 
-
-        let mut total_components = 1;
-        let mut full_path = PathBuf::new();
-
-        for component in path.iter() {
-            let path_string = component
-                .to_str()
-                .unwrap();
-            
-            full_path.push(path_string);
-
-            let path_string = full_path
-                .to_str()
-                .unwrap();
-
-            if total_components <= 2 {
+            if is_dir {
                 self.directories
-                    .create_locker(path_string)
+                    .create_locker(path.to_str().unwrap())
                     .expect("Unable to create locker directory");
-            } else {
+               
+                // TODO: need another way to persist data to decrypt dirs
+
+                path.push("meta");
+
                 self.files
-                    .create_locker(&path_string)
+                    .create_locker(path.to_str().unwrap())
                     .expect("Unable to create locker file");
 
                 self.files
-                    .write_locker(&path_string, &pa)
+                    .write_locker(path.to_str().unwrap(), &pa)
+                    .expect("Unable to write to locker file");
+            } else {
+                self.files
+                    .create_locker(path.to_str().unwrap())
+                    .expect("Unable to create locker file");
+
+                self.files
+                    .write_locker(path.to_str().unwrap(), &pa)
                     .expect("Unable to write to locker file");
             }
-
-            total_components += 1;
         }
 
         Ok(Resolve::Add)
@@ -188,7 +166,7 @@ mod keeper {
     use super::*;
 
     use mocks::Setup;
-    use locker::Locker;
+    use locker::{Locker, Distinguished};
 
     use std::path::Path;
     use std::fs::{remove_dir_all, remove_file};
@@ -232,9 +210,7 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (index, config, locker) = this.as_path_buf();
-                
                 let mut keeper = Keeper::new(index, config, locker.clone());
-                let mut locker_instance = Locker::new();
 
                 let entity = Some("add_entity_1");
                 let account = None;
@@ -247,9 +223,7 @@ mod keeper {
                 );
 
                 dump.push(locker);
-                dump.push(
-                    locker_instance.hash("add_entity_1")
-                );
+                dump.push(args.entity.clone());
 
                 keeper.add(args);
 
@@ -288,11 +262,9 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                
                 let mut dump = this.dump_path();
+                let (index, config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(index, config, locker.clone());
-                let mut locker_instance = Locker::new();
 
                 let entity = Some("add_account_1");
                 let account = Some("add_account_2");
@@ -304,12 +276,9 @@ mod keeper {
                     password
                 );
 
-                let entity_hash = locker_instance.hash("add_account_1");
-                let account_hash = locker_instance.hash("add_account_2");
-
                 dump.push(locker);
-                dump.push(entity_hash);
-                dump.push(account_hash);
+                dump.push(args.entity.clone());
+                dump.push(args.account.clone());
 
                 keeper.add(args);
                 
@@ -324,40 +293,31 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-
                 let mut dump = this.dump_path();
+                let (index, config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(index, config, locker.clone());
-                let mut locker_instance = Locker::new();
-
-                let entity = Some("add_password_1");
-                let account = Some("add_password_2");
    
                 let args = Args::new(
-                    entity,
-                    account,
+                    Some("add_password_1"),
+                    Some("add_password_2"),
                     Some("password") 
                 );
 
-                let entity_hash = locker_instance.hash("add_password_1");
-                let account_hash = locker_instance.hash("add_password_2");
+                let password = args.password.clone();
 
                 dump.push(locker);
-                dump.push(entity_hash);
-                dump.push(account_hash);
+                dump.push(args.entity.clone());
+                dump.push(args.account.clone());
 
                 keeper.add(args);
 
                 assert!(dump.exists());
                 assert!(dump.is_dir());
 
-                let account_dir = dump.read_dir().expect("Account directory not created!");
+                dump.push(password);
 
-                for entry in account_dir {
-                    if let Ok(entry) = entry {
-                        assert!(entry.path().exists());
-                    }
-                } 
+                assert!(dump.exists());
+                assert!(dump.is_file());
             }
         };
     }
@@ -455,12 +415,12 @@ mod keeper {
                 );
 
                 let password_encrypted = args.password.clone();
-                let values = Locker::distinguish(&password_encrypted);
+                let Distinguished { dat, .. } = Locker::distinguish(&password_encrypted);
 
                 dump.push(locker);
                 dump.push(entity_hash);
                 dump.push(account_hash);
-                dump.push(values.2);
+                dump.push(dat);
                 
                 keeper.add(args); 
 
