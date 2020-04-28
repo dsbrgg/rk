@@ -42,9 +42,9 @@ pub struct Keeper {
 
 impl Keeper {
     pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Keeper {
-        let index = Index::from_pathbuf(index).unwrap();
-        let files = FileManager::new(&config, &locker);
         let directories = DirManager::new(&config, &locker);
+        let files = FileManager::new(&config, &locker);
+        let index = Index::from_pathbuf(index).unwrap();
 
         Keeper { 
             index, 
@@ -328,30 +328,25 @@ mod keeper {
             paths: Vec::new(), 
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-
                 let mut dump = this.dump_path();
+                let (index, config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(index, config, locker.clone());
-                let mut locker_instance = Locker::new();
 
-                let entity = Some("find_entity_1");
-                let entity_hash = locker_instance.hash("find_entity_1");
-  
                 let args = Args::new(
-                    entity,
+                    Some("find_entity_1"),
                     None,
                     None 
                 );
 
                 dump.push(locker);
-                dump.push(entity_hash);
+                dump.push(args.entity.clone());
 
                 keeper.add(args.clone());
 
                 let result = keeper.find(args).unwrap();
                
                 assert!(dump.exists());
-                assert_eq!(result.to_vec().len(), 0);
+                assert_eq!(result.to_vec().len(), 1);
             }
         };
     }
@@ -365,26 +360,26 @@ mod keeper {
                 let (index, config, locker) = this.as_path_buf();
                 let mut keeper = Keeper::new(index, config, locker);
 
-                let entity = Some("find_entity_account_1");
-                let account = Some("find_entity_account_2");
-
                 let args_add = Args::new(
-                    entity,
-                    account,
+                    Some("find_entity_account_1"),
+                    Some("find_entity_account_2"),
                     None 
                 );
 
                 keeper.add(args_add);
 
+                // TODO: not being able to find since
+                // Locker will generate other keys to args_find
+
                 let args_find = Args::new(
-                    entity,
+                    Some("find_entity_account_1"),
                     None,
                     None 
                 );
 
                 let result = keeper.find(args_find).unwrap();
     
-                assert_eq!(result.to_vec().len(), 1);
+                assert_eq!(result.to_vec().len(), 2);
             }
         };
     }
