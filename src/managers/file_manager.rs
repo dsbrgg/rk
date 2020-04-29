@@ -11,16 +11,18 @@ use crate::managers::{Manager, ManagerOption};
 use ManagerOption::*;
 
 pub struct FileManager {
+    index: PathBuf,
     config: PathBuf,
     locker: PathBuf
 }
 
 impl FileManager {
-    pub fn new(config: &PathBuf, locker: &PathBuf) -> FileManager {
+    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> FileManager {
+        let index = index.clone();
         let config = config.clone();
         let locker = locker.clone();
 
-        let mut fm = FileManager { config, locker };
+        let mut fm = FileManager { index, config, locker };
 
         fm.init().expect("Could not initialize FileManager");
 
@@ -70,10 +72,24 @@ impl FileManager {
         )
     }
 
+    pub fn write_index(&mut self, content: &str) -> io::Result<()> {
+        self.write(
+            &self.gen_path(Index, ""),
+            content
+        )
+    }
+
+    pub fn read_index(&mut self) -> io::Result<String> {
+        self.read(
+            &self.gen_path(Index, "")
+        )
+    }
+
     fn gen_path(&self, for_path: ManagerOption, path: &str) -> String {
         let mut location = PathBuf::new();
 
         match for_path {
+            Index => { return Self::pb_to_str(&self.index.clone()); }
             Config => { location.push(self.config.clone()); },
             Locker => { location.push(self.locker.clone()); },
         };
@@ -88,10 +104,20 @@ impl Manager for FileManager {
     type Output = String; 
 
     fn init(&mut self) -> io::Result<()> {
+        let mut index = self.index.clone();
         let mut config = self.config.clone();
-        let filename = config.file_name().unwrap().to_str();
+        
+        let index_path = self.index.as_path().to_owned();
         let config_path = self.config.as_path().to_owned();
         
+        if !index_path.exists() {
+            self.create(
+                index_path
+                    .to_str()
+                    .unwrap()
+            )?;
+        }
+
         if !config_path.exists() { 
             self.create(
                 config_path
@@ -170,8 +196,8 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
-                FileManager::new(&config, &locker);
+                let (index, config, locker) = this.as_path_buf();
+                FileManager::new(&index, &config, &locker);
             }
         }; 
     }
@@ -182,9 +208,9 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, mut locker) = this.as_path_buf();
+                let (index, config, mut locker) = this.as_path_buf();
                 
-                let mut fm = FileManager::new(&config, &locker);
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
 
                 locker.push(&locker_path);
@@ -201,9 +227,9 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., mut config, locker) = this.as_path_buf();
+                let (index, mut config, locker) = this.as_path_buf();
                 
-                let mut fm = FileManager::new(&config, &locker);
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let config_path = FileManager::pb_to_str(&config);
 
                 config.push(&config_path);
@@ -220,9 +246,9 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, mut locker) = this.as_path_buf();
+                let (index, config, mut locker) = this.as_path_buf();
                 
-                let mut fm = FileManager::new(&config, &locker);
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
 
                 fm.create_locker(&locker_path);
@@ -240,12 +266,28 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
+                let (index, config, locker) = this.as_path_buf();
                 
                 let config_path = FileManager::pb_to_str(&config);
-                let mut fm = FileManager::new(&config, &locker);
+                let mut fm = FileManager::new(&index, &config, &locker);
                 
                 let file = fm.read_config(&config_path).unwrap();
+
+                assert_eq!(file, String::from(""));
+            }
+        };
+    }
+
+    #[test] 
+    fn read_index() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
+                
+                let file = fm.read_index().unwrap();
 
                 assert_eq!(file, String::from(""));
             }
@@ -258,8 +300,8 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(&config, &locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
@@ -277,8 +319,8 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(&config, &locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
 
                 // https://doc.rust-lang.org/std/panic/struct.AssertUnwindSafe.html
                 let result = catch_unwind(AssertUnwindSafe(|| {
@@ -296,8 +338,8 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(&config, &locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&locker);
                 
                 fm.remove_locker(&path_to_remove);
@@ -314,8 +356,8 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(&config, &locker);
+                let (index, config, locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let path_to_remove = FileManager::pb_to_str(&config);
                 
                 fm.remove_config(&path_to_remove);
@@ -332,15 +374,33 @@ mod test {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (.., config, mut locker) = this.as_path_buf();
+                let (index, config, mut locker) = this.as_path_buf();
                 
-                let mut fm = FileManager::new(&config, &locker);
+                let mut fm = FileManager::new(&index, &config, &locker);
                 let locker_path = FileManager::pb_to_str(&locker); 
 
                 fm.create_locker(&locker_path);
                 fm.write_locker(&locker_path, "test");
 
                 let file = fm.read_locker(&locker_path).unwrap();
+
+                assert_eq!(file, "test");
+            }
+        };
+    }
+
+    #[test]
+    fn write_index() {
+        Setup {
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, mut locker) = this.as_path_buf();
+                let mut fm = FileManager::new(&index, &config, &locker);
+
+                fm.write_index("test");
+
+                let file = fm.read_index().unwrap();
 
                 assert_eq!(file, "test");
             }
