@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::fs::File;
 use std::error::Error;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::collections::HashMap;
 
 use serde_yaml::Value;
@@ -17,31 +17,14 @@ impl Index {
     /* Initialisers */
 
     pub fn from_yaml(yaml: &str) -> Result<Index, serde_yaml::Error> {
+        if yaml.is_empty() {
+            let accounts: HashMap<String, Vec<Value>> = HashMap::new();
+            let index = Index { accounts };
+
+            return Ok(index);
+        }
+
         serde_yaml::from_str(yaml)
-    }
-
-    pub fn from_pathbuf(yaml: PathBuf) -> Result<Index, serde_yaml::Error> {
-        if !yaml.as_path().exists() { 
-            let msg = format!("Unable to create index file at {:?}", yaml);
-            
-            File::create(&yaml).expect(&msg); 
-        }
-
-        let mut contents = String::new();
-        let mut file = File::open(yaml).expect("Unable to open index file");
-
-        file.read_to_string(&mut contents)
-            .expect("Unable to read index file into string");
-
-        if contents.is_empty() {
-            let empty_index = Index {
-                accounts: HashMap::new()
-            };
-
-            return Ok(empty_index);
-        }
-
-        serde_yaml::from_str(&contents)
     }
 
     /* Methods */
@@ -92,6 +75,15 @@ mod test {
         let compare = Index { accounts };
 
         assert_eq!(index, compare);
+    }
+
+    #[test]
+    fn from_yaml_default() {
+        let yaml = "---\naccounts: {}";
+        let index = Index::from_yaml("").unwrap();
+        let index_str = index.to_yaml().unwrap();
+
+        assert_eq!(&index_str, yaml);
     }
 
     #[test]
