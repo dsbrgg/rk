@@ -5,26 +5,37 @@ use crate::locker::{Locker, Distinguished};
 
 #[derive(Clone, Debug)]
 pub struct Args {
-    pub entity: String,
-    pub account: String,
-    pub password: String,
+    pub entity: Values,
+    pub account: Values,
+    pub password: Values,
     iterator: u8
 }
 
-impl Iterator for Args {
-    type Item = (PathBuf, Distinguished, bool);
+#[derive(Clone, Debug)]
+pub struct Values(String, String);
 
-    fn next(&mut self) -> Option<(PathBuf, Distinguished, bool)> {
+impl Values {
+    pub fn get_hash(&self) -> String { self.0.clone() }
+    pub fn get_encrypted(&self) -> String { self.1.clone() }
+    pub fn is_empty(&self) -> bool { self.get_encrypted().is_empty() }
+}
+
+impl Iterator for Args {
+    type Item = (PathBuf, Distinguished, String, bool);
+
+    fn next(&mut self) -> Option<(PathBuf, Distinguished, String, bool)> {
         let mut path = PathBuf::new();
 
         match self.iterator {
             0 => {
-                let distinguished = Locker::distinguish(&self.entity);
+                let hash = self.entity.get_hash();
+                let entity = self.entity.get_encrypted();
+                let distinguished = Locker::distinguish(&entity);
 
                 self.iterator += 1;
-                path.push(&self.entity); 
+                path.push(&entity); 
 
-                Some((path, distinguished, true))
+                Some((path, distinguished, hash, true))
             },
             1 => {
                 if !self.has_account() {
@@ -32,13 +43,17 @@ impl Iterator for Args {
                     return None;
                 }
 
-                self.iterator += 1;
-                path.push(&self.entity);
-                path.push(&self.account);
-                
-                let distinguished = Locker::distinguish(&self.account);
+                let hash = self.account.get_hash();
+                let entity = self.entity.get_encrypted();
+                let account = self.account.get_encrypted();
 
-                Some((path, distinguished, true))
+                self.iterator += 1;
+                path.push(&entity);
+                path.push(&account);
+                
+                let distinguished = Locker::distinguish(&account);
+
+                Some((path, distinguished, hash, true))
             },
             2 => {
                 self.iterator = 3;
@@ -47,13 +62,18 @@ impl Iterator for Args {
                     return None;
                 }
 
-                path.push(&self.entity);
-                path.push(&self.account);
-                path.push(&self.password);
-                
-                let distinguished = Locker::distinguish(&self.password);
+                let hash = self.account.get_hash();
+                let entity = self.entity.get_encrypted();
+                let account = self.account.get_encrypted();
+                let password = self.password.get_encrypted();
 
-                Some((path, distinguished, false))
+                path.push(&entity);
+                path.push(&account);
+                path.push(&password);
+                
+                let distinguished = Locker::distinguish(&password);
+
+                Some((path, distinguished, hash, false))
             },
             _ => { None },
         } 
@@ -75,14 +95,29 @@ impl Args {
         let mut acc = String::new();
         let mut pwd = String::new();
 
-        if let Some(e) = entity { ent = locker.encrypt(e); }
-        if let Some(a) = account { acc = locker.encrypt(a); }
-        if let Some(p) = password { pwd = locker.encrypt(p); }
+        let mut ehash = String::new();
+        let mut ahash = String::new();
+        let mut phash = String::new();
+
+        if let Some(e) = entity { 
+            ehash = locker.hash(e);
+            ent = locker.encrypt(e);
+        }
+        
+        if let Some(a) = account { 
+            ahash = locker.hash(a);
+            acc = locker.encrypt(a); 
+        }
+
+        if let Some(p) = password { 
+            phash = locker.hash(p);
+            pwd = locker.encrypt(p); 
+        }
 
         Args {
-            entity: ent,
-            account: acc,
-            password: pwd,
+            entity: Values(ehash, ent),
+            account: Values(ahash, acc),
+            password: Values(phash, pwd),
             iterator: 0
         }
     }
@@ -93,17 +128,20 @@ impl Args {
         let mut path = PathBuf::new();
 
         if self.has_entity() {
-            let Distinguished { dat, .. } = Locker::distinguish(&self.entity);
+            let entity = self.entity.get_encrypted();
+            let Distinguished { dat, .. } = Locker::distinguish(&entity);
             path.push(&dat[2..]);
         }
 
         if self.has_account() {
-            let Distinguished { dat, .. } = Locker::distinguish(&self.account);
+            let account = self.account.get_encrypted();
+            let Distinguished { dat, .. } = Locker::distinguish(&account);
             path.push(&dat[2..]);
         }
         
         if self.has_all() {
-            let Distinguished { dat, .. } = Locker::distinguish(&self.password);
+            let password = self.password.get_encrypted();
+            let Distinguished { dat, .. } = Locker::distinguish(&password);
             path.push(&dat[2..]);
         } 
 
@@ -139,9 +177,9 @@ mod tests {
             Some("password")
         );
 
-        assert_eq!(args.entity.len(), 98);
-        assert_eq!(args.account.len(), 98);
-        assert_eq!(args.password.len(), 98);
+        assert_eq!(args.entity.get_encrypted().len(), 98);
+        assert_eq!(args.account.get_encrypted().len(), 98);
+        assert_eq!(args.password.get_encrypted().len(), 98);
         assert_eq!(args.iterator, 0);
     }
 
