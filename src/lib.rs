@@ -42,9 +42,11 @@ pub struct Keeper {
 
 impl Keeper {
     pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Keeper {
-        let directories = DirManager::new(&config, &locker);
-        let files = FileManager::new(&config, &locker);
-        let index = Index::from_pathbuf(index).unwrap();
+        let mut directories = DirManager::new(&config, &locker);
+        let mut files = FileManager::new(&index, &config, &locker);
+        
+        let index_path = files.read_index().unwrap();
+        let mut index = Index::from_yaml(&index_path).unwrap();
 
         Keeper { 
             index, 
@@ -64,7 +66,7 @@ impl Keeper {
             ));
         }
        
-        for (mut path, Distinguished { iv, key, dat }, is_dir) in args {
+        for (mut path, Distinguished { iv, key, dat }, hash, is_dir) in args {
             let pa = format!("{}{}", iv, key);
 
             if is_dir {
@@ -110,7 +112,11 @@ impl Keeper {
             ..
         } = args; 
         
-        let path = DirManager::append_path(&entity, &account);
+        let path = DirManager::append_path(
+            &entity.get_encrypted(), 
+            &account.get_encrypted()
+        );
+
         let registers = self.directories.read_locker(&path)?;
      
         Ok(Resolve::Find(registers))
@@ -153,7 +159,10 @@ impl Keeper {
             ));
         }
 
-        let path = DirManager::append_path(&entity, &account); 
+        let path = DirManager::append_path(
+            &entity.get_encrypted(), 
+            &account.get_encrypted()
+        ); 
         
         self.directories.remove_locker(&path)?;
 
@@ -223,7 +232,7 @@ mod keeper {
                 );
 
                 dump.push(locker);
-                dump.push(args.entity.clone());
+                dump.push(args.entity.get_encrypted().clone());
 
                 keeper.add(args);
 
@@ -277,8 +286,8 @@ mod keeper {
                 );
 
                 dump.push(locker);
-                dump.push(args.entity.clone());
-                dump.push(args.account.clone());
+                dump.push(args.entity.get_encrypted().clone());
+                dump.push(args.account.get_encrypted().clone());
 
                 keeper.add(args);
                 
@@ -303,11 +312,11 @@ mod keeper {
                     Some("password") 
                 );
 
-                let password = args.password.clone();
+                let password = args.password.get_encrypted().clone();
 
                 dump.push(locker);
-                dump.push(args.entity.clone());
-                dump.push(args.account.clone());
+                dump.push(args.entity.get_encrypted().clone());
+                dump.push(args.account.get_encrypted().clone());
 
                 keeper.add(args);
 
@@ -339,7 +348,7 @@ mod keeper {
                 );
 
                 dump.push(locker);
-                dump.push(args.entity.clone());
+                dump.push(args.entity.get_encrypted().clone());
 
                 keeper.add(args.clone());
 
@@ -409,7 +418,7 @@ mod keeper {
                     password
                 );
 
-                let password_encrypted = args.password.clone();
+                let password_encrypted = args.password.get_encrypted().clone();
                 let Distinguished { dat, .. } = Locker::distinguish(&password_encrypted);
 
                 dump.push(locker);
