@@ -67,6 +67,7 @@ impl DirManager {
         let mut location = PathBuf::new();
 
         match for_path {
+            Index => {},
             Locker => { location.push(self.locker.clone()); },
             Config => { location.push(self.config.clone()); },
             _ => panic!("Unsupported location {:?}", location.as_path().to_str())
