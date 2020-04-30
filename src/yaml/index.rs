@@ -43,7 +43,18 @@ impl Index {
         Ok(())
     }
 
-    pub fn get(&mut self, entity: String, account: String) -> String {
+    pub fn get_all(&mut self) -> HashMap<String, Vec<Value>> {
+        self.accounts.to_owned()
+    }
+
+    pub fn get_entity(&mut self, entity: String) -> Vec<Value> {
+        self.accounts
+            .entry(entity)
+            .or_default()
+            .to_owned()
+    }
+
+    pub fn get_account(&mut self, entity: String, account: String) -> String {
         let entry = self.accounts.entry(entity).or_default();
         let filter =  |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
 
@@ -159,7 +170,33 @@ mod test {
     }
 
     #[test]
-    fn get() {
+    fn get_all() {
+        let yaml = "---\naccounts:\n  entity_hash:\n    - account_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+
+        let mut all: HashMap<String, Vec<Value>> = HashMap::new();
+        all.insert(
+            "entity_hash".to_string(), 
+            vec![Value::String("account_hash".to_string())]
+        );
+        
+        assert_eq!(index.get_all(), all);
+    }
+
+    #[test]
+    fn get_entity() {
+        let entity = String::from("entity_hash");
+        let yaml = "---\naccounts:\n  entity_hash:\n    - account_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            index.get_entity(entity), 
+            vec![Value::String("account_hash".to_string())]
+        );
+    }
+
+    #[test]
+    fn get_account() {
         let yaml = "---\naccounts:\n  entity_hash:\n    - account_hash";
         let mut index = Index::from_yaml(yaml).unwrap();
         index.add("entity_hash".to_string(), Some("new_account".to_string()));
@@ -168,7 +205,7 @@ mod test {
         let account = String::from("new_account");
 
         assert_eq!(
-            index.get(entity, account), 
+            index.get_account(entity, account), 
             String::from("new_account")
         );
     }
