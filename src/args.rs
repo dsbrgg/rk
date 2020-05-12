@@ -3,11 +3,20 @@ use std::path::PathBuf;
 
 use crate::locker::{Locker, Distinguished};
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Mode {
+    Add,
+    Find,
+    Remove,
+    Update
+}
+
 #[derive(Clone, Debug)]
 pub struct Args {
     pub entity: Values,
     pub account: Values,
     pub password: Values,
+    pub mode: Mode,
     iterator: u8
 }
 
@@ -127,6 +136,7 @@ impl Args {
     /* Initialisers */
 
     pub fn new(
+        mode: Mode,
         entity: Option<&str>,
         account: Option<&str>,
         password: Option<&str>
@@ -157,10 +167,11 @@ impl Args {
         }
 
         Args {
+            mode,
+            iterator: 0,
             entity: Values(ehash, ent),
             account: Values(ahash, acc),
-            password: Values(phash, pwd),
-            iterator: 0
+            password: Values(phash, pwd)
         }
     }
 
@@ -211,23 +222,27 @@ mod tests {
 
     #[test]
     fn new() {
+        let mode = Mode::Add;
         let locker = Locker::new();
         
         let args = Args::new(
+            mode,
             Some("entity"),
             Some("account"),
             Some("password")
         );
 
+        assert_eq!(args.iterator, 0);
+        assert_eq!(args.mode, Mode::Add);
         assert_eq!(args.entity.get_encrypted().len(), 98);
         assert_eq!(args.account.get_encrypted().len(), 98);
         assert_eq!(args.password.get_encrypted().len(), 98);
-        assert_eq!(args.iterator, 0);
     }
 
     #[test]
     fn path_entity() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             None,
             None
@@ -241,6 +256,7 @@ mod tests {
     #[test]
     fn path_account() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             None
@@ -254,6 +270,7 @@ mod tests {
     #[test]
     fn path_all() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -267,6 +284,7 @@ mod tests {
     #[test]
     fn iterator_entity() {
         let mut args = Args::new(
+            Mode::Add,
             Some("entity"),
             None,
             None
@@ -302,6 +320,7 @@ mod tests {
     #[test]
     fn iterator_account() {
         let mut args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             None
@@ -361,6 +380,7 @@ mod tests {
     #[test]
     fn iterator_password() {
         let mut args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -444,6 +464,7 @@ mod tests {
     #[test]
     fn iterator_cycle() {
         let mut args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -531,6 +552,7 @@ mod tests {
     #[test]
     fn has_all() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -544,6 +566,7 @@ mod tests {
     #[test]
     fn has_entity() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -557,6 +580,7 @@ mod tests {
     #[test]
     fn no_entity() {
         let args = Args::new(
+            Mode::Add,
             None,
             Some("account"),
             Some("password")
@@ -570,6 +594,7 @@ mod tests {
     #[test]
     fn has_account() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -583,6 +608,7 @@ mod tests {
     #[test]
     fn no_account() {
         let args = Args::new(
+            Mode::Add,
             Some("entity"),
             None,
             Some("password")
