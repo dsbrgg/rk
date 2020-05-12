@@ -3,6 +3,7 @@ use std::fs::File;
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use serde_yaml::Value;
 use serde::{Serialize, Deserialize};
@@ -10,6 +11,24 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Index {
     accounts: HashMap<String, Vec<Value>>
+}
+
+#[derive(Debug)]
+pub enum Return {
+    Entity(Vec<Value>),
+    Account(String)
+}
+
+impl Return {
+    pub fn to_entities(self) -> Vec<Value> {
+        if let Return::Entity(vec) = self { return vec; }
+        panic!("to_entities should be called on a Return::Entity only");
+    }
+
+    pub fn to_account(self) -> String {
+        if let Return::Account(string) = self { return string; }
+        panic!("to_account should be called on a Return::Account only");
+    }
 }
 
 impl Index {
@@ -43,28 +62,52 @@ impl Index {
         Ok(())
     }
 
+    pub fn find(&mut self, entity: Option<String>, account: Option<String>) -> Option<Return> {
+        if entity.is_some() && account.is_some() {
+            let e = entity.unwrap();
+            let a = account.unwrap();
+                
+            if let Some(register) = self.get_account(e, a) {
+                return Some(Return::Account(register));
+            };
+
+            return None;
+        }
+
+        if entity.is_some() && account.is_none() { 
+            let e = entity.unwrap();
+            let register = self.get_entity(e).unwrap();
+
+            return Some(Return::Entity(register));
+        }
+
+        None
+    }
+
     pub fn get_all(&mut self) -> HashMap<String, Vec<Value>> {
         self.accounts.to_owned()
     }
 
-    pub fn get_entity(&mut self, entity: String) -> Vec<Value> {
-        self.accounts
-            .entry(entity)
-            .or_default()
-            .to_owned()
+    pub fn get_entity(&mut self, entity: String) -> Option<Vec<Value>> {
+        match self.accounts.entry(entity) {
+            Entry::Occupied(mut e) => Some(e.get_mut().to_owned()),
+            Entry::Vacant(v) => None,
+        }
     }
 
-    pub fn get_account(&mut self, entity: String, account: String) -> String {
-        let entry = self.accounts.entry(entity).or_default();
-        let filter =  |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
+    pub fn get_account(&mut self, entity: String, account: String) -> Option<String> {
+        let entry = self.get_entity(entity);
+        
+        if let Some(ent) = entry {
+            let filter = |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
+            let mut filtered = ent.iter().filter(filter);
+            
+            if let Some(acc) = filtered.next() {
+                return Some(acc.as_str().unwrap().to_string());
+            }
+        } 
 
-        entry.iter()
-            .filter(filter)
-            .next()
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_string()
+        None
     }
 }
 
@@ -190,9 +233,18 @@ mod test {
         let mut index = Index::from_yaml(yaml).unwrap();
 
         assert_eq!(
-            index.get_entity(entity), 
+            index.get_entity(entity).unwrap(),
             vec![Value::String("account_hash".to_string())]
         );
+    }
+
+    #[test]
+    fn get_entity_missing() {
+        let entity = String::from("entity_hash");
+        let yaml = "---\naccounts:\n  different_hash:\n    - account_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+
+        assert_eq!(index.get_entity(entity), None);
     }
 
     #[test]
@@ -205,8 +257,51 @@ mod test {
         let account = String::from("new_account");
 
         assert_eq!(
-            index.get_account(entity, account), 
+            index.get_account(entity, account).unwrap(), 
             String::from("new_account")
         );
+    }
+
+    #[test]
+    fn get_account_missing() {
+        let yaml = "---\naccounts:\n  entity_hash:\n    - different_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+        
+        let entity = String::from("entity_hash");
+        let account = String::from("new_account");
+
+        assert_eq!(index.get_account(entity, account), None);
+    }
+
+    #[test]
+    fn find_some_account() {
+        let yaml = "---\naccounts:\n  entity_hash:\n    - new_account";
+        let mut index = Index::from_yaml(yaml).unwrap();
+        
+        let entity = String::from("entity_hash");
+        let account = String::from("new_account");
+
+        let e = Some(entity);
+        let a = Some(account);
+        let result = index.find(e, a)
+            .unwrap()
+            .to_account();
+
+        assert_eq!(result, String::from("new_account"));
+    }
+
+    #[test]
+    fn find_none_account() {
+        let yaml = "---\naccounts:\n  entity_hash:\n    - different_hash";
+        let mut index = Index::from_yaml(yaml).unwrap();
+        
+        let entity = String::from("entity_hash");
+        let account = String::from("new_account");
+
+        let e = Some(entity);
+        let a = Some(account);
+        let result = index.find(e, a); 
+
+        assert_eq!(result.is_none(), true);
     }
 }
