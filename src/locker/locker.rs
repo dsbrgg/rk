@@ -12,7 +12,7 @@ use ByteSize::*;
 
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Distinguished {
     pub iv: String,
     pub key: String,
