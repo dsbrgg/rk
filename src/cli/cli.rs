@@ -6,7 +6,7 @@ use std::path::{PathBuf};
 use copypasta::ClipboardContext;
 use copypasta::ClipboardProvider;
 
-use rk::Args;
+use rk::{Args, Mode};
 use rk::{Resolve, Keeper};
 
 use crate::cli::select;
@@ -51,6 +51,8 @@ impl<'p> CLI {
     }
 
     fn handle_add(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let mode = Mode::Add;
+
         let Params { 
             entity, 
             account, 
@@ -58,6 +60,7 @@ impl<'p> CLI {
         } = CLI::extract_values(args);
 
         let args = Args::new(
+            mode,
             entity,
             account,
             password
@@ -67,6 +70,8 @@ impl<'p> CLI {
     }
 
     fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let mode = Mode::Find;
+
         let Params { 
             entity, 
             account, 
@@ -74,6 +79,7 @@ impl<'p> CLI {
         } = CLI::extract_values(args);
 
         let args = Args::new(
+            mode,
             entity,
             account,
             None 
@@ -105,6 +111,8 @@ impl<'p> CLI {
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+        let mode = Mode::Remove;
+
         let Params { 
             entity, 
             account, 
@@ -112,6 +120,7 @@ impl<'p> CLI {
         } = CLI::extract_values(args);
        
         let args = Args::new(
+            mode,
             entity,
             account,
             None 
@@ -173,7 +182,6 @@ mod tests {
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
-                assert_eq!(l.as_path().exists(), true);
             }
         };
     }
@@ -201,7 +209,6 @@ mod tests {
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
-                assert_eq!(l.as_path().exists(), true);
             }
         };
     }
