@@ -7,7 +7,7 @@ mod yaml;
 use std::io;
 use std::path::{PathBuf};
 
-pub use args::Args;
+pub use args::{Args, Arg, Mode};
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
@@ -35,7 +35,8 @@ impl Resolve {
 }
 
 pub struct Keeper {
-    index: Index,
+    // NOTE: this is readlly bad
+    pub index: Index,
     files: FileManager,
     directories: DirManager,
 }
@@ -66,25 +67,50 @@ impl Keeper {
             ));
         }
        
-        for (mut path, Distinguished { iv, key, dat }, hash, is_dir) in args {
+        for arg in args {
+            let Arg {
+                mut path,
+                keys,
+                hash,
+                parent_hash,
+                is_dir
+            } = arg;
+
+            let Distinguished {
+                iv,
+                key,
+                dat
+            } = keys;
+
+            if let Some(parent) = parent_hash {
+                self.index.add(parent, Some(hash));
+            } else {
+                self.index.add(hash, None);
+            }
+
             let pa = format!("{}{}", iv, key);
+            let yaml = self.index.to_yaml().unwrap();
 
             if is_dir {
                 self.directories
                     .create_locker(path.to_str().unwrap())
-                    .expect("Unable to create locker directory");
-               
+                    .expect("Unable to create locker directory"); 
+ 
                 // TODO: need another way to persist data to decrypt dirs
 
                 path.push("meta");
 
                 self.files
                     .create_locker(path.to_str().unwrap())
-                    .expect("Unable to create locker file");
+                    .expect("Unable to create meta file");
 
                 self.files
                     .write_locker(path.to_str().unwrap(), &pa)
-                    .expect("Unable to write to locker file");
+                    .expect("Unable to write to meta file");
+
+                self.files
+                    .write_index(&yaml)
+                    .expect("Unable to write to index file");
             } else {
                 self.files
                     .create_locker(path.to_str().unwrap())
@@ -111,15 +137,25 @@ impl Keeper {
             account,
             ..
         } = args; 
-        
-        let path = DirManager::append_path(
-            &entity.get_encrypted(), 
-            &account.get_encrypted()
-        );
+       
+        let ehash = if entity.is_empty() != true { Some(entity.get_hash()) } else { None };
+        let ahash = if account.is_empty() != true { Some(account.get_hash()) } else { None };
 
-        let registers = self.directories.read_locker(&path)?;
-     
-        Ok(Resolve::Find(registers))
+        let index = self.index.find(ehash, ahash);
+
+        if index.is_some() {
+            let path = DirManager::append_path(
+                &entity.get_encrypted(), 
+                &account.get_encrypted()
+            );
+            println!("{:?}", path);
+
+            let registers = self.directories.read_locker(&path)?;
+         
+            return Ok(Resolve::Find(registers));
+        } 
+
+        Ok(Resolve::Find(vec![]))
     }
 
     pub fn read(&mut self, path: PathBuf) -> io::Result<Resolve> {
@@ -175,7 +211,6 @@ mod keeper {
     use super::*;
 
     use mocks::Setup;
-    use locker::{Locker, Distinguished};
 
     use std::path::Path;
     use std::fs::{remove_dir_all, remove_file};
@@ -226,6 +261,7 @@ mod keeper {
                 let password = None;
 
                 let args = Args::new(
+                    Mode::Add,
                     entity,
                     account,
                     password
@@ -251,6 +287,7 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
 
                 let args = Args::new(
+                    Mode::Add,
                     None,
                     Some("account"),
                     None
@@ -280,6 +317,7 @@ mod keeper {
                 let password = None;
 
                 let args = Args::new(
+                    Mode::Add,
                     entity,
                     account,
                     password
@@ -307,6 +345,7 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker.clone());
    
                 let args = Args::new(
+                    Mode::Add,
                     Some("add_password_1"),
                     Some("add_password_2"),
                     Some("password") 
@@ -342,6 +381,7 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker.clone());
 
                 let args = Args::new(
+                    Mode::Add,
                     Some("find_entity_1"),
                     None,
                     None 
@@ -370,6 +410,7 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
 
                 let args_add = Args::new(
+                    Mode::Add,
                     Some("find_entity_account_1"),
                     Some("find_entity_account_2"),
                     None 
@@ -377,17 +418,15 @@ mod keeper {
 
                 keeper.add(args_add);
 
-                // TODO: not being able to find since
-                // Locker will generate other keys to args_find
-
                 let args_find = Args::new(
+                    Mode::Find,
                     Some("find_entity_account_1"),
                     None,
                     None 
                 );
 
                 let result = keeper.find(args_find).unwrap();
-    
+
                 assert_eq!(result.to_vec().len(), 2);
             }
         };
@@ -413,6 +452,7 @@ mod keeper {
                 let password = Some("read_account_password");
 
                 let args = Args::new(
+                    Mode::Add,
                     entity,
                     account,
                     password
@@ -445,6 +485,7 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
                
                 let args = Args::new(
+                    Mode::Find,
                     None,
                     None,
                     None
@@ -474,6 +515,7 @@ mod keeper {
                 let account = Some("account");
 
                 let args = Args::new(
+                    Mode::Add,
                     entity,
                     account,
                     None 
@@ -499,17 +541,26 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
                 
                 let entity = Some("entity");
-
-                let args = Args::new(
+                let args_add = Args::new(
+                    Mode::Add,
                     entity,
                     None,
                     None 
                 );
 
-                keeper.add(args.clone());
-                keeper.remove(args.clone());
+                keeper.add(args_add);
+                
+                let entity = Some("entity");
+                let args_remove = Args::new(
+                    Mode::Remove,
+                    entity,
+                    None,
+                    None 
+                );
+
+                keeper.remove(args_remove.clone());
                
-                let result = keeper.find(args).unwrap();
+                let result = keeper.find(args_remove).unwrap();
 
                 assert_eq!(result.to_vec().len(), 0);
             }
@@ -527,6 +578,7 @@ mod keeper {
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     let args = Args::new(
+                        Mode::Remove,
                         None,
                         Some("account"),
                         None
