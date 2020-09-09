@@ -1,14 +1,6 @@
 use std::path::PathBuf;
 use crate::locker::{Locker, Distinguished};
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Mode {
-    Add,
-    Find,
-    Remove,
-    Update
-}
-
 #[derive(Clone, Debug)]
 pub struct Args {
     pub entity: Values,
@@ -35,6 +27,10 @@ impl Values {
     pub fn is_empty(&self) -> bool { self.get_encrypted().is_empty() }
 }
 
+// TODO: maybe change how path is constructed
+// so it will be easier to separate concerns
+// <entity>$<entity_hash>$<account>$<account_hash>?
+
 impl Iterator for Args {
     type Item = Arg;
 
@@ -48,10 +44,11 @@ impl Iterator for Args {
                 let hash = self.entity.get_hash();
                 let parent_hash = None;
                 let is_dir = true;
+                let entity_path = format!("{}{}", &keys.dat, &hash);
 
                 self.iterator += 1;
 
-                path.push(&keys.dat);
+                path.push(&entity_path);
 
                 let iteration = Arg {
                     path,
@@ -73,14 +70,17 @@ impl Iterator for Args {
                 let account = self.account.get_encrypted(); 
                 let ekeys = Locker::distinguish(&entity);
                 let keys = Locker::distinguish(&account);
+                let ehash = self.entity.get_hash();
                 let hash = self.account.get_hash();
                 let parent_hash = Some(self.entity.get_hash());
                 let is_dir = true; 
+                let entity_path = format!("{}{}", &ekeys.dat, &ehash);
+                let account_path = format!("{}{}", &keys.dat, &hash);
 
                 self.iterator += 1;
                 
-                path.push(&ekeys.dat);
-                path.push(&keys.dat);
+                path.push(&entity_path);
+                path.push(&account_path);
                 
                 let iteration = Arg {
                     path,
@@ -103,14 +103,17 @@ impl Iterator for Args {
                 let ekeys = Locker::distinguish(&entity);
                 let akeys = Locker::distinguish(&account);
                 let keys = Locker::distinguish(&password);
+                let ehash = self.entity.get_hash();
                 let hash = self.account.get_hash();
                 let parent_hash = None; 
                 let is_dir = false;
+                let entity_path = format!("{}{}", &ekeys.dat, &ehash);
+                let account_path = format!("{}{}", &akeys.dat, &hash);
 
                 self.iterator = 3;
 
-                path.push(&ekeys.dat);
-                path.push(&akeys.dat);
+                path.push(&entity_path);
+                path.push(&account_path);
                 path.push(&keys.dat);
                
                 let iteration = Arg {
@@ -133,140 +136,6 @@ impl Args {
     /* Initialisers */
 
     pub fn new(
-        mode: Mode,
-        entity: Option<&str>,
-        account: Option<&str>,
-        password: Option<&str>
-    ) -> Args {
-        match mode {
-            Mode::Add => Args::add(entity, account, password),
-            Mode::Find => Args::find(entity, account, password),
-            Mode::Remove => Args::remove(entity, account, password),
-            Mode::Update => Args::update(entity, account, password)
-        }
-    }
-
-    fn add(
-        entity: Option<&str>,
-        account: Option<&str>,
-        password: Option<&str>
-    ) -> Args {
-        let mut locker = Locker::new();
-        
-        let mut ent = String::new();
-        let mut acc = String::new();
-        let mut pwd = String::new();
-
-        let mut ehash = String::new();
-        let mut ahash = String::new();
-        let mut phash = String::new();
-
-        if let Some(e) = entity { 
-            ehash = locker.hash(e);
-            ent = locker.encrypt(e);
-        }
-        
-        if let Some(a) = account { 
-            ahash = locker.hash(a);
-            acc = locker.encrypt(a); 
-        }
-
-        if let Some(p) = password { 
-            phash = locker.hash(p);
-            pwd = locker.encrypt(p); 
-        }
-
-        Args {
-            iterator: 0,
-            entity: Values(ehash, ent),
-            account: Values(ahash, acc),
-            password: Values(phash, pwd)
-        }
-    }
-
-    // TODO: change implementation
-
-    fn find(
-        entity: Option<&str>,
-        account: Option<&str>,
-        password: Option<&str>
-    ) -> Args {
-        let mut locker = Locker::new();
-        
-        let mut ent = String::new();
-        let mut acc = String::new();
-        let mut pwd = String::new();
-
-        let mut ehash = String::new();
-        let mut ahash = String::new();
-        let mut phash = String::new();
-
-        if let Some(e) = entity { 
-            ehash = locker.hash(e);
-            ent = locker.encrypt(e);
-        }
-        
-        if let Some(a) = account { 
-            ahash = locker.hash(a);
-            acc = locker.encrypt(a); 
-        }
-
-        if let Some(p) = password { 
-            phash = locker.hash(p);
-            pwd = locker.encrypt(p); 
-        }
-
-        Args {
-            iterator: 0,
-            entity: Values(ehash, ent),
-            account: Values(ahash, acc),
-            password: Values(phash, pwd)
-        }
-    }
-
-    // TODO: change implementation
-
-    fn remove(
-        entity: Option<&str>,
-        account: Option<&str>,
-        password: Option<&str>
-    ) -> Args {
-        let mut locker = Locker::new();
-        
-        let mut ent = String::new();
-        let mut acc = String::new();
-        let mut pwd = String::new();
-
-        let mut ehash = String::new();
-        let mut ahash = String::new();
-        let mut phash = String::new();
-
-        if let Some(e) = entity { 
-            ehash = locker.hash(e);
-            ent = locker.encrypt(e);
-        }
-        
-        if let Some(a) = account { 
-            ahash = locker.hash(a);
-            acc = locker.encrypt(a); 
-        }
-
-        if let Some(p) = password { 
-            phash = locker.hash(p);
-            pwd = locker.encrypt(p); 
-        }
-
-        Args {
-            iterator: 0,
-            entity: Values(ehash, ent),
-            account: Values(ahash, acc),
-            password: Values(phash, pwd)
-        }
-    }
-
-    // TODO: change implementation
-
-    fn update(
         entity: Option<&str>,
         account: Option<&str>,
         password: Option<&str>
@@ -351,11 +220,8 @@ mod tests {
 
     #[test]
     fn new() {
-        let mode = Mode::Add;
         let locker = Locker::new();
-        
         let args = Args::new(
-            mode,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -370,7 +236,6 @@ mod tests {
     #[test]
     fn path_entity() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             None,
             None
@@ -384,7 +249,6 @@ mod tests {
     #[test]
     fn path_account() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             None
@@ -398,7 +262,6 @@ mod tests {
     #[test]
     fn path_all() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -412,7 +275,6 @@ mod tests {
     #[test]
     fn iterator_entity() {
         let mut args = Args::new(
-            Mode::Add,
             Some("entity"),
             None,
             None
@@ -448,7 +310,6 @@ mod tests {
     #[test]
     fn iterator_account() {
         let mut args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             None
@@ -508,7 +369,6 @@ mod tests {
     #[test]
     fn iterator_password() {
         let mut args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -592,7 +452,6 @@ mod tests {
     #[test]
     fn iterator_cycle() {
         let mut args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -680,7 +539,6 @@ mod tests {
     #[test]
     fn has_all() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -694,7 +552,6 @@ mod tests {
     #[test]
     fn has_entity() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -708,7 +565,6 @@ mod tests {
     #[test]
     fn no_entity() {
         let args = Args::new(
-            Mode::Add,
             None,
             Some("account"),
             Some("password")
@@ -722,7 +578,6 @@ mod tests {
     #[test]
     fn has_account() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             Some("account"),
             Some("password")
@@ -736,7 +591,6 @@ mod tests {
     #[test]
     fn no_account() {
         let args = Args::new(
-            Mode::Add,
             Some("entity"),
             None,
             Some("password")
@@ -747,4 +601,3 @@ mod tests {
         assert_eq!(has_account, false);
     }
 }
-
