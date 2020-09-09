@@ -7,7 +7,7 @@ mod yaml;
 use std::io;
 use std::path::{PathBuf};
 
-pub use args::{Args, Arg, Mode};
+pub use args::{Args, Arg};
 use managers::Manager;
 use managers::DirManager;
 use managers::FileManager;
@@ -140,7 +140,6 @@ impl Keeper {
        
         let ehash = if entity.is_empty() != true { Some(entity.get_hash()) } else { None };
         let ahash = if account.is_empty() != true { Some(account.get_hash()) } else { None };
-
         let index = self.index.find(ehash, ahash);
 
         if index.is_some() {
@@ -148,6 +147,7 @@ impl Keeper {
                 &entity.get_encrypted(), 
                 &account.get_encrypted()
             );
+
             println!("{:?}", path);
 
             let registers = self.directories.read_locker(&path)?;
@@ -261,14 +261,15 @@ mod keeper {
                 let password = None;
 
                 let args = Args::new(
-                    Mode::Add,
                     entity,
                     account,
                     password
                 );
 
+                let entity_encrypted = args.entity.get_encrypted();
+
                 dump.push(locker);
-                dump.push(args.entity.get_encrypted().clone());
+                dump.push(&entity_encrypted[..34]);
 
                 keeper.add(args);
 
@@ -287,7 +288,6 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
 
                 let args = Args::new(
-                    Mode::Add,
                     None,
                     Some("account"),
                     None
@@ -317,15 +317,17 @@ mod keeper {
                 let password = None;
 
                 let args = Args::new(
-                    Mode::Add,
                     entity,
                     account,
                     password
                 );
 
+                let entity_encrypted = args.entity.get_encrypted();
+                let account_encrypted = args.account.get_encrypted();
+
                 dump.push(locker);
-                dump.push(args.entity.get_encrypted().clone());
-                dump.push(args.account.get_encrypted().clone());
+                dump.push(&entity_encrypted[..34]);
+                dump.push(&account_encrypted[..34]);
 
                 keeper.add(args);
                 
@@ -345,24 +347,25 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker.clone());
    
                 let args = Args::new(
-                    Mode::Add,
                     Some("add_password_1"),
                     Some("add_password_2"),
                     Some("password") 
                 );
 
-                let password = args.password.get_encrypted().clone();
+                let entity_encrypted = args.entity.get_encrypted();
+                let account_encrypted = args.account.get_encrypted();
+                let password_encrypted = args.password.get_encrypted();
 
                 dump.push(locker);
-                dump.push(args.entity.get_encrypted().clone());
-                dump.push(args.account.get_encrypted().clone());
+                dump.push(&entity_encrypted[..34]);
+                dump.push(&account_encrypted[..34]);
 
                 keeper.add(args);
 
                 assert!(dump.exists());
                 assert!(dump.is_dir());
 
-                dump.push(password);
+                dump.push(&password_encrypted[..34]);
 
                 assert!(dump.exists());
                 assert!(dump.is_file());
@@ -381,14 +384,15 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker.clone());
 
                 let args = Args::new(
-                    Mode::Add,
                     Some("find_entity_1"),
                     None,
                     None 
                 );
 
+                let entity_encrypted = args.entity.get_encrypted();
+
                 dump.push(locker);
-                dump.push(args.entity.get_encrypted().clone());
+                dump.push(&entity_encrypted[..34]);
 
                 keeper.add(args.clone());
 
@@ -410,7 +414,6 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
 
                 let args_add = Args::new(
-                    Mode::Add,
                     Some("find_entity_account_1"),
                     Some("find_entity_account_2"),
                     None 
@@ -419,7 +422,6 @@ mod keeper {
                 keeper.add(args_add);
 
                 let args_find = Args::new(
-                    Mode::Find,
                     Some("find_entity_account_1"),
                     None,
                     None 
@@ -452,7 +454,6 @@ mod keeper {
                 let password = Some("read_account_password");
 
                 let args = Args::new(
-                    Mode::Add,
                     entity,
                     account,
                     password
@@ -485,7 +486,6 @@ mod keeper {
                 let mut keeper = Keeper::new(index, config, locker);
                
                 let args = Args::new(
-                    Mode::Find,
                     None,
                     None,
                     None
@@ -515,7 +515,6 @@ mod keeper {
                 let account = Some("account");
 
                 let args = Args::new(
-                    Mode::Add,
                     entity,
                     account,
                     None 
@@ -542,7 +541,6 @@ mod keeper {
                 
                 let entity = Some("entity");
                 let args_add = Args::new(
-                    Mode::Add,
                     entity,
                     None,
                     None 
@@ -552,7 +550,6 @@ mod keeper {
                 
                 let entity = Some("entity");
                 let args_remove = Args::new(
-                    Mode::Remove,
                     entity,
                     None,
                     None 
@@ -578,7 +575,6 @@ mod keeper {
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     let args = Args::new(
-                        Mode::Remove,
                         None,
                         Some("account"),
                         None
