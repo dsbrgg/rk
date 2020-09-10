@@ -146,9 +146,7 @@ mod tests {
     fn encrypt() {
         let mut locker = Locker::new();
         let to_encrypt = "encrypt me!";
-
         let encrypted = locker.encrypt(to_encrypt);
-        
         let formated = format!(
             "{}${}${}",
             locker.dat.hex(),
