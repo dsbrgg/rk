@@ -16,7 +16,48 @@ type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 pub struct Distinguished {
     pub iv: String,
     pub key: String,
-    pub dat: String
+    pub dat: String,
+    pub hash: String,
+}
+
+/* Encrypted struct */
+
+#[derive(Clone, Debug)]
+pub struct Encrypted<'a>(&'a str);
+
+impl<'a> Encrypted<'a> {
+
+    /* Initialisers */
+
+    pub fn new(iv: &str, key: &str, dat: &str, hash: &str) -> Encrypted<'a> {
+        let value = format!(
+            "{}${}${}${}",
+            iv,
+            key,
+            dat,
+            hash
+        );
+
+        Encrypted(&value)
+    }
+
+    /* Methods */
+
+    pub fn distinguish(&self) -> Distinguished {
+        let split: Vec<&str> = self.0.split('$').collect();
+        let dat = split[0].to_string();
+        let iv = split[1].to_string();
+        let key = split[2].to_string();
+        let hash = split[3].to_string();
+
+        Distinguished {
+            iv,
+            key,
+            dat,
+            hash
+        }
+    }
+
 }
 
 #[derive(Debug)]
@@ -31,6 +72,7 @@ impl Locker {
     /* Initialisers */
 
     // TODO: implement different byte sizes
+ 
     pub fn new() -> Locker {
         let dat = Bytes::new(E);
         let iv = Bytes::new(U16);
@@ -57,23 +99,22 @@ impl Locker {
     
     /* Methods */
 
-    pub fn encrypt(&mut self, data: &str) -> String {
+    pub fn encrypt(&mut self, data: &str) -> Encrypted {
         let iv = self.iv.raw();
         let key = self.key.raw();
         let bytes = data.as_bytes();
-
         let encrypted = Aes128Cbc::new_var(&key[..], &iv[..])
             .unwrap()
             .encrypt_vec(bytes);
 
         self.dat.alloc_raw(encrypted);
 
-        format!(
-            "{}${}${}", 
-            self.dat.hex(),
-            &self.iv.hex()[2..],
-            &self.key.hex()[2..],
-        )
+        let iv = &self.iv.hex();
+        let key = &self.key.hex();
+        let dat = &self.dat.hex();
+        let hash = Locker::hash(dat);
+
+        Encrypted::new(iv, key, dat, &hash)
     }
 
     pub fn decrypt(&self) -> String {
@@ -89,31 +130,20 @@ impl Locker {
         Bytes::bytes_string(&decrypted)
     }
 
-    pub fn hash(&self, string: &str) -> String {
+    /* Associated functions */
+    
+    pub fn hash(string: &str) -> String {
         hex_digest(
             Algorithm::SHA256, 
             string.as_bytes()
         )
     }
-
-    /* Associated functions */
-
-    pub fn distinguish(encrypted: &String) -> Distinguished {
-        let split: Vec<&str> = encrypted.split('$').collect();
-        let dat = split[0].to_string();
-        let iv = split[1].to_string();
-        let key = split[2].to_string();
-
-        Distinguished {
-            iv,
-            key,
-            dat
-        }
-    }
 }
 
+/* Locker tests */
+
 #[cfg(test)]
-mod tests {
+mod locker_tests {
     use super::*;
 
     #[test]
@@ -176,18 +206,46 @@ mod tests {
         let locker = Locker::new();
         let string = String::from("hash this");
         let hashed = String::from("19467788bc0cf11790a075ea718452cecf0e79db59d1964670475e5fe2e4a611");
-        let hash = locker.hash(&string);
+        let hash = Locker::hash(&string);
 
         assert_eq!(hash, hashed);
+    }
+}
+
+/* Encrypted tests */
+
+#[cfg(test)]
+mod encrypted_tests {
+    use super::*;
+
+    #[test]
+    fn new() {
+        let iv = "foo";
+        let key = "bar";
+        let dat = "biz";
+        let hash = "fred";
+        let encrypted = Encrypted::new(iv, key, dat, hash);
+
+        assert_eq!(encrypted.0, "foo$bar$biz$fred");
     }
 
     #[test]
     fn distinguish() {
-        let string = "0x19467788bc0cf11790a075ea718452ce$cf0e79db59d196467019467788bc0cf1$1790a075ea718452cecf0e79db59d196".to_string();
-        let Distinguished { iv, key, dat } = Locker::distinguish(&string);
+        let iv = "foo";
+        let key = "bar";
+        let dat = "biz";
+        let hash = "fred";
+        let encrypted = Encrypted::new(iv, key, dat, hash);
+        let Distinguished { 
+            iv,
+            key,
+            dat,
+            hash
+        } = encrypted.distinguish();
 
-        assert_eq!(iv, "cf0e79db59d196467019467788bc0cf1");
-        assert_eq!(key, "1790a075ea718452cecf0e79db59d196");
-        assert_eq!(dat, "0x19467788bc0cf11790a075ea718452ce");
+        assert_eq!(iv, "foo");
+        assert_eq!(key, "bar");
+        assert_eq!(dat, "biz");
+        assert_eq!(hash, "fred");
     }
 }
