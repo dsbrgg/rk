@@ -44,14 +44,14 @@ impl Locker {
     }
 
     pub fn from(iv: String, key: String, dat: String) -> Locker {
-        let biv = Bytes::from_hex(iv);
-        let bkey = Bytes::from_hex(key);
-        let bdat = Bytes::from_hex(dat);
+        let iv = Bytes::from_hex(iv);
+        let key = Bytes::from_hex(key);
+        let dat = Bytes::from_hex(dat);
 
         Locker {
-            iv: biv,
-            key: bkey,
-            dat: bdat
+            iv,
+            key,
+            dat
         }
     }
     
@@ -60,7 +60,7 @@ impl Locker {
     pub fn encrypt(&mut self, data: &str) -> String {
         let iv = self.iv.raw();
         let key = self.key.raw();
-        let mut bytes = data.as_bytes();
+        let bytes = data.as_bytes();
 
         let encrypted = Aes128Cbc::new_var(&key[..], &iv[..])
             .unwrap()
@@ -69,7 +69,7 @@ impl Locker {
         self.dat.alloc_raw(encrypted);
 
         format!(
-            "{}{}{}", 
+            "{}${}${}", 
             self.dat.hex(),
             &self.iv.hex()[2..],
             &self.key.hex()[2..],
@@ -98,34 +98,16 @@ impl Locker {
 
     /* Associated functions */
 
-    pub fn distinguish(pwd: &String) -> Distinguished {
-        let mut d = String::new();
-        let mut i = String::new();
-        let mut k = String::new();
-
-        match pwd.as_bytes().len() {
-            98 => {
-                d = String::from(&pwd[..34]);
-                i = String::from(&pwd[34..66]);
-                k = String::from(&pwd[66..]); 
-            },
-            130 => {
-                d = String::from(&pwd[..66]);
-                i = String::from(&pwd[66..98]);
-                k = String::from(&pwd[98..]);
-            },
-            162 => {
-                d = String::from(&pwd[..98]);
-                i = String::from(&pwd[98..130]);
-                k = String::from(&pwd[130..]);
-            },
-            _ => panic!("Unsupported encryption length"),
-        }
+    pub fn distinguish(encrypted: &String) -> Distinguished {
+        let split: Vec<&str> = encrypted.split('$').collect();
+        let dat = split[0].to_string();
+        let iv = split[1].to_string();
+        let key = split[2].to_string();
 
         Distinguished {
-            iv: i,
-            key: k,
-            dat: d
+            iv,
+            key,
+            dat
         }
     }
 }
@@ -168,7 +150,7 @@ mod tests {
         let encrypted = locker.encrypt(to_encrypt);
         
         let formated = format!(
-            "{}{}{}",
+            "{}${}${}",
             locker.dat.hex(),
             &locker.iv.hex()[2..],
             &locker.key.hex()[2..]
@@ -194,31 +176,20 @@ mod tests {
     #[test]
     fn hash() {
         let locker = Locker::new();
-
         let string = String::from("hash this");
         let hashed = String::from("19467788bc0cf11790a075ea718452cecf0e79db59d1964670475e5fe2e4a611");
-
         let hash = locker.hash(&string);
 
         assert_eq!(hash, hashed);
     }
 
     #[test]
-    fn distinguish_98() {
-        let string = "0x19467788bc0cf11790a075ea718452cecf0e79db59d196467019467788bc0cf11790a075ea718452cecf0e79db59d196".to_string();
-
+    fn distinguish() {
+        let string = "0x19467788bc0cf11790a075ea718452ce$cf0e79db59d196467019467788bc0cf1$1790a075ea718452cecf0e79db59d196".to_string();
         let Distinguished { iv, key, dat } = Locker::distinguish(&string);
 
         assert_eq!(iv, "cf0e79db59d196467019467788bc0cf1");
         assert_eq!(key, "1790a075ea718452cecf0e79db59d196");
         assert_eq!(dat, "0x19467788bc0cf11790a075ea718452ce");
-    }
-
-    #[test]
-    #[should_panic(expected = "Unsupported encryption length")]
-    fn distinguish_panic() {
-        let string = "0x19467788bc0cf11790a075ea718452cecf0".to_string();
-
-        Locker::distinguish(&string);
     }
 }
