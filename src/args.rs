@@ -1,35 +1,25 @@
 use std::path::PathBuf;
-use crate::locker::{Locker, Distinguished};
+use crate::locker::{Locker, Encrypted, Distinguished};
+
+/* Args struct */
 
 #[derive(Clone, Debug)]
 pub struct Args {
-    pub entity: Values,
-    pub account: Values,
-    pub password: Values,
-    iterator: u8
+    iterator: u8,
+    pub entity: Encrypted,
+    pub account: Encrypted,
+    pub password: Encrypted,
 }
+
+/* Arg struct */
 
 #[derive(Clone, Debug)]
 pub struct Arg {
+    pub dir: bool,
     pub path: PathBuf,
-    pub keys: Distinguished,
-    pub hash: String,
     pub parent_hash: Option<String>,
-    pub is_dir: bool
+    pub values: Distinguished,
 }
-
-#[derive(Clone, Debug)]
-pub struct Values(String, String);
-
-impl Values {
-    pub fn get_hash(&self) -> String { self.0.clone() }
-    pub fn get_encrypted(&self) -> String { self.1.clone() }
-    pub fn is_empty(&self) -> bool { self.get_encrypted().is_empty() }
-}
-
-// TODO: maybe change how path is constructed
-// so it will be easier to separate concerns
-// <entity>$<entity_hash>$<account>$<account_hash>?
 
 impl Iterator for Args {
     type Item = Arg;
@@ -39,89 +29,68 @@ impl Iterator for Args {
 
         match self.iterator {
             0 => {
-                let entity = self.entity.get_encrypted(); 
-                let keys = Locker::distinguish(&entity);
-                let hash = self.entity.get_hash();
+                let dir = true;
                 let parent_hash = None;
-                let is_dir = true;
-                let entity_path = format!("{}{}", &keys.dat, &hash);
+                let entity_path = self.entity.path();
+                let values = self.entity.distinguish();
 
                 self.iterator += 1;
 
-                path.push(&entity_path);
+                path.push(entity_path);
 
                 let iteration = Arg {
+                    dir,
                     path,
-                    keys,
-                    hash,
                     parent_hash,
-                    is_dir
+                    values
                 };
 
                 Some(iteration)
             },
             1 => {
-                if !self.has_account() {
-                    self.iterator = 0;
-                    return None;
-                }
+                if !self.has_account() { return None; }
 
-                let entity = self.entity.get_encrypted();
-                let account = self.account.get_encrypted(); 
-                let ekeys = Locker::distinguish(&entity);
-                let keys = Locker::distinguish(&account);
-                let ehash = self.entity.get_hash();
-                let hash = self.account.get_hash();
-                let parent_hash = Some(self.entity.get_hash());
-                let is_dir = true; 
-                let entity_path = format!("{}{}", &ekeys.dat, &ehash);
-                let account_path = format!("{}{}", &keys.dat, &hash);
+                let dir = true; 
+                let parent_hash = Some(self.entity.hash().to_string().as_str());
+                let entity_path = self.entity.path();
+                let account_path = self.account.path();
+                let values = self.account.distinguish();
 
                 self.iterator += 1;
                 
-                path.push(&entity_path);
-                path.push(&account_path);
+                path.push(entity_path);
+                path.push(account_path);
                 
                 let iteration = Arg {
+                    dir,
                     path,
-                    keys,
-                    hash,
                     parent_hash,
-                    is_dir
+                    values
                 };
 
                 Some(iteration)
             },
             2 => {
-                if !self.has_all() {
-                    return None;
-                }
+                if !self.has_all() { return None; }
 
-                let entity = self.entity.get_encrypted();
-                let account = self.account.get_encrypted();
-                let password = self.password.get_encrypted();
-                let ekeys = Locker::distinguish(&entity);
-                let akeys = Locker::distinguish(&account);
-                let keys = Locker::distinguish(&password);
-                let ehash = self.entity.get_hash();
-                let hash = self.account.get_hash();
+                let dir = false;
                 let parent_hash = None; 
-                let is_dir = false;
-                let entity_path = format!("{}{}", &ekeys.dat, &ehash);
-                let account_path = format!("{}{}", &akeys.dat, &hash);
+                let entity_path = self.entity.path();
+                let account_path = self.account.path();
+                let password_path = self.password.path();
+                let values = self.password.distinguish();
 
                 self.iterator = 3;
 
-                path.push(&entity_path);
-                path.push(&account_path);
-                path.push(&keys.dat);
+                path.push(entity_path);
+                path.push(account_path);
+                path.push(password_path);
                
                 let iteration = Arg {
+                    dir,
                     path,
-                    keys,
-                    hash,
                     parent_hash,
-                    is_dir
+                    values
                 };
 
                 Some(iteration)
@@ -141,35 +110,19 @@ impl Args {
         password: Option<&str>
     ) -> Args {
         let mut locker = Locker::new();
-        
-        let mut ent = String::new();
-        let mut acc = String::new();
-        let mut pwd = String::new();
+        let mut ent = Encrypted::empty();
+        let mut acc = Encrypted::empty();
+        let mut pwd = Encrypted::empty();
 
-        let mut ehash = String::new();
-        let mut ahash = String::new();
-        let mut phash = String::new();
-
-        if let Some(e) = entity { 
-            ehash = locker.hash(e);
-            ent = locker.encrypt(e);
-        }
-        
-        if let Some(a) = account { 
-            ahash = locker.hash(a);
-            acc = locker.encrypt(a); 
-        }
-
-        if let Some(p) = password { 
-            phash = locker.hash(p);
-            pwd = locker.encrypt(p); 
-        }
+        if let Some(e) = entity { ent = locker.encrypt(e); }
+        if let Some(a) = account { acc = locker.encrypt(a); }
+        if let Some(p) = password { pwd = locker.encrypt(p); }
 
         Args {
             iterator: 0,
-            entity: Values(ehash, ent),
-            account: Values(ahash, acc),
-            password: Values(phash, pwd)
+            entity: ent,
+            account: acc,
+            password: pwd
         }
     }
 
@@ -178,23 +131,9 @@ impl Args {
     pub fn path(&self) -> PathBuf {
         let mut path = PathBuf::new();
 
-        if self.has_entity() {
-            let entity = self.entity.get_encrypted();
-            let Distinguished { dat, .. } = Locker::distinguish(&entity);
-            path.push(&dat[2..]);
-        }
-
-        if self.has_account() {
-            let account = self.account.get_encrypted();
-            let Distinguished { dat, .. } = Locker::distinguish(&account);
-            path.push(&dat[2..]);
-        }
-        
-        if self.has_all() {
-            let password = self.password.get_encrypted();
-            let Distinguished { dat, .. } = Locker::distinguish(&password);
-            path.push(&dat[2..]);
-        } 
+        if self.has_entity() { path.push(self.entity.path()); }
+        if self.has_account() { path.push(self.account.path()); }
+        if self.has_all() { path.push(self.password.path()); } 
 
         path 
     } 
@@ -220,7 +159,6 @@ mod tests {
 
     #[test]
     fn new() {
-        let locker = Locker::new();
         let args = Args::new(
             Some("entity"),
             Some("account"),
@@ -228,9 +166,9 @@ mod tests {
         );
 
         assert_eq!(args.iterator, 0);
-        assert_eq!(args.entity.get_encrypted().len(), 98);
-        assert_eq!(args.account.get_encrypted().len(), 98);
-        assert_eq!(args.password.get_encrypted().len(), 98);
+        assert_eq!(args.entity.get_encrypted().len(), 100);
+        assert_eq!(args.account.get_encrypted().len(), 100);
+        assert_eq!(args.password.get_encrypted().len(), 100);
     }
 
     #[test]
@@ -242,8 +180,10 @@ mod tests {
         );
 
         let path = args.path();
+        let entity = args.entity.get_encrypted();
 
         assert_eq!(path.as_path().iter().count(), 1);
+        assert_eq!(path.to_str().unwrap(), &entity);
     }
 
     #[test]
@@ -255,8 +195,19 @@ mod tests {
         );
 
         let path = args.path();
+        let entity = args.entity.get_encrypted();
+        let entity_hash = args.entity.get_hash();
+        let entity_path = format!("{}${}", entity, entity_hash);
+        let account = args.account.get_encrypted();
+        let account_hash = args.account.get_hash();
+        let account_path = format!("{}${}", account, account_hash);
+        let mut test_path = PathBuf::new();
+
+        test_path.push(entity_path);
+        test_path.push(account_path);
 
         assert_eq!(path.as_path().iter().count(), 2);
+        assert_eq!(path.to_str().unwrap(), test_path.to_str().unwrap());
     }
 
     #[test]
@@ -268,8 +219,21 @@ mod tests {
         );
 
         let path = args.path();
+        let entity = args.entity.get_encrypted();
+        let entity_hash = args.entity.get_hash();
+        let entity_path = format!("{}${}", &entity[2..], entity_hash);
+        let account = args.account.get_encrypted();
+        let account_hash = args.account.get_hash();
+        let account_path = format!("{}${}", &account[2..], account_hash);
+        let password = args.password.get_encrypted();
+        let mut test_path = PathBuf::new();
+
+        test_path.push(entity_path);
+        test_path.push(account_path);
+        test_path.push(password);
 
         assert_eq!(path.as_path().iter().count(), 3);
+        assert_eq!(path.to_str().unwrap(), test_path.to_str().unwrap());
     }
 
     #[test]
@@ -299,7 +263,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 34);
         assert_eq!(path.as_path().iter().count(), 1);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
@@ -334,7 +297,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 34);
         assert_eq!(path.as_path().iter().count(), 1);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
@@ -358,7 +320,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 69);
         assert_eq!(path.as_path().iter().count(), 2);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash.unwrap().len(), 64);
@@ -393,7 +354,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 34);
         assert_eq!(path.as_path().iter().count(), 1);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
@@ -417,7 +377,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 69);
         assert_eq!(path.as_path().iter().count(), 2);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash.unwrap().len(), 64);
@@ -441,7 +400,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 104);
         assert_eq!(path.as_path().iter().count(), 3);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
@@ -476,7 +434,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 34);
         assert_eq!(path.as_path().iter().count(), 1);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
@@ -500,7 +457,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 69);
         assert_eq!(path.as_path().iter().count(), 2);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash.unwrap().len(), 64);
@@ -524,7 +480,6 @@ mod tests {
         assert_eq!(iv.len(), 32);
         assert_eq!(key.len(), 32);
         assert_eq!(dat.len(), 34);
-        assert_eq!(path.to_str().unwrap().len(), 104);
         assert_eq!(path.as_path().iter().count(), 3);
         assert_eq!(hash.len(), 64);
         assert_eq!(parent_hash, None);
