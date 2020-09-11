@@ -23,13 +23,13 @@ pub struct Distinguished {
 /* Encrypted struct */
 
 #[derive(Clone, Debug)]
-pub struct Encrypted<'a>(&'a str);
+pub struct Encrypted(String);
 
-impl<'a> Encrypted<'a> {
+impl Encrypted {
 
     /* Initialisers */
 
-    pub fn new(iv: &str, key: &str, dat: &str, hash: &str) -> Encrypted<'a> {
+    pub fn new(iv: &str, key: &str, dat: &str, hash: &str) -> Encrypted {
         let value = format!(
             "{}${}${}${}",
             iv,
@@ -38,7 +38,11 @@ impl<'a> Encrypted<'a> {
             hash
         );
 
-        Encrypted(&value)
+        Encrypted(value)
+    }
+
+    pub fn empty() -> Encrypted {
+        Encrypted(String::new())
     }
 
     /* Methods */
@@ -58,6 +62,25 @@ impl<'a> Encrypted<'a> {
         }
     }
 
+    pub fn hash(&self) -> String {
+        let Distinguished { hash, .. } = self.distinguish();
+
+        hash.to_string()
+    }
+
+    pub fn path(&self) -> &str {
+        let Distinguished { 
+            dat, 
+            hash, 
+            .. 
+        } = self.distinguish();
+
+        &format!("{}${}", dat, hash)
+    }
+
+    pub fn value(&self) -> String { self.0 }
+
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
 }
 
 #[derive(Debug)]
@@ -100,6 +123,10 @@ impl Locker {
     /* Methods */
 
     pub fn encrypt(&mut self, data: &str) -> Encrypted {
+        if data.is_empty() {
+            return Encrypted::empty();
+        }
+
         let iv = self.iv.raw();
         let key = self.key.raw();
         let bytes = data.as_bytes();
