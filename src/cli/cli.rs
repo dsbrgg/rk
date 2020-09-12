@@ -160,14 +160,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let locker_instance = Locker::new();
-
-                let mut l = locker.clone();
-                let entity_hash = locker_instance.hash("add_entity");
-                l.push(entity_hash);
-
                 let mut cli = CLI::start(index, config, locker);
-               
                 let args = vec![ "test", "add", "entity", "add_entity" ];
                 let results = command(AddEntity, args);
                 let add = cli.operation(results).unwrap();
@@ -184,17 +177,7 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let locker_instance = Locker::new();
-
-                let mut l = locker.clone();
-                let entity_hash = locker_instance.hash("add_account_entity");
-                let account_hash = locker_instance.hash("add_account");
-
-                l.push(entity_hash);
-                l.push(account_hash);
-
                 let mut cli = CLI::start(index, config, locker);
-                
                 let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
                 let results = command(AddAccount, args);
                 let add = cli.operation(results).unwrap();
@@ -211,16 +194,6 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let locker_instance = Locker::new();
-
-                let mut l = locker.clone();
-                let entity_hash = locker_instance.hash("entity_for_password");
-                let account_hash = locker_instance.hash("account_for_password");
-                let password_hash = "very_good_password_1"; 
-
-                l.push(entity_hash);
-                l.push(account_hash);
-
                 let mut cli = CLI::start(index, config, locker);
 
                 let args = vec![ 
@@ -232,14 +205,6 @@ mod tests {
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
-
-                let account_dir = l.read_dir().expect("Account dir not created!");
-
-                for entry in account_dir {
-                    if let Ok(entry) = entry {
-                        assert!(entry.path().exists());
-                    }
-                }
             }
         };
     }
