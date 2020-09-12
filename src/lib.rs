@@ -69,18 +69,18 @@ impl Keeper {
        
         for arg in args {
             let Arg {
+                dir,
                 mut path,
-                keys,
-                hash,
                 parent_hash,
-                is_dir
+                values,
             } = arg;
 
             let Distinguished {
                 iv,
                 key,
+                hash,
                 ..
-            } = keys;
+            } = values;
 
             if let Some(parent) = parent_hash {
                 self.index.add(parent, Some(hash));
@@ -91,7 +91,7 @@ impl Keeper {
             let pa = format!("{}{}", iv, key);
             let yaml = self.index.to_yaml().unwrap();
 
-            if is_dir {
+            if dir {
                 self.directories
                     .create_locker(path.to_str().unwrap())
                     .expect("Unable to create locker directory"); 
@@ -138,14 +138,14 @@ impl Keeper {
             ..
         } = args; 
        
-        let ehash = if entity.is_empty() != true { Some(entity.get_hash()) } else { None };
-        let ahash = if account.is_empty() != true { Some(account.get_hash()) } else { None };
+        let ehash = if !entity.is_empty() { Some(entity.hash()) } else { None };
+        let ahash = if !account.is_empty() { Some(account.hash()) } else { None };
         let index = self.index.find(ehash, ahash);
 
         if index.is_some() {
             let path = DirManager::append_path(
-                &entity.get_encrypted(), 
-                &account.get_encrypted()
+                &entity.path(), 
+                &account.path()
             );
 
             println!("{:?}", path);
@@ -159,9 +159,6 @@ impl Keeper {
     }
 
     pub fn read(&mut self, path: PathBuf) -> io::Result<Resolve> {
-        // TODO: will have to rethink directories
-        // hash -> encrypt
-        
         let path_to_str = FileManager::pb_to_str(&path);
         let content = self.files.read_locker(&path_to_str)?;
       
@@ -196,8 +193,8 @@ impl Keeper {
         }
 
         let path = DirManager::append_path(
-            &entity.get_encrypted(), 
-            &account.get_encrypted()
+            &entity.path(), 
+            &account.path()
         ); 
         
         self.directories.remove_locker(&path)?;
@@ -266,10 +263,10 @@ mod keeper {
                     password
                 );
 
-                let entity_encrypted = args.entity.get_encrypted();
+                let entity_path = args.entity.path();
 
                 dump.push(locker);
-                dump.push(&entity_encrypted[..34]);
+                dump.push(entity_path);
 
                 keeper.add(args);
 
@@ -322,12 +319,12 @@ mod keeper {
                     password
                 );
 
-                let entity_encrypted = args.entity.get_encrypted();
-                let account_encrypted = args.account.get_encrypted();
+                let entity_path = args.entity.path();
+                let account_path = args.account.path();
 
                 dump.push(locker);
-                dump.push(&entity_encrypted[..34]);
-                dump.push(&account_encrypted[..34]);
+                dump.push(entity_path);
+                dump.push(account_path);
 
                 keeper.add(args);
                 
@@ -352,20 +349,20 @@ mod keeper {
                     Some("password") 
                 );
 
-                let entity_encrypted = args.entity.get_encrypted();
-                let account_encrypted = args.account.get_encrypted();
-                let password_encrypted = args.password.get_encrypted();
+                let entity_path = args.entity.path();
+                let account_path = args.account.path();
+                let password_path = args.password.path();
 
                 dump.push(locker);
-                dump.push(&entity_encrypted[..34]);
-                dump.push(&account_encrypted[..34]);
+                dump.push(entity_path);
+                dump.push(account_path);
 
                 keeper.add(args);
 
                 assert!(dump.exists());
                 assert!(dump.is_dir());
 
-                dump.push(&password_encrypted[..34]);
+                dump.push(password_path);
 
                 assert!(dump.exists());
                 assert!(dump.is_file());
@@ -389,7 +386,7 @@ mod keeper {
                     None 
                 );
 
-                let entity_encrypted = args.entity.get_encrypted();
+                let entity_encrypted = args.entity.path();
 
                 dump.push(locker);
                 dump.push(&entity_encrypted[..34]);
@@ -441,13 +438,8 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-
                 let mut dump = this.dump_path();
-                let mut locker_instance = Locker::new();
                 let mut keeper = Keeper::new(index, config, locker.clone());
-
-                let entity_hash = locker_instance.hash("read_account_password");
-                let account_hash = locker_instance.hash("read_account_password");
 
                 let entity = Some("read_account_password");
                 let account = Some("read_account_password");
@@ -459,13 +451,14 @@ mod keeper {
                     password
                 );
 
-                let password_encrypted = args.password.get_encrypted().clone();
-                let Distinguished { dat, .. } = Locker::distinguish(&password_encrypted);
+                let entity_path= args.entity.path();
+                let account_path= args.account.path();
+                let password_path= args.password.path();
 
                 dump.push(locker);
-                dump.push(entity_hash);
-                dump.push(account_hash);
-                dump.push(dat);
+                dump.push(entity_path);
+                dump.push(account_path);
+                dump.push(password_path);
                 
                 keeper.add(args); 
 
@@ -552,7 +545,7 @@ mod keeper {
                 let args_remove = Args::new(
                     entity,
                     None,
-                    None 
+                    None
                 );
 
                 keeper.remove(args_remove.clone());
