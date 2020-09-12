@@ -79,7 +79,7 @@ impl Keeper {
             let Distinguished {
                 iv,
                 key,
-                dat
+                ..
             } = keys;
 
             if let Some(parent) = parent_hash {
