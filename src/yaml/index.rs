@@ -14,20 +14,36 @@ pub struct Index {
 }
 
 #[derive(Debug)]
-pub enum Return {
+pub enum Type {
     Entity(Vec<Value>),
     Account(String)
 }
 
-impl Return {
+impl Type {
+    pub fn is_entity(&self) -> bool {
+        if let Type::Entity(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn to_entities(self) -> Vec<Value> {
-        if let Return::Entity(vec) = self { return vec; }
-        panic!("to_entities should be called on a Return::Entity only");
+        if let Type::Entity(vec) = self { return vec; }
+        panic!("to_entities should be called on a Type::Entity only");
+    }
+
+    pub fn is_account(&self) -> bool {
+        if let Type::Account(_) = self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn to_account(self) -> String {
-        if let Return::Account(string) = self { return string; }
-        panic!("to_account should be called on a Return::Account only");
+        if let Type::Account(string) = self { return string; }
+        panic!("to_account should be called on a Type::Account only");
     }
 }
 
@@ -62,13 +78,14 @@ impl Index {
         Ok(())
     }
 
-    pub fn find(&mut self, entity: Option<String>, account: Option<String>) -> Option<Return> {
+    pub fn find(&mut self, entity: Option<String>, account: Option<String>) -> Option<Type> {
         if entity.is_some() && account.is_some() {
             let e = entity.unwrap();
             let a = account.unwrap();
                 
             if let Some(register) = self.get_account(e, a) {
-                return Some(Return::Account(register));
+                println!("{:?}", register);
+                return Some(Type::Account(register));
             };
 
             return None;
@@ -76,9 +93,10 @@ impl Index {
 
         if entity.is_some() && account.is_none() { 
             let e = entity.unwrap();
-            let register = self.get_entity(e).unwrap();
 
-            return Some(Return::Entity(register));
+            if let Some(register) = self.get_entity(e) {
+                return Some(Type::Entity(register));
+            }
         }
 
         None
@@ -97,8 +115,10 @@ impl Index {
 
     pub fn get_account(&mut self, entity: String, account: String) -> Option<String> {
         let entry = self.get_entity(entity);
+        println!("{:?}", entry);
         
         if let Some(ent) = entry {
+            println!("{:?}", ent);
             let filter = |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
             let mut filtered = ent.iter().filter(filter);
             
