@@ -175,7 +175,6 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (.., config, mut locker) = this.as_path_buf();
-
                 let mut dm = DirManager::new(&config, &locker);
                 
                 locker.push("hello");
@@ -196,7 +195,6 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (.., mut config, locker) = this.as_path_buf();
-
                 let mut dm = DirManager::new(&config, &locker);
                 
                 config.push("hello");
@@ -217,7 +215,6 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (.., config, locker) = this.as_path_buf();
-
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&locker);
                 let res = dm.read_locker(&path).unwrap();
@@ -234,7 +231,6 @@ mod test {
             after_each: &after_each,
             test: &|this| {
                 let (.., config, locker) = this.as_path_buf();
-
                 let mut dm = DirManager::new(&config, &locker);
                 let path = DirManager::pb_to_str(&config);
                 let res = dm.read_config(&path).unwrap();
