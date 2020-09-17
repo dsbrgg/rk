@@ -84,7 +84,6 @@ impl Index {
             let a = account.unwrap();
                 
             if let Some(register) = self.get_account(e, a) {
-                println!("{:?}", register);
                 return Some(Type::Account(register));
             };
 
@@ -95,6 +94,7 @@ impl Index {
             let e = entity.unwrap();
 
             if let Some(register) = self.get_entity(e) {
+                println!("{:?}", register);
                 return Some(Type::Entity(register));
             }
         }
@@ -109,16 +109,14 @@ impl Index {
     pub fn get_entity(&mut self, entity: String) -> Option<Vec<Value>> {
         match self.accounts.entry(entity) {
             Entry::Occupied(mut e) => Some(e.get_mut().to_owned()),
-            Entry::Vacant(v) => None,
+            Entry::Vacant(_) => None,
         }
     }
 
     pub fn get_account(&mut self, entity: String, account: String) -> Option<String> {
         let entry = self.get_entity(entity);
-        println!("{:?}", entry);
         
         if let Some(ent) = entry {
-            println!("{:?}", ent);
             let filter = |acc: &&Value| -> bool { **acc == Value::String(account.to_owned()) };
             let mut filtered = ent.iter().filter(filter);
             
