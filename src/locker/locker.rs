@@ -143,7 +143,7 @@ impl Locker {
         let iv = &self.iv.hex();
         let key = &self.key.hex();
         let dat = &self.dat.hex();
-        let hash = Locker::hash(dat);
+        let hash = Locker::hash(data);
 
         Encrypted::new(iv, key, dat, &hash)
     }
