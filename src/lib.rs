@@ -35,8 +35,7 @@ impl Resolve {
 }
 
 pub struct Keeper {
-    // NOTE: this is readlly bad
-    pub index: Index,
+    index: Index,
     files: FileManager,
     directories: DirManager,
 }
@@ -45,7 +44,6 @@ impl Keeper {
     pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Keeper {
         let mut directories = DirManager::new(&config, &locker);
         let mut files = FileManager::new(&index, &config, &locker);
-        
         let index_path = files.read_index().unwrap();
         let mut index = Index::from_yaml(&index_path).unwrap();
 
@@ -143,16 +141,13 @@ impl Keeper {
         let index = self.index.find(ehash, ahash);
 
         if index.is_some() {
-            let path = DirManager::append_path(
-                &entity.path(), 
-                &account.path()
-            );
+            let found = index.unwrap();
 
-            println!("{:?}", path);
+            if found.is_entity() {
+                let registers = self.directories.read_locker(&entity.path())?;
 
-            let registers = self.directories.read_locker(&path)?;
-         
-            return Ok(Resolve::Find(registers));
+                return Ok(Resolve::Find(registers));
+            }
         } 
 
         Ok(Resolve::Find(vec![]))
@@ -386,10 +381,10 @@ mod keeper {
                     None 
                 );
 
-                let entity_encrypted = args.entity.path();
+                let entity = args.entity.path();
 
                 dump.push(locker);
-                dump.push(&entity_encrypted[..34]);
+                dump.push(entity);
 
                 keeper.add(args.clone());
 
@@ -402,7 +397,7 @@ mod keeper {
     }
 
     #[test]
-    fn find_entity_accounts() {
+    fn find_entity_with_accounts() {
         Setup {
             paths: Vec::new(), 
             after_each: &after_each,
@@ -425,6 +420,7 @@ mod keeper {
                 );
 
                 let result = keeper.find(args_find).unwrap();
+                println!("{:?}", result);
 
                 assert_eq!(result.to_vec().len(), 2);
             }
