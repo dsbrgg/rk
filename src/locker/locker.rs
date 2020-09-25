@@ -1,7 +1,11 @@
+
+/* Dependencies */
+
 use aes_soft as aes;
 
 use aes::Aes128;
 
+use regex::Regex;
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
 use crypto_hash::{Algorithm, hex_digest};
@@ -10,7 +14,11 @@ use crate::locker::{Bytes, ByteSize};
 
 use ByteSize::*;
 
+/* Custom types */
+
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
+
+/* Distinguished struct */
 
 #[derive(Clone, Debug)]
 pub struct Distinguished {
@@ -24,6 +32,16 @@ pub struct Distinguished {
 
 #[derive(Clone, Debug)]
 pub struct Encrypted(String);
+
+/* Encrypted PartialEq behaviour */
+
+impl PartialEq for Encrypted {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash() == other.hash()
+    }
+}
+
+/* Encrypted behaviour */
 
 impl Encrypted {
 
@@ -39,6 +57,16 @@ impl Encrypted {
         );
 
         Encrypted(value)
+    }
+
+    pub fn from(string: &str) -> Result<Encrypted, String> {
+        let signature = Regex::new(r"^.*\$.*\$.*\$.*$").unwrap();
+
+        if !signature.is_match(string) {
+            return Err(format!("Malformed string signature: {}", string));
+        }
+
+        Ok(Encrypted(string.to_string()))
     }
 
     pub fn empty() -> Encrypted {
@@ -260,12 +288,23 @@ mod encrypted_tests {
     }
 
     #[test]
+    fn from_pass() {
+        let string = "foo$bar$biz$fred";
+        let encrypted = Encrypted::from(string).unwrap();
+
+        assert_eq!(encrypted.0, "foo$bar$biz$fred");
+    }
+
+    #[test]
+    #[should_panic(expected = "Malformed string signature: foobar$biz$fred")]
+    fn from_fail() {
+        let string = "foobar$biz$fred";
+        let encrypted = Encrypted::from(string).unwrap();
+    }
+
+    #[test]
     fn distinguish() {
-        let iv = "foo";
-        let key = "bar";
-        let dat = "biz";
-        let hash = "fred";
-        let encrypted = Encrypted::new(iv, key, dat, hash);
+        let encrypted = Encrypted::new("foo", "bar", "biz", "fred");
         let Distinguished { 
             iv,
             key,
@@ -277,5 +316,13 @@ mod encrypted_tests {
         assert_eq!(key, "bar");
         assert_eq!(dat, "biz");
         assert_eq!(hash, "fred");
+    }
+
+    #[test]
+    fn partial_eq() {
+        let foo = Encrypted::new("foo", "bar", "biz", "fred");
+        let bar = Encrypted::new("bar", "foo", "biz", "fred");
+
+        assert_eq!(foo, bar);
     }
 }
