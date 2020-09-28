@@ -2,7 +2,6 @@
 /* Dependencies */
 
 use std::io;
-use std::ffi::OsStr;
 use std::path::{PathBuf};
 use std::collections::HashMap;
 
@@ -28,13 +27,13 @@ impl Vault {
 
     /* Intialisers */
 
-    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) {
+    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> Vault {
         let mut dm = DirManager::new(config, locker);
         let mut fm = FileManager::new(index, config, locker);
-        let mut entities = Structure::new();
-        let structure = dm.read_locker("").unwrap();
+        let mut structure = Structure::new();
+        let entities = dm.read_locker("").unwrap();
 
-        for entity in structure.iter() {
+        for entity in entities.iter() {
             let mut accounts = Vec::new();
             let entity_name = Self::to_string(&entity);
             let encrypted_entity = Encrypted::from(&entity_name).unwrap();
@@ -58,7 +57,7 @@ impl Vault {
             }
 
             for (account, password) in accounts.iter() {
-                entities
+                structure
                     .entry(encrypted_entity.clone())
                     .and_modify(|a| { a.insert(account.to_owned(), password.to_owned()); })
                     .or_insert_with(|| { 
@@ -69,9 +68,30 @@ impl Vault {
             }
         }
 
-        println!("{:?}", entities);
+        Vault {
+            structure,
+            files: fm,
+            directories: dm
+        }
+    }
 
-        panic!(":)");
+    /* Methods */
+
+    pub fn get_entity(&self, entity: Encrypted) -> Option<&Account> {
+        let structure = self.structure.get(&entity);
+
+        if structure.is_none() {
+            return None;
+        }
+
+        structure
+    }
+
+
+    pub fn get_account(&self, entity: Encrypted, account: Encrypted) -> Option<&Encrypted> {
+        let structure = self.get_entity(entity).unwrap();
+        
+        structure.get(&account)
     }
 
     /* Associated functions */
@@ -115,6 +135,25 @@ mod tests {
         }
     }
 
+    fn fill_locker(index: &PathBuf, config: &PathBuf, locker: &PathBuf) {
+        let mut dm = DirManager::new(&config, &locker);
+        let mut fm = FileManager::new(&index, &config, &locker);
+        let mut path = PathBuf::new();
+
+        path.push("foo$bar$biz$fred");
+        path.push("quux$foo$bar$biz");
+
+        let entity_locker_path = path.to_str().unwrap();
+        dm.create_locker(entity_locker_path)
+            .expect("Unable to create locker directories");
+
+        path.push("biz$fred$bar$corge");
+
+        let password_locker_path = path.to_str().unwrap();
+        fm.create_locker(password_locker_path)
+            .expect("Unable to create locker file");
+    }
+
     #[test]
     fn new() {
         Setup { 
@@ -122,24 +161,58 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut dm = DirManager::new(&config, &locker);
-                let mut fm = FileManager::new(&index, &config, &locker);
-                let mut path = PathBuf::new();
 
-                path.push("foo$bar$biz$fred");
-                path.push("quux$foo$bar$biz");
-
-                let entity_locker_path = path.to_str().unwrap();
-                dm.create_locker(entity_locker_path)
-                    .expect("Unable to create locker directories");
-
-                path.push("biz$fred$bar$corge");
-
-                let password_locker_path = path.to_str().unwrap();
-                fm.create_locker(password_locker_path)
-                    .expect("Unable to create locker file");
-
+                fill_locker(&index, &config, &locker);
+                
                 Vault::new(&index, &config, &locker);
+            }
+        }; 
+    }
+
+    #[test]
+    fn get_entity() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                
+                fill_locker(&index, &config, &locker);
+
+                let vault = Vault::new(&index, &config, &locker);
+                let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
+                let accounts = vault.get_entity(entity);
+
+                assert!(accounts.is_some());
+
+                for (account, password) in accounts.unwrap() {
+                    let encrypted_account = Encrypted::from("quux$foo$bar$biz").unwrap();
+                    let encrypted_password = Encrypted::from("biz$fred$bar$corge").unwrap();
+
+                    assert_eq!(*account, encrypted_account);
+                    assert_eq!(*password, encrypted_password);
+                }
+            }
+        }; 
+    }
+
+    #[test]
+    fn get_account() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let vault = Vault::new(&index, &config, &locker);
+                let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
+                let account = Encrypted::from("quux$foo$bar$biz").unwrap();
+                let pass = Encrypted::from("biz$fred$bar$corge").unwrap();
+                let acc = vault.get_account(entity, account).unwrap();
+
+                assert_eq!(*acc, pass);
             }
         }; 
     }
