@@ -1,8 +1,9 @@
 
 /* Dependencies */
 
-use aes_soft as aes;
+use std::hash::{Hash, Hasher};
 
+use aes_soft as aes;
 use aes::Aes128;
 
 use regex::Regex;
@@ -38,6 +39,20 @@ pub struct Encrypted(String);
 impl PartialEq for Encrypted {
     fn eq(&self, other: &Self) -> bool {
         self.hash() == other.hash()
+    }
+}
+
+/* Encrypted Eq behaviour */
+
+impl Eq for Encrypted {}
+
+/* Encrypted Hash behaviour */
+
+impl Hash for Encrypted {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let Distinguished { hash, .. } = self.distinguish();
+
+        hash.hash(state);
     }
 }
 
@@ -299,7 +314,8 @@ mod encrypted_tests {
     #[should_panic(expected = "Malformed string signature: foobar$biz$fred")]
     fn from_fail() {
         let string = "foobar$biz$fred";
-        let encrypted = Encrypted::from(string).unwrap();
+
+        Encrypted::from(string).unwrap();
     }
 
     #[test]
