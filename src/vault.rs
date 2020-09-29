@@ -94,6 +94,21 @@ impl Vault {
         structure.get(&account)
     }
 
+    pub fn set_entity(&mut self, entity: &str) {
+        let new_entity = Encrypted::from(entity).unwrap();
+
+        self.structure.insert(new_entity, Account::new());
+    }
+
+    pub fn set_account(&mut self, entity: &str, account: &str, password: &str) {
+        let registered_entity = Encrypted::from(entity).unwrap();
+        let new_account = Encrypted::from(account).unwrap();
+        let new_password = Encrypted::from(password).unwrap();
+        let mut structure_entity = self.structure.get_mut(&registered_entity).unwrap();
+
+        structure_entity.insert(new_account, new_password);
+    }
+
     /* Associated functions */
 
     fn to_string(path_string: &PathBuf) -> String {
@@ -213,6 +228,65 @@ mod tests {
                 let acc = vault.get_account(entity, account).unwrap();
 
                 assert_eq!(*acc, pass);
+            }
+        }; 
+    }
+
+    #[test]
+    fn set_entity() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let mut vault = Vault::new(&index, &config, &locker);
+                
+                vault.set_entity("foo$foo$foo$foo");
+
+                let encrypted = Encrypted::from("foo$foo$foo$foo").unwrap();
+                let entity = vault.get_entity(encrypted);
+
+                assert!(entity.is_some());
+
+                let entity_value = entity.unwrap();
+
+                assert_eq!(*entity_value, Account::new());
+            }
+        }; 
+    }
+
+    #[test]
+    fn set_account() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let mut vault = Vault::new(&index, &config, &locker);
+                
+                vault.set_entity("foo$foo$foo$foo");
+                vault.set_account(
+                    "foo$foo$foo$foo",
+                    "bar$bar$bar$bar",
+                    "biz$biz$biz$biz"
+                );
+
+                let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
+                let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
+                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
+                let account = vault.get_account(ent, acc);
+
+                assert!(account.is_some());
+
+                if let Some(a) = account {
+                    assert_eq!(*a, pass);
+                }
             }
         }; 
     }
