@@ -130,12 +130,16 @@ impl Encrypted {
     }
 }
 
+/* Locker struct */
+
 #[derive(Debug)]
 pub struct Locker {
     iv: Bytes,
     key: Bytes,
     pub dat: Bytes,
 }
+
+/* Locker struct behaviour */
 
 impl Locker {
 
