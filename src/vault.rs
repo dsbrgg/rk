@@ -407,8 +407,10 @@ mod tests {
                 let entity = vault.get_entity(&ent).unwrap();
                 let dm_entity = dm.read_locker(&ent.path()).unwrap();
 
-                assert_eq!(entity.keys().len(), 1);
                 assert_eq!(dm_entity.len(), 1);
+                assert_eq!(entity.keys().len(), 1);
+                assert_eq!(entity.get(&acc), None);
+                assert!(entity.get(&other_acc).is_some());
             }
         }; 
     }
