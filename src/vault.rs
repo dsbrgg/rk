@@ -103,7 +103,7 @@ impl Vault {
 
     pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) {
         let mut path = PathBuf::new();
-        let mut structure_entity = self.structure.get_mut(entity).unwrap();
+        let structure_entity = self.structure.get_mut(entity).unwrap();
         let entity_path = entity.path();
         let account_path = account.path();
         let password_path = password.path();
@@ -125,6 +125,30 @@ impl Vault {
             account.to_owned(), 
             password.to_owned()
         );
+    }
+
+    pub fn remove_entity(&mut self, entity: &Encrypted) {
+        let path = entity.path();
+        let msg = format!("Unable to remove locker at: {}", &path);
+
+        self.directories.remove_locker(&path).expect(&msg);
+        self.structure.remove(entity);
+    }
+
+    pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) {
+        let mut path = PathBuf::new();
+        let structure_entity = self.structure.get_mut(entity).unwrap();
+        let entity_path = entity.path();
+        let account_path = account.path();
+
+        path.push(entity_path);
+        path.push(account_path);
+
+        let account_locker = path.to_str().unwrap();
+        let msg = format!("Unable to remove account locker at: {}", &account_locker);
+        self.directories.remove_locker(account_locker).expect(&msg);
+        
+        structure_entity.remove(account);
     }
 
     /* Associated functions */
@@ -312,6 +336,79 @@ mod tests {
                 if let Some(a) = account {
                     assert_eq!(*a, pass);
                 }
+            }
+        }; 
+    }
+
+    #[test]
+    fn remove_entity() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker);
+                let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
+
+                vault.set_entity(&entity);
+
+                let structure_entity = vault.get_entity(&entity);
+                let dm_entity = dm.read_locker(&entity.path()).unwrap();
+                let dm_expected: Vec<PathBuf> = Vec::new();
+
+                assert!(structure_entity.is_some());
+                assert_eq!(dm_entity, dm_expected);
+
+                vault.remove_entity(&entity);
+                let dm_entity = dm.read_locker(&entity.path()).unwrap();
+
+                assert_eq!(dm_entity.len(), 0);
+                assert_eq!(vault.get_entity(&entity), None);
+            }
+        }; 
+    }
+
+    #[test]
+    fn remove_account() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let mut path = PathBuf::new();
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker);
+                let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
+                let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
+                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
+                let other_acc = Encrypted::from("fred$fred$fred$fred").unwrap();
+                let other_pass = Encrypted::from("bar$bar$bar$bar").unwrap();
+                
+                vault.set_entity(&ent);
+                vault.set_account(&ent, &acc, &pass);
+                vault.set_account(&ent, &other_acc, &other_pass);
+
+                path.push(ent.path());
+                path.push(acc.path());
+
+                let entity = vault.get_entity(&ent).unwrap();
+
+                assert_eq!(entity.keys().len(), 2);
+
+                vault.remove_account(&ent, &acc);
+
+                let entity = vault.get_entity(&ent).unwrap();
+                let dm_entity = dm.read_locker(&ent.path()).unwrap();
+
+                assert_eq!(entity.keys().len(), 1);
+                assert_eq!(dm_entity.len(), 1);
             }
         }; 
     }
