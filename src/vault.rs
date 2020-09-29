@@ -250,10 +250,10 @@ mod tests {
                 let entity = vault.get_entity(encrypted);
 
                 assert!(entity.is_some());
-
-                let entity_value = entity.unwrap();
-
-                assert_eq!(*entity_value, Account::new());
+                
+                if let Some(e) = entity {
+                    assert_eq!(*e, Account::new());
+                }
             }
         }; 
     }
