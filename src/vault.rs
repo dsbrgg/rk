@@ -87,7 +87,6 @@ impl Vault {
         structure
     }
 
-
     pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Option<&Encrypted> {
         let structure = self.get_entity(entity).unwrap();
         
@@ -95,11 +94,32 @@ impl Vault {
     }
 
     pub fn set_entity(&mut self, entity: &Encrypted) {
+        let path = entity.path();
+        let msg = format!("Unable to create locker at: {}", &path);
+
+        self.directories.create_locker(&path).expect(&msg);
         self.structure.insert(entity.to_owned(), Account::new());
     }
 
     pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) {
+        let mut path = PathBuf::new();
         let mut structure_entity = self.structure.get_mut(entity).unwrap();
+        let entity_path = entity.path();
+        let account_path = account.path();
+        let password_path = password.path();
+
+        path.push(entity_path);
+        path.push(account_path);
+
+        let account_locker = path.to_str().unwrap();
+        let msg = format!("Unable to create account locker at: {}", &account_locker);
+        self.directories.create_locker(account_locker).expect(&msg);
+
+        path.push(password_path);
+
+        let password_locker = path.to_str().unwrap();
+        let msg = format!("Unable to create password locker at: {}", &password_locker);
+        self.files.create_locker(password_locker).expect(&msg);
 
         structure_entity.insert(
             account.to_owned(), 
@@ -240,15 +260,19 @@ mod tests {
 
                 fill_locker(&index, &config, &locker);
 
+                let mut dm = DirManager::new(&config, &locker);
                 let mut vault = Vault::new(&index, &config, &locker);
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
-                
+
                 vault.set_entity(&entity);
 
                 let structure_entity = vault.get_entity(&entity);
+                let dm_entity = dm.read_locker(&entity.path()).unwrap();
+                let dm_expected: Vec<PathBuf> = Vec::new();
 
                 assert!(structure_entity.is_some());
-                
+                assert_eq!(dm_entity, dm_expected);
+
                 if let Some(e) = structure_entity {
                     assert_eq!(*e, Account::new());
                 }
@@ -266,6 +290,8 @@ mod tests {
 
                 fill_locker(&index, &config, &locker);
 
+                let mut path = PathBuf::new();
+                let mut dm = DirManager::new(&config, &locker);
                 let mut vault = Vault::new(&index, &config, &locker);
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
@@ -274,9 +300,14 @@ mod tests {
                 vault.set_entity(&ent);
                 vault.set_account(&ent, &acc, &pass);
 
+                path.push(ent.path());
+                path.push(acc.path());
+
                 let account = vault.get_account(&ent, &acc);
+                let dm_account = dm.read_locker(path.to_str().unwrap()).unwrap();
 
                 assert!(account.is_some());
+                assert!(dm_account[0].ends_with(pass.path()));
 
                 if let Some(a) = account {
                     assert_eq!(*a, pass);
