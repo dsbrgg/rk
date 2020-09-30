@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use crate::locker::Encrypted;
-use crate::managers::{DirManager, FileManager};
+use crate::managers::{Manager, DirManager, FileManager};
 
 /* Custom types */
 
@@ -40,15 +40,10 @@ impl Vault {
             let entity_dir = dm.read_locker(&entity_name).unwrap();
 
             for account in entity_dir.iter() {
-                let mut account_path = PathBuf::new();
                 let account_name = Self::to_string(&account);
                 let encrypted_account = Encrypted::from(&account_name).unwrap();
-
-                account_path.push(&entity_name);
-                account_path.push(&account_name);
-
-                let path = account_path.to_str().unwrap();
-                let account_dir = dm.read_locker(path).unwrap();
+                let path = DirManager::append_path(&entity_name, &account_name);
+                let account_dir = dm.read_locker(&path).unwrap();
                 let password_file = &account_dir[0];
                 let password_name = Self::to_string(&password_file);
                 let encrypted_password = Encrypted::from(&password_name).unwrap();
@@ -136,18 +131,11 @@ impl Vault {
     }
 
     pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) {
-        let mut path = PathBuf::new();
+        let path = DirManager::append_path(&entity.path(), &account.path());
         let structure_entity = self.structure.get_mut(entity).unwrap();
-        let entity_path = entity.path();
-        let account_path = account.path();
+        let msg = format!("Unable to remove account locker at: {}", &path);
 
-        path.push(entity_path);
-        path.push(account_path);
-
-        let account_locker = path.to_str().unwrap();
-        let msg = format!("Unable to remove account locker at: {}", &account_locker);
-        self.directories.remove_locker(account_locker).expect(&msg);
-        
+        self.directories.remove_locker(&path).expect(&msg);
         structure_entity.remove(account);
     }
 
