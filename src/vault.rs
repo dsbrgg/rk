@@ -18,7 +18,7 @@ type Structure = HashMap<Encrypted, Account>;
 #[derive(Debug)]
 pub enum VaultError {
     Error(String),
-    Io(io::Error),
+    Io(io::Error)
 }
 
 /* VaultError From implementations */
@@ -101,20 +101,20 @@ impl Vault {
     /* Methods */
 
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
-        let msg = VaultError::Error(format!("Entity {:?} not found", &entity));
+        let error = VaultError::Error(entity.path());
 
         self.structure
             .get(entity)
-            .ok_or(msg)
+            .ok_or(error)
     }
 
     pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<&Encrypted, VaultError> {
-        let msg = VaultError::Error(format!("Account {:?} for entity {:?} not found", &account, &entity));
+        let error = VaultError::Error(entity.path());
         let structure = self.get_entity(entity)?;
         
         structure
             .get(account)
-            .ok_or(msg)
+            .ok_or(error)
     }
 
     pub fn set_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
@@ -128,9 +128,9 @@ impl Vault {
 
     pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
-        let msg = VaultError::Error(format!("Entity {:?} not found", &entity));
+        let error = VaultError::Error(entity.path());
 
-        let structure_entity = self.structure.get_mut(entity).ok_or(msg)?;
+        let structure_entity = self.structure.get_mut(entity).ok_or(error)?;
         let entity_path = entity.path();
         let account_path = account.path();
         let password_path = password.path();
@@ -164,9 +164,9 @@ impl Vault {
     }
 
     pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
+        let error = VaultError::Error(account.path());
         let path = DirManager::append_path(&entity.path(), &account.path());
-        let msg = VaultError::Error(format!("Account {:?} not found", &account));
-        let structure_entity = self.structure.get_mut(entity).ok_or(msg)?;
+        let structure_entity = self.structure.get_mut(entity).ok_or(error)?;
 
         self.directories.remove_locker(&path)?;
         structure_entity.remove(account);
