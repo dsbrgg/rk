@@ -35,6 +35,12 @@ impl From<String> for VaultError {
     }
 }
 
+impl From<&str> for VaultError {
+    fn from(err: &str) -> VaultError {
+        VaultError::Error(err.to_string())
+    }
+}
+
 /* Vault struct definition */
 
 pub struct Vault {
@@ -94,33 +100,37 @@ impl Vault {
 
     /* Methods */
 
-    pub fn get_entity(&self, entity: &Encrypted) -> Option<&Account> {
-        let structure = self.structure.get(entity);
+    pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
+        let msg = VaultError::Error(format!("Entity {:?} not found", &entity));
 
-        if structure.is_none() {
-            return None;
-        }
-
-        structure
+        self.structure
+            .get(entity)
+            .ok_or(msg)
     }
 
-    pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Option<&Encrypted> {
-        let structure = self.get_entity(entity).unwrap();
+    pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<&Encrypted, VaultError> {
+        let msg = VaultError::Error(format!("Account {:?} for entity {:?} not found", &account, &entity));
+        let structure = self.get_entity(entity)?;
         
-        structure.get(account)
+        structure
+            .get(account)
+            .ok_or(msg)
     }
 
-    pub fn set_entity(&mut self, entity: &Encrypted) {
+    pub fn set_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
         let path = entity.path();
-        let msg = format!("Unable to create locker at: {}", &path);
 
-        self.directories.create_locker(&path).expect(&msg);
+        self.directories.create_locker(&path)?;
         self.structure.insert(entity.to_owned(), Account::new());
+
+        Ok(())
     }
 
-    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) {
+    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
-        let structure_entity = self.structure.get_mut(entity).unwrap();
+        let msg = VaultError::Error(format!("Entity {:?} not found", &entity));
+
+        let structure_entity = self.structure.get_mut(entity).ok_or(msg)?;
         let entity_path = entity.path();
         let account_path = account.path();
         let password_path = password.path();
@@ -128,37 +138,40 @@ impl Vault {
         path.push(entity_path);
         path.push(account_path);
 
-        let account_locker = path.to_str().unwrap();
-        let msg = format!("Unable to create account locker at: {}", &account_locker);
-        self.directories.create_locker(account_locker).expect(&msg);
+        let account_locker = path.to_str().ok_or("Unable to parse &str")?;
+        self.directories.create_locker(account_locker)?;
 
         path.push(password_path);
 
-        let password_locker = path.to_str().unwrap();
-        let msg = format!("Unable to create password locker at: {}", &password_locker);
-        self.files.create_locker(password_locker).expect(&msg);
+        let password_locker = path.to_str().ok_or("Unable to parse &str")?;
+        self.files.create_locker(password_locker)?;
 
         structure_entity.insert(
             account.to_owned(), 
             password.to_owned()
         );
+
+        Ok(())
     }
 
-    pub fn remove_entity(&mut self, entity: &Encrypted) {
+    pub fn remove_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
         let path = entity.path();
-        let msg = format!("Unable to remove locker at: {}", &path);
 
-        self.directories.remove_locker(&path).expect(&msg);
+        self.directories.remove_locker(&path)?;
         self.structure.remove(entity);
+
+        Ok(())
     }
 
-    pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) {
+    pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
         let path = DirManager::append_path(&entity.path(), &account.path());
-        let structure_entity = self.structure.get_mut(entity).unwrap();
-        let msg = format!("Unable to remove account locker at: {}", &path);
+        let msg = VaultError::Error(format!("Account {:?} not found", &account));
+        let structure_entity = self.structure.get_mut(entity).ok_or(msg)?;
 
-        self.directories.remove_locker(&path).expect(&msg);
+        self.directories.remove_locker(&path)?;
         structure_entity.remove(account);
+
+        Ok(())
     }
 
     /* Associated functions */
@@ -252,7 +265,7 @@ mod tests {
                 let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
                 let accounts = vault.get_entity(&entity);
 
-                assert!(accounts.is_some());
+                assert!(accounts.is_ok());
 
                 for (account, password) in accounts.unwrap() {
                     let encrypted_account = Encrypted::from("quux$foo$bar$biz").unwrap();
@@ -300,16 +313,16 @@ mod tests {
                 let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
-                vault.set_entity(&entity);
+                assert!(vault.set_entity(&entity).is_ok());
 
                 let structure_entity = vault.get_entity(&entity);
                 let dm_entity = dm.read_locker(&entity.path()).unwrap();
                 let dm_expected: Vec<PathBuf> = Vec::new();
 
-                assert!(structure_entity.is_some());
+                assert!(structure_entity.is_ok());
                 assert_eq!(dm_entity, dm_expected);
 
-                if let Some(e) = structure_entity {
+                if let Ok(e) = structure_entity {
                     assert_eq!(*e, Account::new());
                 }
             }
@@ -333,8 +346,8 @@ mod tests {
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
                 
-                vault.set_entity(&ent);
-                vault.set_account(&ent, &acc, &pass);
+                assert!(vault.set_entity(&ent).is_ok());
+                assert!(vault.set_account(&ent, &acc, &pass).is_ok());
 
                 path.push(ent.path());
                 path.push(acc.path());
@@ -342,10 +355,10 @@ mod tests {
                 let account = vault.get_account(&ent, &acc);
                 let dm_account = dm.read_locker(path.to_str().unwrap()).unwrap();
 
-                assert!(account.is_some());
+                assert!(account.is_ok());
                 assert!(dm_account[0].ends_with(pass.path()));
 
-                if let Some(a) = account {
+                if let Ok(a) = account {
                     assert_eq!(*a, pass);
                 }
             }
@@ -366,20 +379,20 @@ mod tests {
                 let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
-                vault.set_entity(&entity);
+                assert!(vault.set_entity(&entity).is_ok());
 
                 let structure_entity = vault.get_entity(&entity);
                 let dm_entity = dm.read_locker(&entity.path()).unwrap();
                 let dm_expected: Vec<PathBuf> = Vec::new();
 
-                assert!(structure_entity.is_some());
+                assert!(structure_entity.is_ok());
                 assert_eq!(dm_entity, dm_expected);
+                assert!(vault.remove_entity(&entity).is_ok());
 
-                vault.remove_entity(&entity);
                 let dm_entity = dm.read_locker(&entity.path()).unwrap();
 
                 assert_eq!(dm_entity.len(), 0);
-                assert_eq!(vault.get_entity(&entity), None);
+                assert!(vault.get_entity(&entity).is_err());
             }
         }; 
     }
@@ -403,9 +416,9 @@ mod tests {
                 let other_acc = Encrypted::from("fred$fred$fred$fred").unwrap();
                 let other_pass = Encrypted::from("bar$bar$bar$bar").unwrap();
                 
-                vault.set_entity(&ent);
-                vault.set_account(&ent, &acc, &pass);
-                vault.set_account(&ent, &other_acc, &other_pass);
+                assert!(vault.set_entity(&ent).is_ok());
+                assert!(vault.set_account(&ent, &acc, &pass).is_ok());
+                assert!(vault.set_account(&ent, &other_acc, &other_pass).is_ok());
 
                 path.push(ent.path());
                 path.push(acc.path());
@@ -413,8 +426,7 @@ mod tests {
                 let entity = vault.get_entity(&ent).unwrap();
 
                 assert_eq!(entity.keys().len(), 2);
-
-                vault.remove_account(&ent, &acc);
+                assert!(vault.remove_account(&ent, &acc).is_ok());
 
                 let entity = vault.get_entity(&ent).unwrap();
                 let dm_entity = dm.read_locker(&ent.path()).unwrap();
