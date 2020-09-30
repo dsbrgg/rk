@@ -13,6 +13,28 @@ use crate::managers::{Manager, DirManager, FileManager};
 type Account = HashMap<Encrypted, Encrypted>;
 type Structure = HashMap<Encrypted, Account>;
 
+/* VaultError enum */
+
+#[derive(Debug)]
+pub enum VaultError {
+    Error(String),
+    Io(io::Error),
+}
+
+/* VaultError From implementations */
+
+impl From<io::Error> for VaultError {
+    fn from(err: io::Error) -> VaultError {
+        VaultError::Io(err)
+    }
+}
+
+impl From<String> for VaultError {
+    fn from(err: String) -> VaultError {
+        VaultError::Error(err)
+    }
+}
+
 /* Vault struct definition */
 
 pub struct Vault {
@@ -27,26 +49,26 @@ impl Vault {
 
     /* Intialisers */
 
-    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> Vault {
+    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> Result<Vault, VaultError> {
         let mut dm = DirManager::new(config, locker);
         let mut fm = FileManager::new(index, config, locker);
         let mut structure = Structure::new();
-        let entities = dm.read_locker("").unwrap();
+        let entities = dm.read_locker("")?;
 
         for entity in entities.iter() {
             let mut accounts = Vec::new();
             let entity_name = Self::to_string(&entity);
-            let encrypted_entity = Encrypted::from(&entity_name).unwrap();
-            let entity_dir = dm.read_locker(&entity_name).unwrap();
+            let encrypted_entity = Encrypted::from(&entity_name)?;
+            let entity_dir = dm.read_locker(&entity_name)?;
 
             for account in entity_dir.iter() {
                 let account_name = Self::to_string(&account);
                 let encrypted_account = Encrypted::from(&account_name).unwrap();
                 let path = DirManager::append_path(&entity_name, &account_name);
-                let account_dir = dm.read_locker(&path).unwrap();
+                let account_dir = dm.read_locker(&path)?;
                 let password_file = &account_dir[0];
                 let password_name = Self::to_string(&password_file);
-                let encrypted_password = Encrypted::from(&password_name).unwrap();
+                let encrypted_password = Encrypted::from(&password_name)?;
                 
                 accounts.push((encrypted_account, encrypted_password));
             }
@@ -63,11 +85,11 @@ impl Vault {
             }
         }
 
-        Vault {
+        Ok(Vault {
             structure,
             files: fm,
             directories: dm
-        }
+        })
     }
 
     /* Methods */
@@ -209,7 +231,9 @@ mod tests {
 
                 fill_locker(&index, &config, &locker);
                 
-                Vault::new(&index, &config, &locker);
+                let vault = Vault::new(&index, &config, &locker);
+
+                assert!(vault.is_ok());
             }
         }; 
     }
@@ -224,7 +248,7 @@ mod tests {
                 
                 fill_locker(&index, &config, &locker);
 
-                let vault = Vault::new(&index, &config, &locker);
+                let vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
                 let accounts = vault.get_entity(&entity);
 
@@ -251,7 +275,7 @@ mod tests {
 
                 fill_locker(&index, &config, &locker);
 
-                let vault = Vault::new(&index, &config, &locker);
+                let vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
                 let account = Encrypted::from("quux$foo$bar$biz").unwrap();
                 let pass = Encrypted::from("biz$fred$bar$corge").unwrap();
@@ -273,7 +297,7 @@ mod tests {
                 fill_locker(&index, &config, &locker);
 
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
                 vault.set_entity(&entity);
@@ -304,7 +328,7 @@ mod tests {
 
                 let mut path = PathBuf::new();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
@@ -339,7 +363,7 @@ mod tests {
                 fill_locker(&index, &config, &locker);
 
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
                 vault.set_entity(&entity);
@@ -372,7 +396,7 @@ mod tests {
 
                 let mut path = PathBuf::new();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
