@@ -112,16 +112,6 @@ impl Encrypted {
     }
 
     pub fn path(&self) -> String {
-        let Distinguished { 
-            dat, 
-            hash, 
-            .. 
-        } = self.distinguish();
-
-        format!("{}${}", dat, hash)
-    }
-
-    pub fn value(&self) -> String { 
         self.0.clone() 
     }
 
