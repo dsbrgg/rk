@@ -129,6 +129,7 @@ impl Vault {
     pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
         let error = VaultError::Error(entity.path());
+        let str_error = "Unable to parse &str";
 
         let structure_entity = self.structure.get_mut(entity).ok_or(error)?;
         let entity_path = entity.path();
@@ -138,12 +139,12 @@ impl Vault {
         path.push(entity_path);
         path.push(account_path);
 
-        let account_locker = path.to_str().ok_or("Unable to parse &str")?;
+        let account_locker = path.to_str().ok_or(str_error)?;
         self.directories.create_locker(account_locker)?;
 
         path.push(password_path);
 
-        let password_locker = path.to_str().ok_or("Unable to parse &str")?;
+        let password_locker = path.to_str().ok_or(str_error)?;
         self.files.create_locker(password_locker)?;
 
         structure_entity.insert(
