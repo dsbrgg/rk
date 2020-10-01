@@ -38,7 +38,7 @@ pub struct Encrypted(String);
 
 impl PartialEq for Encrypted {
     fn eq(&self, other: &Self) -> bool {
-        self.hash() == other.hash()
+        self.is_empty() == other.is_empty() || self.hash() == other.hash()
     }
 }
 
