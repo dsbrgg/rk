@@ -131,10 +131,12 @@ impl Vault {
         let error = VaultError::Error(entity.path());
         let str_error = "Unable to parse &str";
 
-        let structure_entity = self.structure.get_mut(entity).ok_or(error)?;
         let entity_path = entity.path();
         let account_path = account.path();
         let password_path = password.path();
+        let structure_entity = self.structure
+            .get_mut(entity)
+            .ok_or(error)?;
 
         path.push(entity_path);
         path.push(account_path);
