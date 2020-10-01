@@ -21,6 +21,15 @@ pub enum VaultError {
     Io(io::Error)
 }
 
+impl VaultError {
+    pub fn to_str(self) -> String {
+        match self {
+            VaultError::Error(s) => s,
+            VaultError::Io(_) => String::from("Io Error")
+        }
+    }
+}
+
 /* VaultError From implementations */
 
 impl From<io::Error> for VaultError {
@@ -126,7 +135,28 @@ impl Vault {
         Ok(())
     }
 
-    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
+    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
+        let error = VaultError::Error(entity.path());
+        let str_error = "Unable to parse &str";
+
+        let entity_path = entity.path();
+        let account_path = account.path();
+        let path = DirManager::append_path(&entity.path(), &account.path());
+        let structure_entity = self.structure
+            .get_mut(entity)
+            .ok_or(error)?;
+
+        self.directories.create_locker(&path)?;
+
+        structure_entity.insert(
+            account.to_owned(), 
+            Encrypted::empty()
+        );
+
+        Ok(())
+    }
+
+    pub fn set_password(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
         let error = VaultError::Error(entity.path());
         let str_error = "Unable to parse &str";
@@ -198,7 +228,6 @@ mod tests {
 
     use std::path::Path;
     use std::fs::{remove_dir_all, remove_file};
-    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     fn after_each(this: &mut Setup) {
         for path in this.paths.iter() {
@@ -346,27 +375,21 @@ mod tests {
 
                 fill_locker(&index, &config, &locker);
 
-                let mut path = PathBuf::new();
                 let mut dm = DirManager::new(&config, &locker);
                 let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
-                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
+                let path = DirManager::append_path(&ent.path(), &acc.path());
                 
                 assert!(vault.set_entity(&ent).is_ok());
-                assert!(vault.set_account(&ent, &acc, &pass).is_ok());
-
-                path.push(ent.path());
-                path.push(acc.path());
+                assert!(vault.set_account(&ent, &acc).is_ok());
 
                 let account = vault.get_account(&ent, &acc);
-                let dm_account = dm.read_locker(path.to_str().unwrap()).unwrap();
 
                 assert!(account.is_ok());
-                assert!(dm_account[0].ends_with(pass.path()));
 
                 if let Ok(a) = account {
-                    assert_eq!(*a, pass);
+                    assert_eq!(*a, Encrypted::empty());
                 }
             }
         }; 
@@ -419,13 +442,11 @@ mod tests {
                 let mut vault = Vault::new(&index, &config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
-                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
                 let other_acc = Encrypted::from("fred$fred$fred$fred").unwrap();
-                let other_pass = Encrypted::from("bar$bar$bar$bar").unwrap();
                 
                 assert!(vault.set_entity(&ent).is_ok());
-                assert!(vault.set_account(&ent, &acc, &pass).is_ok());
-                assert!(vault.set_account(&ent, &other_acc, &other_pass).is_ok());
+                assert!(vault.set_account(&ent, &acc).is_ok());
+                assert!(vault.set_account(&ent, &other_acc).is_ok());
 
                 path.push(ent.path());
                 path.push(acc.path());
