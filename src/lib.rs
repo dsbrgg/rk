@@ -2,17 +2,14 @@ mod args;
 mod locker;
 mod managers;
 mod mocks;
+mod vault;
 mod yaml;
 
-use std::io;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
-pub use args::{Args, Arg};
-use managers::Manager;
-use managers::DirManager;
-use managers::FileManager;
-use locker::{Locker, Distinguished, Bytes};
-use yaml::Index;
+use locker::Locker;
+pub use args::Args;
+pub use vault::{Vault, VaultError};
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
@@ -34,147 +31,54 @@ impl Resolve {
     }
 }
 
-pub struct Keeper {
-    index: Index,
-    files: FileManager,
-    directories: DirManager,
-}
+pub struct Keeper { vault: Vault }
 
 impl Keeper {
-    pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Keeper {
-        let mut directories = DirManager::new(&config, &locker);
-        let mut files = FileManager::new(&index, &config, &locker);
-        let index_path = files.read_index().unwrap();
-        let mut index = Index::from_yaml(&index_path).unwrap();
+    pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Result<Keeper, VaultError> {
+        let vault = Vault::new(&index, &config, &locker)?;
+        let keeper = Keeper { vault };
 
-        Keeper { 
-            index, 
-            files, 
-            directories 
-        }
+        Ok(keeper)
     }
 
-    // TODO: this stil has to handle when an entity/account
-    // is already created. so it doesn't erases previous
-    // registers. 
-    
-    pub fn add(&mut self, args: Args) -> io::Result<Resolve> {
+    pub fn add(&mut self, args: Args) -> Result<Resolve, VaultError> {
         if args.has_account() && !args.has_entity() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other, "Entity must be provided when an account is set."
-            ));
+            let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
+
+            return Err(err);
         }
        
-        for arg in args {
-            let Arg {
-                dir,
-                mut path,
-                parent_hash,
-                values,
-            } = arg;
-
-            let Distinguished {
-                iv,
-                key,
-                hash,
-                ..
-            } = values;
-
-            if let Some(parent) = parent_hash {
-                self.index.add(parent, Some(hash));
-            } else {
-                self.index.add(hash, None);
-            }
-
-            let pa = format!("{}{}", iv, key);
-            let yaml = self.index.to_yaml().unwrap();
-
-            if dir {
-                self.directories
-                    .create_locker(path.to_str().unwrap())
-                    .expect("Unable to create locker directory"); 
- 
-                // TODO: need another way to persist data to decrypt dirs
-
-                path.push("meta");
-
-                self.files
-                    .create_locker(path.to_str().unwrap())
-                    .expect("Unable to create meta file");
-
-                self.files
-                    .write_locker(path.to_str().unwrap(), &pa)
-                    .expect("Unable to write to meta file");
-
-                self.files
-                    .write_index(&yaml)
-                    .expect("Unable to write to index file");
-            } else {
-                self.files
-                    .create_locker(path.to_str().unwrap())
-                    .expect("Unable to create locker file");
-
-                self.files
-                    .write_locker(path.to_str().unwrap(), &pa)
-                    .expect("Unable to write to locker file");
-            }
-        }
+        if args.has_entity() { self.vault.set_entity(&args.entity)?; }
+        if args.has_account() { self.vault.set_account(&args.entity, &args.account)?; }
+        if args.has_entity() { self.vault.set_password(&args.entity, &args.account, &args.password)?; }
 
         Ok(Resolve::Add)
     }
 
-    pub fn find(&mut self, args: Args) -> io::Result<Resolve> {
+    pub fn find(&mut self, args: Args) -> Result<Resolve, VaultError> {
         if !args.has_entity() && !args.has_account() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other, "Neither entity or account provided."
-            ));
+            let err = VaultError::Error("Neither entity or account provided.".to_string());
+
+            return Err(err);
         }
-        
-        let Args {
-            entity,
-            account,
-            ..
-        } = args; 
-       
-        let ehash = if !entity.is_empty() { Some(entity.hash()) } else { None };
-        let ahash = if !account.is_empty() { Some(account.hash()) } else { None };
-        let index = self.index.find(ehash, ahash);
-
-        if index.is_some() {
-            let found = index.unwrap();
-
-            if found.is_entity() {
-                let registers = self.directories.read_locker(&entity.path())?;
-
-                return Ok(Resolve::Find(registers));
-            }
-        } 
 
         Ok(Resolve::Find(vec![]))
     }
 
-    pub fn read(&mut self, path: PathBuf) -> io::Result<Resolve> {
-        let path_to_str = FileManager::pb_to_str(&path);
-        let content = self.files.read_locker(&path_to_str)?;
-      
-        // TODO: this will have to be disinguished
-        // when iv and key can be longer than 16 bytes
-        let iv = format!("0x{}", &content[..32]);
-        let key = format!("0x{}", &content[32..]);
-        
-        let dat = path.file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+    pub fn read(&mut self, path: PathBuf) -> Result<Resolve, VaultError> {
+        // let dat = path.file_name()
+        //     .unwrap()
+        //     .to_str()
+        //     .unwrap()
+        //     .to_string();
 
-        let locker = Locker::from(iv, key, dat);
-        let decrypted = locker.decrypt();
+        // let locker = Locker::from(iv, key, dat);
+        // let decrypted = locker.decrypt();
         
-        Ok(Resolve::Read(decrypted))
+        Ok(Resolve::Add)
     }
 
-    pub fn remove(&mut self, args: Args ) -> io::Result<Resolve> {
+    pub fn remove(&mut self, args: Args ) -> Result<Resolve, VaultError> {
         let Args {
             entity,
             account,
@@ -182,17 +86,10 @@ impl Keeper {
         } = args;
 
         if entity.is_empty() && account.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other, "Entity must be provided when an account is set."
-            ));
-        }
+            let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
 
-        let path = DirManager::append_path(
-            &entity.path(), 
-            &account.path()
-        ); 
-        
-        self.directories.remove_locker(&path)?;
+            return Err(err);
+        }
 
         Ok(Resolve::Remove)
     }
@@ -233,7 +130,9 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                Keeper::new(index, config, locker);
+                let keeper = Keeper::new(index, config, locker);
+
+                assert!(keeper.is_ok());
             },
         }; 
     }
@@ -246,7 +145,7 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker.clone());
+                let mut keeper = Keeper::new(index, config, locker.clone()).unwrap();
 
                 let entity = Some("add_entity_1");
                 let account = None;
@@ -277,7 +176,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
 
                 let args = Args::new(
                     None,
@@ -302,7 +201,7 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker.clone());
+                let mut keeper = Keeper::new(index, config, locker.clone()).unwrap();
 
                 let entity = Some("add_account_1");
                 let account = Some("add_account_2");
@@ -336,7 +235,7 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker.clone());
+                let mut keeper = Keeper::new(index, config, locker.clone()).unwrap();
    
                 let args = Args::new(
                     Some("add_password_1"),
@@ -373,7 +272,7 @@ mod keeper {
             test: &|this| {
                 let mut dump = this.dump_path();
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker.clone());
+                let mut keeper = Keeper::new(index, config, locker.clone()).unwrap();
 
                 let args = Args::new(
                     Some("find_entity_1"),
@@ -403,7 +302,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
 
                 let args_add = Args::new(
                     Some("find_entity_account_1"),
@@ -435,7 +334,7 @@ mod keeper {
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
                 let mut dump = this.dump_path();
-                let mut keeper = Keeper::new(index, config, locker.clone());
+                let mut keeper = Keeper::new(index, config, locker.clone()).unwrap();
 
                 let entity = Some("read_account_password");
                 let account = Some("read_account_password");
@@ -472,7 +371,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
                
                 let args = Args::new(
                     None,
@@ -484,7 +383,7 @@ mod keeper {
                 
                 assert!(operation.is_err());
                 assert_eq!(
-                    operation.unwrap_err().to_string(), 
+                    operation.unwrap_err().to_str(), 
                     "Neither entity or account provided."
                 );
             }
@@ -498,7 +397,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
                 
                 let entity = Some("entity");
                 let account = Some("account");
@@ -526,7 +425,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
                 
                 let entity = Some("entity");
                 let args_add = Args::new(
@@ -560,7 +459,7 @@ mod keeper {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf(); 
-                let mut keeper = Keeper::new(index, config, locker);
+                let mut keeper = Keeper::new(index, config, locker).unwrap();
 
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     let args = Args::new(
