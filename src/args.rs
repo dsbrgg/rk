@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use crate::locker::{Locker, Encrypted, Distinguished};
+use crate::locker::{Locker, Encrypted};
 
 /* Args struct */
 
@@ -9,95 +9,6 @@ pub struct Args {
     pub entity: Encrypted,
     pub account: Encrypted,
     pub password: Encrypted,
-}
-
-/* Arg struct */
-
-#[derive(Clone, Debug)]
-pub struct Arg {
-    pub dir: bool,
-    pub path: PathBuf,
-    pub parent_hash: Option<String>,
-    pub values: Distinguished,
-}
-
-impl Iterator for Args {
-    type Item = Arg;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut path = PathBuf::new();
-
-        match self.iterator {
-            0 => {
-                let dir = true;
-                let parent_hash = None;
-                let entity_path = self.entity.path();
-                let values = self.entity.distinguish();
-
-                self.iterator += 1;
-
-                path.push(entity_path);
-
-                let iteration = Arg {
-                    dir,
-                    path,
-                    parent_hash,
-                    values
-                };
-
-                Some(iteration)
-            },
-            1 => {
-                if !self.has_account() { return None; }
-
-                let dir = true; 
-                let parent_hash = Some(self.entity.hash());
-                let entity_path = self.entity.path();
-                let account_path = self.account.path();
-                let values = self.account.distinguish();
-
-                self.iterator += 1;
-                
-                path.push(entity_path);
-                path.push(account_path);
-                
-                let iteration = Arg {
-                    dir,
-                    path,
-                    parent_hash,
-                    values
-                };
-
-                Some(iteration)
-            },
-            2 => {
-                if !self.has_all() { return None; }
-
-                let dir = false;
-                let parent_hash = None; 
-                let entity_path = self.entity.path();
-                let account_path = self.account.path();
-                let password_path = self.password.path();
-                let values = self.password.distinguish();
-
-                self.iterator = 3;
-
-                path.push(entity_path);
-                path.push(account_path);
-                path.push(password_path);
-               
-                let iteration = Arg {
-                    dir,
-                    path,
-                    parent_hash,
-                    values
-                };
-
-                Some(iteration)
-            },
-            _ => { None },
-        } 
-    }
 }
 
 impl Args {
@@ -133,16 +44,10 @@ impl Args {
 
         if self.has_entity() { path.push(self.entity.path()); }
         if self.has_account() { path.push(self.account.path()); }
-        if self.has_all() { path.push(self.password.path()); } 
+        if self.has_password() { path.push(self.password.path()); } 
 
         path 
     } 
-
-    pub fn has_all(&self) -> bool {
-        !self.entity.is_empty()
-        && !self.account.is_empty()
-        && !self.password.is_empty()
-    }
 
     pub fn has_entity(&self) -> bool {
         !self.entity.is_empty()
@@ -150,6 +55,10 @@ impl Args {
 
     pub fn has_account(&self) -> bool {
         !self.account.is_empty()
+    }
+
+    pub fn has_password(&self) -> bool {
+        !self.password.is_empty()
     }
 }
 
@@ -230,274 +139,6 @@ mod tests {
     }
 
     #[test]
-    fn iterator_entity() {
-        let mut args = Args::new(
-            Some("entity"),
-            None,
-            None
-        );
-
-        assert_eq!(args.iterator, 0);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key, 
-            dat,
-            hash
-        } = values;
-        
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 1);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 1);
-    }
-
-    #[test]
-    fn iterator_account() {
-        let mut args = Args::new(
-            Some("entity"),
-            Some("account"),
-            None
-        );
-
-        assert_eq!(args.iterator, 0);
-
-        let Arg { 
-            dir,
-            path,
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key, 
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 1);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 1);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key, 
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 2);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash.unwrap().len(), 64);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 2);
-    }
-
-    #[test]
-    fn iterator_password() {
-        let mut args = Args::new(
-            Some("entity"),
-            Some("account"),
-            Some("password")
-        );
-
-        assert_eq!(args.iterator, 0);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key, 
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 1);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 1);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key,
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 2);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash.unwrap().len(), 64);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 2);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key,
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 3);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, false);
-        assert_eq!(args.iterator, 3);
-    }
-
-    #[test]
-    fn iterator_cycle() {
-        let mut args = Args::new(
-            Some("entity"),
-            Some("account"),
-            Some("password")
-        );
-
-        assert_eq!(args.iterator, 0);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key,
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 1);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 1);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key, 
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 2);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash.unwrap().len(), 64);
-        assert_eq!(dir, true);
-        assert_eq!(args.iterator, 2);
-
-        let Arg { 
-            dir,
-            path, 
-            parent_hash,
-            values
-        } = args.next().unwrap();
-
-        let Distinguished {
-            iv,
-            key,
-            dat,
-            hash
-        } = values;
-
-        assert_eq!(iv.len(), 34);
-        assert_eq!(key.len(), 34);
-        assert_eq!(dat.len(), 34);
-        assert_eq!(path.as_path().iter().count(), 3);
-        assert_eq!(hash.len(), 64);
-        assert_eq!(parent_hash, None);
-        assert_eq!(dir, false);
-        assert_eq!(args.iterator, 3);
-
-        let finally = args.next();
-
-        assert!(finally.is_none());
-    }
-
-    #[test]
-    fn has_all() {
-        let args = Args::new(
-            Some("entity"),
-            Some("account"),
-            Some("password")
-        );
-
-        let has_all = args.has_all();
-
-        assert_eq!(has_all, true);
-    }
-
-    #[test]
     fn has_entity() {
         let args = Args::new(
             Some("entity"),
@@ -547,5 +188,31 @@ mod tests {
         let has_account = args.has_account();
 
         assert_eq!(has_account, false);
+    }
+
+    #[test]
+    fn has_password() {
+        let args = Args::new(
+            Some("entity"),
+            Some("account"),
+            Some("password")
+        );
+
+        let has_password = args.has_password();
+
+        assert_eq!(has_password, true);
+    }
+
+    #[test]
+    fn no_password() {
+        let args = Args::new(
+            Some("entity"),
+            Some("account"),
+            None
+        );
+
+        let has_password = args.has_password();
+
+        assert_eq!(has_password, false);
     }
 }
