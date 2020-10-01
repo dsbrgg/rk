@@ -6,6 +6,7 @@ mod cli;
 mod locker;
 mod managers;
 mod mocks;
+mod vault;
 mod yaml;
 
 use args::*;
