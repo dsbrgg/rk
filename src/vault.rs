@@ -220,14 +220,18 @@ mod tests {
         let mut fm = FileManager::new(&index, &config, &locker);
         let mut path = PathBuf::new();
 
-        path.push("foo$bar$biz$fred");
-        path.push("quux$foo$bar$biz");
+        let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
+        let account = Encrypted::from("quux$foo$bar$biz").unwrap();
+        let password = Encrypted::from("biz$fred$bar$corge").unwrap();
+
+        path.push(&entity.path());
+        path.push(&account.path());
 
         let entity_locker_path = path.to_str().unwrap();
         dm.create_locker(entity_locker_path)
             .expect("Unable to create locker directories");
 
-        path.push("biz$fred$bar$corge");
+        path.push(&password.path());
 
         let password_locker_path = path.to_str().unwrap();
         fm.create_locker(password_locker_path)
