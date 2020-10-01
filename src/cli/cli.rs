@@ -1,13 +1,16 @@
-use clap::{ArgMatches};
-
 use std::io;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
+use clap::ArgMatches;
 use copypasta::ClipboardContext;
 use copypasta::ClipboardProvider;
 
-use rk::{Args};
-use rk::{Resolve, Keeper};
+use rk::{
+    Args, 
+    Resolve, 
+    Keeper,
+    VaultError
+};
 
 use crate::cli::select;
 
@@ -21,12 +24,14 @@ pub struct CLI { keeper: Keeper }
 
 impl<'p> CLI {
     pub fn start(index: PathBuf, config: PathBuf, locker: PathBuf) -> CLI {
+        let keeper = Keeper::new(index, config, locker).unwrap();
+
         CLI {
-            keeper: Keeper::new(index, config, locker)
+            keeper
         }
     }
 
-    pub fn operation(&mut self, args: ArgMatches) -> io::Result<Resolve> {
+    pub fn operation(&mut self, args: ArgMatches) -> Result<Resolve, VaultError> {
         match args.subcommand() {
             ("add", Some(add)) => { self.handle_add(add) },
             ("find", Some(find)) => { self.handle_find(find) },
@@ -50,7 +55,7 @@ impl<'p> CLI {
         }
     }
 
-    fn handle_add(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+    fn handle_add(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
         let Params { 
             entity, 
             account, 
@@ -66,7 +71,11 @@ impl<'p> CLI {
         self.keeper.add(args)
     }
 
-    fn handle_find(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+    // TODO: this is not making sense
+    // guarantee that an entity and account is provided
+    // "to_read" does not make sense, it's always supposed
+    // to be read
+    fn handle_find(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
         let Params { 
             entity, 
             account, 
@@ -104,7 +113,7 @@ impl<'p> CLI {
         Ok(Resolve::Read("".to_string()))
     }
     
-    fn handle_remove(&mut self, args: &'p ArgMatches) -> io::Result<Resolve> {
+    fn handle_remove(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
         let Params { 
             entity, 
             account, 
