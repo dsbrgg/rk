@@ -9,8 +9,9 @@ mod mocks;
 mod vault;
 mod yaml;
 
+use cli::*;
 use args::*;
-use cli::CLI;
+use locker::*;
 use yaml::{
     Settings, 
     SettingsOpts::*
