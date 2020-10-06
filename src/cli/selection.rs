@@ -1,12 +1,15 @@
 use std::path::PathBuf;
+
+use rk::Encrypted;
+
 use dialoguer::{theme::ColorfulTheme, Select};
 
-pub fn select(found: Vec<PathBuf>) -> Option<PathBuf> {
+pub fn select(found: Vec<Encrypted>) -> Option<Encrypted> {
     if found.len() == 0 { return None; }
-    if found.len() == 1 { return Some(PathBuf::from(found[0].clone())); }
+    if found.len() == 1 { return Some(found[0].clone()); }
     
-    let options: Vec<&str> = found.iter()
-        .map(|pb| pb.file_name().unwrap().to_str().unwrap())
+    let options: Vec<String> = found.iter()
+        .map(|enc| enc.path())
         .collect();
 
     let selection = Select::with_theme(&ColorfulTheme::default())
