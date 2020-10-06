@@ -5,7 +5,6 @@ use crate::locker::{Locker, Encrypted};
 
 #[derive(Clone, Debug)]
 pub struct Args {
-    iterator: u8,
     pub entity: Encrypted,
     pub account: Encrypted,
     pub password: Encrypted,
@@ -30,7 +29,6 @@ impl Args {
         if let Some(p) = password { pwd = locker.encrypt(p); }
 
         Args {
-            iterator: 0,
             entity: ent,
             account: acc,
             password: pwd
@@ -74,11 +72,10 @@ mod tests {
             Some("password")
         );
 
-        assert_eq!(args.iterator, 0);
-        // 0x<encrypted = 34>$<hash = 64>
-        assert_eq!(args.entity.path().len(), 99);
-        assert_eq!(args.account.path().len(), 99);
-        assert_eq!(args.password.path().len(), 99);
+        // 0x<encrypted = 34>$0x<encrypted = 34>$0x<encrypted = 34>$<hash = 64>
+        assert_eq!(args.entity.path().len(), 169);
+        assert_eq!(args.account.path().len(), 169);
+        assert_eq!(args.password.path().len(), 169);
     }
 
     #[test]
