@@ -7,20 +7,20 @@ mod yaml;
 
 use std::path::PathBuf;
 
-use locker::Locker;
 pub use args::Args;
 pub use vault::{Vault, VaultError};
+pub use locker::{Locker, Encrypted};
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
     Add,
     Read(String),
-    Find(Vec<PathBuf>),
+    Find(Vec<Encrypted>),
     Remove
 }
 
 impl Resolve {
-    pub fn to_vec(self) -> Vec<PathBuf> {
+    pub fn to_vec(self) -> Vec<Encrypted> {
         if let Resolve::Find(vec) = self { return vec; }
         panic!("to_vec should be called on a Resolve::Find only");
     }
@@ -62,7 +62,22 @@ impl Keeper {
             return Err(err);
         }
 
-        Ok(Resolve::Find(vec![]))
+        if !args.has_entity() && args.has_account() {
+            let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
+
+            return Err(err);
+        }
+
+        if args.has_account() {
+            let account = self.vault.get_account(&args.entity, &args.account)?;
+
+            return Ok(Resolve::Read(account.path()));
+        }
+
+        let entity = self.vault.get_entity(&args.entity)?;
+        let accounts = entity.keys().cloned().collect();
+
+        Ok(Resolve::Find(accounts))
     }
 
     pub fn read(&mut self, path: PathBuf) -> Result<Resolve, VaultError> {
@@ -85,7 +100,7 @@ impl Keeper {
             ..
         } = args;
 
-        if entity.is_empty() && account.is_empty() {
+        if entity.is_empty() && !account.is_empty() {
             let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
 
             return Err(err);
@@ -156,6 +171,8 @@ mod keeper {
                     account,
                     password
                 );
+
+                println!("{:?}", args);
 
                 let entity_path = args.entity.path();
 
@@ -310,7 +327,7 @@ mod keeper {
                     None 
                 );
 
-                keeper.add(args_add);
+                keeper.add(args_add.clone());
 
                 let args_find = Args::new(
                     Some("find_entity_account_1"),
@@ -319,9 +336,10 @@ mod keeper {
                 );
 
                 let result = keeper.find(args_find).unwrap();
-                println!("{:?}", result);
+                let found = result.to_vec();
 
-                assert_eq!(result.to_vec().len(), 2);
+                assert_eq!(found.len(), 1);
+                assert_eq!(found[0], args_add.account);
             }
         };
     }
