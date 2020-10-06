@@ -50,7 +50,7 @@ impl Keeper {
        
         if args.has_entity() { self.vault.set_entity(&args.entity)?; }
         if args.has_account() { self.vault.set_account(&args.entity, &args.account)?; }
-        if args.has_entity() { self.vault.set_password(&args.entity, &args.account, &args.password)?; }
+        if args.has_password() { self.vault.set_password(&args.entity, &args.account, &args.password)?; }
 
         Ok(Resolve::Add)
     }
