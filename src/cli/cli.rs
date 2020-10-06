@@ -7,6 +7,7 @@ use copypasta::ClipboardProvider;
 
 use rk::{
     Args, 
+    Encrypted,
     Resolve, 
     Keeper,
     VaultError
@@ -89,11 +90,7 @@ impl<'p> CLI {
         );
 
         let to_read = args.has_entity() && args.has_account();
-
-        let found = self.keeper
-            .find(args)?
-            .to_vec();
-
+        let found = self.keeper.find(args)?.to_vec();
         let selected = select(found);
         
         if let Some(option) = selected {
@@ -102,11 +99,11 @@ impl<'p> CLI {
                 // https://github.com/alacritty/alacritty/issues/2795
                 // let mut ctx = ClipboardContext::new().unwrap();
                 // ctx.set_contents(read).unwrap();
-                let read = self.keeper.read(option)?.to_string();
+                // let read = self.keeper.read(option)?.to_string();
                 
-                println!("{:?}", read);
+                // println!("{:?}", read);
 
-                return Ok(Resolve::Read(read));
+                return Ok(Resolve::Read(String::new()));
             } 
         }
 
