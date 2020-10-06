@@ -50,9 +50,11 @@ impl Eq for Encrypted {}
 
 impl Hash for Encrypted {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let Distinguished { hash, .. } = self.distinguish();
+        if !self.is_empty() {
+            let Distinguished { hash, .. } = self.distinguish();
 
-        hash.hash(state);
+            hash.hash(state);
+        }
     }
 }
 
