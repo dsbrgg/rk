@@ -25,7 +25,7 @@ impl VaultError {
     pub fn to_str(self) -> String {
         match self {
             VaultError::Error(s) => s,
-            VaultError::Io(_) => String::from("Io Error")
+            VaultError::Io(e) => format!("{:?}", e)
         }
     }
 }
