@@ -307,7 +307,7 @@ mod keeper {
                 let result = keeper.find(args).unwrap();
                
                 assert!(dump.exists());
-                assert_eq!(result.to_vec().len(), 1);
+                assert_eq!(result.to_vec().len(), 0);
             }
         };
     }
