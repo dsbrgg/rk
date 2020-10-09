@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 pub use args::Args;
 pub use vault::{Vault, VaultError};
-pub use locker::{Locker, Encrypted};
+pub use locker::{Locker, Distinguished, Encrypted};
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
@@ -80,17 +80,19 @@ impl Keeper {
         Ok(Resolve::Find(accounts))
     }
 
-    pub fn read(&mut self, path: PathBuf) -> Result<Resolve, VaultError> {
-        // let dat = path.file_name()
-        //     .unwrap()
-        //     .to_str()
-        //     .unwrap()
-        //     .to_string();
+    pub fn read(&mut self, args: Args) -> Result<Resolve, VaultError> {
+        if !args.has_entity() && !args.has_account() {
+            let err = VaultError::Error("Entity and account must be provided".to_string());
 
-        // let locker = Locker::from(iv, key, dat);
-        // let decrypted = locker.decrypt();
-        
-        Ok(Resolve::Add)
+            return Err(err);
+        }
+
+        let account = self.vault.get_account(&args.entity, &args.account)?;
+        let Distinguished { iv, key, dat, .. } = account.distinguish();
+        let locker = Locker::from(iv, key, dat);
+        let decrypted = locker.decrypt();
+
+        Ok(Resolve::Read(decrypted))
     }
 
     pub fn remove(&mut self, args: Args ) -> Result<Resolve, VaultError> {
@@ -101,10 +103,18 @@ impl Keeper {
         } = args;
 
         if entity.is_empty() && !account.is_empty() {
-            let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
+            let err = VaultError::Error("Entity must be provided when an account is set".to_string());
 
             return Err(err);
         }
+
+        if !entity.is_empty() && account.is_empty() {
+            self.vault.remove_entity(&entity)?;
+
+            return Ok(Resolve::Remove);
+        }
+
+        self.vault.remove_account(&entity, &account)?;
 
         Ok(Resolve::Remove)
     }
@@ -373,9 +383,9 @@ mod keeper {
                 dump.push(account_path);
                 dump.push(password_path);
                 
-                keeper.add(args); 
+                keeper.add(args.clone()); 
 
-                let result = keeper.read(dump).unwrap().to_string();
+                let result = keeper.read(args).unwrap().to_string();
 
                 assert_eq!(result, "read_account_password");
             }
@@ -429,9 +439,9 @@ mod keeper {
                 keeper.add(args.clone());
                 keeper.remove(args.clone());
               
-                let result = keeper.find(args).unwrap();
+                let result = keeper.find(args);
 
-                assert_eq!(result.to_vec().len(), 0);
+                assert!(result.is_err());
             }
         };
     }
@@ -463,9 +473,9 @@ mod keeper {
 
                 keeper.remove(args_remove.clone());
                
-                let result = keeper.find(args_remove).unwrap();
+                let result = keeper.find(args_remove);
 
-                assert_eq!(result.to_vec().len(), 0);
+                assert!(result.is_err());
             }
         };
     }
