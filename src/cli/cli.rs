@@ -72,10 +72,6 @@ impl<'p> CLI {
         self.keeper.add(args)
     }
 
-    // TODO: this is not making sense
-    // guarantee that an entity and account is provided
-    // "to_read" does not make sense, it's always supposed
-    // to be read
     fn handle_find(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
         let Params { 
             entity, 
@@ -89,12 +85,13 @@ impl<'p> CLI {
             None 
         );
 
-        let to_read = args.has_entity() && args.has_account();
-        let found = self.keeper.find(args)?.to_vec();
-        let selected = select(found);
-        
-        if let Some(option) = selected {
-            if to_read {
+        let found = self.keeper.find(args)?;
+
+        if let Resolve::Find(vec) = &found {
+            println!("{:?}", vec);
+            let selected = select(vec.to_owned());
+
+            if let Some(option) = selected {
                 // NOTE: having issues on linux to copy/paste on clipboard:
                 // https://github.com/alacritty/alacritty/issues/2795
                 // let mut ctx = ClipboardContext::new().unwrap();
@@ -103,11 +100,11 @@ impl<'p> CLI {
                 
                 // println!("{:?}", read);
 
-                return Ok(Resolve::Read(String::new()));
-            } 
+                return Ok(Resolve::Read(option.path()));
+            }
         }
 
-        Ok(Resolve::Read("".to_string()))
+        Ok(found)
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
@@ -129,12 +126,12 @@ impl<'p> CLI {
 
 #[cfg(test)]
 mod tests {
+    use super::CLI;
+    use super::Resolve;
+
     use std::path::{Path, PathBuf};
     use std::fs::{remove_dir_all, remove_file};
-
-    use super::CLI;
-    use super::{Resolve};
-    
+ 
     use crate::mocks::Setup; 
     use crate::locker::Locker;
     use crate::cli::commands::{command, Commands};
@@ -234,7 +231,7 @@ mod tests {
                 let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Read("".to_string()));
+                assert_eq!(found, Resolve::Find(vec![]));
             }
         };
     }
@@ -248,18 +245,12 @@ mod tests {
                 let (index, config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(index, config, locker);
                
-                let add_args = vec![ "test", "add", "account", "account", "-e", "operation_find_account" ];
+                let add_args = vec![ "test", "add", "account", "account", "-e", "entity" ];
                 let add_results = command(AddAccount, add_args);
                 cli.operation(add_results);
 
-                let find_args = vec![ "test", "find", "account", "account", "-e", "operation_find_account" ];
+                let find_args = vec![ "test", "find", "account", "account", "-e", "entity" ];
                 let find_results = command(FindAccount, find_args);
-                let found = cli.operation(find_results).unwrap();
-
-                assert_eq!(found, Resolve::Read("".to_string()));
-
-                let find_args = vec![ "test", "find", "entity", "operation_find_account" ];
-                let find_results = command(FindEntity, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 assert_eq!(found, Resolve::Read("".to_string()));
