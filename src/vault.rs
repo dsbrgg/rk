@@ -5,8 +5,7 @@ use std::io;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use crate::args::Args;
-use crate::locker::Encrypted;
+use crate::locker::{Locker, Encrypted};
 use crate::managers::{Manager, DirManager, FileManager};
 
 /* Custom types */
@@ -117,11 +116,15 @@ impl Vault {
     /* Methods */
 
     fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
+        println!("----------------");
+        println!("{:?}", entity);
+
         if self.structure.contains_key(entity) {
             let error = VaultError::Error("Entity not found".to_string());
-            let (entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+            let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+            println!("{:?}", vault_entity);
 
-            return Ok(entity.to_owned());
+            return Ok(vault_entity.to_owned());
         }
 
         Ok(entity.to_owned())
@@ -132,9 +135,9 @@ impl Vault {
 
         if entity.contains_key(account) {
             let error = VaultError::Error("Account not found".to_string());
-            let (account, _) = entity.get_key_value(&account).ok_or(error)?;
+            let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
 
-            return Ok(account.to_owned());
+            return Ok(vault_account.to_owned());
         }
 
         Ok(account.to_owned())
@@ -159,12 +162,6 @@ impl Vault {
 
     pub fn set_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
         let vault_entity = self.get_entity_key(entity)?;
-
-        // TODO: duplicating value just for this check
-        if &vault_entity != entity {
-            return Ok(());
-        }
-
         let path = vault_entity.path();
 
         self.directories.create_locker(&path)?;
@@ -180,24 +177,21 @@ impl Vault {
         let vault_entity = self.get_entity_key(entity)?;
         let vault_account = self.get_account_key(entity, account)?;
 
-        // TODO: duplicating value just for this check
-        if &vault_account != account {
-            return Ok(());
+        if &vault_account == account {
+            let entity_path = vault_entity.path();
+            let account_path = vault_account.path();
+            let path = DirManager::append_path(&entity_path, &account_path);
+            let structure_entity = self.structure
+                .get_mut(&vault_entity)
+                .ok_or(error)?;
+
+            self.directories.create_locker(&path)?;
+
+            structure_entity.insert(
+                account.to_owned(), 
+                Encrypted::empty()
+            );
         }
-
-        let entity_path = vault_entity.path();
-        let account_path = vault_account.path();
-        let path = DirManager::append_path(&entity_path, &account_path);
-        let structure_entity = self.structure
-            .get_mut(&vault_entity)
-            .ok_or(error)?;
-
-        self.directories.create_locker(&path)?;
-
-        structure_entity.insert(
-            account.to_owned(), 
-            Encrypted::empty()
-        );
 
         Ok(())
     }
@@ -422,6 +416,35 @@ mod tests {
                 if let Ok(e) = structure_entity {
                     assert_eq!(*e, Account::new());
                 }
+            }
+        }; 
+    }
+
+    #[test]
+    fn set_entity_no_duplicates() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+
+                fill_locker(&index, &config, &locker);
+
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+
+                let mut locker_instance = Locker::new();
+                let entity = locker_instance.encrypt("foo");
+                assert!(vault.set_entity(&entity).is_ok());
+
+                let mut locker_instance = Locker::new();
+                let entity = locker_instance.encrypt("foo");
+                assert!(vault.set_entity(&entity).is_ok());
+
+                let dm_entity = dm.read_locker("").unwrap();
+
+                // +1 from previous fill_locker() call
+                assert_eq!(dm_entity.len(), 2);
             }
         }; 
     }
