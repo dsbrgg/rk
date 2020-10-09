@@ -105,20 +105,8 @@ impl Manager for FileManager {
     type Output = String; 
 
     fn init(&mut self) -> io::Result<()> {
-        let mut index = self.index.clone();
-        let mut config = self.config.clone();
-        
-        let index_path = self.index.as_path().to_owned();
         let config_path = self.config.as_path().to_owned();
         
-        if !index_path.exists() {
-            self.create(
-                index_path
-                    .to_str()
-                    .unwrap()
-            )?;
-        }
-
         if !config_path.exists() { 
             self.create(
                 config_path
@@ -273,22 +261,6 @@ mod test {
                 let mut fm = FileManager::new(&index, &config, &locker);
                 
                 let file = fm.read_config(&config_path).unwrap();
-
-                assert_eq!(file, String::from(""));
-            }
-        };
-    }
-
-    #[test] 
-    fn read_index() {
-        Setup {
-            paths: Vec::new(),
-            after_each: &after_each,
-            test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
-                let mut fm = FileManager::new(&index, &config, &locker);
-                
-                let file = fm.read_index().unwrap();
 
                 assert_eq!(file, String::from(""));
             }
