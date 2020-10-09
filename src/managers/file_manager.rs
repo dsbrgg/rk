@@ -10,6 +10,7 @@ use crate::managers::{Manager, ManagerOption};
 
 use ManagerOption::*;
 
+#[derive(Debug)]
 pub struct FileManager {
     index: PathBuf,
     config: PathBuf,
