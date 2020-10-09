@@ -8,6 +8,7 @@ use crate::managers::{Manager, ManagerOption};
 
 use ManagerOption::*;
 
+#[derive(Debug)]
 pub struct DirManager {
     config: PathBuf,
     locker: PathBuf,
