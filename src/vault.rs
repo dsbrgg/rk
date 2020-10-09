@@ -5,6 +5,7 @@ use std::io;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
+use crate::args::Args;
 use crate::locker::Encrypted;
 use crate::managers::{Manager, DirManager, FileManager};
 
@@ -82,11 +83,16 @@ impl Vault {
                 let encrypted_account = Encrypted::from(&account_name).unwrap();
                 let path = DirManager::append_path(&entity_name, &account_name);
                 let account_dir = dm.read_locker(&path)?;
-                let password_file = &account_dir[0];
-                let password_name = Self::to_string(&password_file);
-                let encrypted_password = Encrypted::from(&password_name)?;
-                
-                accounts.push((encrypted_account, encrypted_password));
+
+                if account_dir.len() == 1 {
+                    let password_file = &account_dir[0];
+                    let password_name = Self::to_string(&password_file);
+                    let encrypted_password = Encrypted::from(&password_name)?;
+                    
+                    accounts.push((encrypted_account, encrypted_password));
+                } else {
+                    accounts.push((encrypted_account, Encrypted::empty()));
+                }
             }
 
             for (account, password) in accounts.iter() {
@@ -110,8 +116,32 @@ impl Vault {
 
     /* Methods */
 
+    fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
+        if self.structure.contains_key(entity) {
+            let error = VaultError::Error("Entity not found".to_string());
+            let (entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+
+            return Ok(entity.to_owned());
+        }
+
+        Ok(entity.to_owned())
+    }
+
+    fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
+        let entity = self.get_entity(entity)?;
+
+        if entity.contains_key(account) {
+            let error = VaultError::Error("Account not found".to_string());
+            let (account, _) = entity.get_key_value(&account).ok_or(error)?;
+
+            return Ok(account.to_owned());
+        }
+
+        Ok(account.to_owned())
+    }
+
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
-        let error = VaultError::Error(entity.path());
+        let error = VaultError::Error("Entity not found".to_string());
 
         self.structure
             .get(entity)
@@ -119,7 +149,7 @@ impl Vault {
     }
 
     pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<&Encrypted, VaultError> {
-        let error = VaultError::Error(entity.path());
+        let error = VaultError::Error("Account not found".to_string());
         let structure = self.get_entity(entity)?;
         
         structure
@@ -128,10 +158,17 @@ impl Vault {
     }
 
     pub fn set_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
-        let path = entity.path();
+        let vault_entity = self.get_entity_key(entity)?;
+
+        // TODO: duplicating value just for this check
+        if &vault_entity != entity {
+            return Ok(());
+        }
+
+        let path = vault_entity.path();
 
         self.directories.create_locker(&path)?;
-        self.structure.insert(entity.to_owned(), Account::new());
+        self.structure.insert(vault_entity.to_owned(), Account::new());
 
         Ok(())
     }
@@ -140,11 +177,19 @@ impl Vault {
         let error = VaultError::Error(entity.path());
         let str_error = "Unable to parse &str";
 
-        let entity_path = entity.path();
-        let account_path = account.path();
-        let path = DirManager::append_path(&entity.path(), &account.path());
+        let vault_entity = self.get_entity_key(entity)?;
+        let vault_account = self.get_account_key(entity, account)?;
+
+        // TODO: duplicating value just for this check
+        if &vault_account != account {
+            return Ok(());
+        }
+
+        let entity_path = vault_entity.path();
+        let account_path = vault_account.path();
+        let path = DirManager::append_path(&entity_path, &account_path);
         let structure_entity = self.structure
-            .get_mut(entity)
+            .get_mut(&vault_entity)
             .ok_or(error)?;
 
         self.directories.create_locker(&path)?;
@@ -157,16 +202,20 @@ impl Vault {
         Ok(())
     }
 
+    // TODO: password will be created endlessly, need to guarantee there's only one always
     pub fn set_password(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
         let error = VaultError::Error(entity.path());
         let str_error = "Unable to parse &str";
 
-        let entity_path = entity.path();
-        let account_path = account.path();
+        let vault_entity = self.get_entity_key(entity)?;
+        let vault_account = self.get_account_key(entity, account)?;
+
+        let entity_path = vault_entity.path();
+        let account_path = vault_account.path();
         let password_path = password.path();
         let structure_entity = self.structure
-            .get_mut(entity)
+            .get_mut(&vault_entity)
             .ok_or(error)?;
 
         path.push(entity_path);
