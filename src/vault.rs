@@ -52,6 +52,7 @@ impl From<&str> for VaultError {
 
 /* Vault struct definition */
 
+#[derive(Debug)]
 pub struct Vault {
    structure: Structure,
    files: FileManager,
@@ -188,21 +189,32 @@ impl Vault {
     }
 
     pub fn remove_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
-        let path = entity.path();
+        let error = VaultError::Error("Entity not found".to_string());
+        let (directory, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+        let locker = directory.to_owned().path();
 
-        self.directories.remove_locker(&path)?;
         self.structure.remove(entity);
+        self.directories.remove_locker(&locker)?;
 
         Ok(())
     }
 
     pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
-        let error = VaultError::Error(account.path());
-        let path = DirManager::append_path(&entity.path(), &account.path());
-        let structure_entity = self.structure.get_mut(entity).ok_or(error)?;
+        let entity_error = VaultError::Error("Entity not found".to_string());
+        let account_error = VaultError::Error("Account not found".to_string());
+        let (ent, accounts) = self.structure.get_key_value(&entity).ok_or(entity_error)?;
+        let (acc, _) = accounts.get_key_value(&account).ok_or(account_error)?;
+        let path = DirManager::append_path(&ent.path(), &acc.path());
 
-        self.directories.remove_locker(&path)?;
+        drop(ent);
+        drop(accounts);
+
+        // TODO: terrible use of shadowing, maybe implment Copy or Clone to VaultError
+        let account_error = VaultError::Error("Account not found".to_string());
+        let structure_entity = self.structure.get_mut(entity).ok_or(account_error)?;
+
         structure_entity.remove(account);
+        self.directories.remove_locker(&path)?;
 
         Ok(())
     }
