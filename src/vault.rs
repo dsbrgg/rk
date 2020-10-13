@@ -124,7 +124,6 @@ impl Vault {
     /* Methods */
 
     fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
-        println!("get_entity_key -> {:?}", self.structure);
         if self.structure.contains_key(entity) {
             let error = VaultError::Error("Entity not found".to_string());
             let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
@@ -136,21 +135,14 @@ impl Vault {
     }
 
     fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
-        println!("entity {:?}", entity);
         let entity = self.get_entity(entity)?;
 
-        println!("structure {:?}", self.structure);
-        println!("entity {:?}", entity);
         if entity.contains_key(account) {
-            println!("contains account {:?}", account);
             let error = VaultError::Error("Account not found".to_string());
             let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
 
             return Ok(vault_account.to_owned());
         }
-
-
-        println!("new account {:?}", account);
 
         Ok(account.to_owned())
     }
@@ -158,7 +150,6 @@ impl Vault {
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
         let error = VaultError::Error("Entity not found".to_string());
 
-        println!("get_entity -> structure {:?}", self.structure);
         self.structure
             .get(entity)
             .ok_or(error)
