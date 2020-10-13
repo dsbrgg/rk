@@ -79,7 +79,7 @@ impl Vault {
 
             for account in entity_dir.iter() {
                 let account_name = Self::to_string(&account);
-                let encrypted_account = Encrypted::from(&account_name).unwrap();
+                let encrypted_account = Encrypted::from(&account_name)?;
                 let path = DirManager::append_path(&entity_name, &account_name);
                 let account_dir = dm.read_locker(&path)?;
 
@@ -92,6 +92,14 @@ impl Vault {
                 } else {
                     accounts.push((encrypted_account, Encrypted::empty()));
                 }
+            }
+
+            if accounts.len() == 0 {
+                structure
+                    .entry(encrypted_entity.clone())
+                    .or_insert(Account::new());
+            
+                continue;
             }
 
             for (account, password) in accounts.iter() {
@@ -116,13 +124,10 @@ impl Vault {
     /* Methods */
 
     fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
-        println!("----------------");
-        println!("{:?}", entity);
-
+        println!("get_entity_key -> {:?}", self.structure);
         if self.structure.contains_key(entity) {
             let error = VaultError::Error("Entity not found".to_string());
             let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
-            println!("{:?}", vault_entity);
 
             return Ok(vault_entity.to_owned());
         }
@@ -131,14 +136,21 @@ impl Vault {
     }
 
     fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
+        println!("entity {:?}", entity);
         let entity = self.get_entity(entity)?;
 
+        println!("structure {:?}", self.structure);
+        println!("entity {:?}", entity);
         if entity.contains_key(account) {
+            println!("contains account {:?}", account);
             let error = VaultError::Error("Account not found".to_string());
             let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
 
             return Ok(vault_account.to_owned());
         }
+
+
+        println!("new account {:?}", account);
 
         Ok(account.to_owned())
     }
@@ -146,6 +158,7 @@ impl Vault {
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
         let error = VaultError::Error("Entity not found".to_string());
 
+        println!("get_entity -> structure {:?}", self.structure);
         self.structure
             .get(entity)
             .ok_or(error)
@@ -177,21 +190,19 @@ impl Vault {
         let vault_entity = self.get_entity_key(entity)?;
         let vault_account = self.get_account_key(entity, account)?;
 
-        if &vault_account == account {
-            let entity_path = vault_entity.path();
-            let account_path = vault_account.path();
-            let path = DirManager::append_path(&entity_path, &account_path);
-            let structure_entity = self.structure
-                .get_mut(&vault_entity)
-                .ok_or(error)?;
+        let entity_path = vault_entity.path();
+        let account_path = vault_account.path();
+        let path = DirManager::append_path(&entity_path, &account_path);
+        let structure_entity = self.structure
+            .get_mut(&vault_entity)
+            .ok_or(error)?;
 
-            self.directories.create_locker(&path)?;
+        self.directories.create_locker(&path)?;
 
-            structure_entity.insert(
-                account.to_owned(), 
-                Encrypted::empty()
-            );
-        }
+        structure_entity.insert(
+            account.to_owned(), 
+            Encrypted::empty()
+        );
 
         Ok(())
     }
@@ -427,9 +438,6 @@ mod tests {
             after_each: &after_each,
             test: &|this| {
                 let (index, config, locker) = this.as_path_buf();
-
-                fill_locker(&index, &config, &locker);
-
                 let mut dm = DirManager::new(&config, &locker);
                 let mut vault = Vault::new(&index, &config, &locker).unwrap();
 
@@ -443,8 +451,7 @@ mod tests {
 
                 let dm_entity = dm.read_locker("").unwrap();
 
-                // +1 from previous fill_locker() call
-                assert_eq!(dm_entity.len(), 2);
+                assert_eq!(dm_entity.len(), 1);
             }
         }; 
     }
@@ -475,6 +482,33 @@ mod tests {
                 if let Ok(a) = account {
                     assert_eq!(*a, Encrypted::empty());
                 }
+            }
+        }; 
+    }
+
+    #[test]
+    fn set_account_no_duplicates() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+
+                let mut locker_instance = Locker::new();
+                let entity = locker_instance.encrypt("foo");
+                let account = locker_instance.encrypt("bar");
+                let same_account = locker_instance.encrypt("bar");
+                let path = DirManager::append_path(&entity.path(), "");
+                
+                assert!(vault.set_entity(&entity).is_ok());
+                assert!(vault.set_account(&entity, &account).is_ok());
+                assert!(vault.set_account(&entity, &same_account).is_ok());
+
+                let dm_entity = dm.read_locker(&path).unwrap();
+
+                assert_eq!(dm_entity.len(), 1);
             }
         }; 
     }
