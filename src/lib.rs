@@ -48,6 +48,9 @@ impl Keeper {
             return Err(err);
         }
        
+        // TODO: if entity exists, its overrinding inital vault structure iwth an empty one
+        // need to check if entity is already there so there's no need to actually create
+        // everything again
         if args.has_entity() { self.vault.set_entity(&args.entity)?; }
         if args.has_account() { self.vault.set_account(&args.entity, &args.account)?; }
         if args.has_password() { self.vault.set_password(&args.entity, &args.account, &args.password)?; }
