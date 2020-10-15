@@ -73,19 +73,19 @@ impl Vault {
 
         for entity in entities.iter() {
             let mut accounts = Vec::new();
-            let entity_name = Self::to_string(&entity);
+            let entity_name = Self::get_name(&entity);
             let encrypted_entity = Encrypted::from(&entity_name)?;
             let entity_dir = dm.read_locker(&entity_name)?;
 
             for account in entity_dir.iter() {
-                let account_name = Self::to_string(&account);
+                let account_name = Self::get_name(&account);
                 let encrypted_account = Encrypted::from(&account_name)?;
                 let path = DirManager::append_path(&entity_name, &account_name);
                 let account_dir = dm.read_locker(&path)?;
 
                 if account_dir.len() == 1 {
                     let password_file = &account_dir[0];
-                    let password_name = Self::to_string(&password_file);
+                    let password_name = Self::get_name(&password_file);
                     let encrypted_password = Encrypted::from(&password_name)?;
                     
                     accounts.push((encrypted_account, encrypted_password));
@@ -142,10 +142,16 @@ impl Vault {
         self.structure.contains_key(entity)
     }
 
-    fn has_account(&self, entity: &Encrypted, account: &Encrypted) -> bool {
-        let entity = self.get_entity(entity).unwrap();
+    fn has_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<bool, VaultError> {
+        let entity = self.get_entity(entity)?;
 
-        entity.contains_key(account)
+        Ok(entity.contains_key(account))
+    }
+
+    fn has_password(&self, entity: &Encrypted, account: &Encrypted) -> Result<bool, VaultError> {
+        let password = self.get_account(entity, account)?;
+
+        Ok(!password.is_empty())
     }
 
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
@@ -179,7 +185,7 @@ impl Vault {
     }
 
     pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
-        if self.has_account(entity, account) {
+        if self.has_account(entity, account)? {
             return Ok(());
         }
 
@@ -202,11 +208,9 @@ impl Vault {
         Ok(())
     }
 
-    // TODO: password will be created endlessly, need to guarantee there's only one always
     pub fn set_password(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
         let mut path = PathBuf::new();
         let error = VaultError::Error(entity.path());
-        let str_error = "Unable to parse &str";
 
         let vault_entity = self.get_entity_key(entity)?;
         let vault_account = self.get_account_key(entity, account)?;
@@ -214,16 +218,28 @@ impl Vault {
         let entity_path = vault_entity.path();
         let account_path = vault_account.path();
         let password_path = password.path();
-        let structure_entity = self.structure
-            .get_mut(&vault_entity)
-            .ok_or(error)?;
 
         path.push(entity_path);
         path.push(account_path);
-        path.push(password_path);
 
-        let password_locker = path.to_str().ok_or(str_error)?;
-        self.files.create_locker(password_locker)?;
+        if self.has_password(entity, account)? {
+            let old_password = self.get_account(entity, account)?;
+
+            path.push(old_password.path());
+
+            let old_password_path = Self::get_name(&path);
+            self.files.remove_locker(&old_password_path);
+
+            path.pop();
+        }
+
+        path.push(password_path);
+        let password_locker = DirManager::pb_to_str(&path);
+        self.files.create_locker(&password_locker)?;
+
+        let structure_entity = self.structure
+            .get_mut(&vault_entity)
+            .ok_or(error)?;
 
         structure_entity.insert(
             account.to_owned(), 
@@ -266,7 +282,7 @@ impl Vault {
 
     /* Associated functions */
 
-    fn to_string(path_string: &PathBuf) -> String {
+    fn get_name(path_string: &PathBuf) -> String {
         path_string.file_name()
             .unwrap()
             .to_str()
@@ -500,6 +516,38 @@ mod tests {
                 let dm_entity = dm.read_locker(&path).unwrap();
 
                 assert_eq!(dm_entity.len(), 1);
+            }
+        }; 
+    }
+
+    #[test]
+    fn set_password() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
+                let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
+                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
+                let path = DirManager::append_paths(
+                    &ent.path(), 
+                    &vec![&acc.path(), &pass.path()]
+                );
+                
+                assert!(vault.set_entity(&ent).is_ok());
+                assert!(vault.set_account(&ent, &acc).is_ok());
+                assert!(vault.set_password(&ent, &acc, &pass).is_ok());
+
+                let account = vault.get_account(&ent, &acc);
+
+                assert!(account.is_ok());
+
+                if let Ok(a) = account {
+                    assert_eq!(*a, pass);
+                }
             }
         }; 
     }
