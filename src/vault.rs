@@ -227,7 +227,7 @@ impl Vault {
 
             path.push(old_password.path());
 
-            let old_password_path = Self::get_name(&path);
+            let old_password_path = DirManager::pb_to_str(&path);
             self.files.remove_locker(&old_password_path);
 
             path.pop();
@@ -532,22 +532,48 @@ mod tests {
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
-                let path = DirManager::append_paths(
-                    &ent.path(), 
-                    &vec![&acc.path(), &pass.path()]
-                );
+                let path = DirManager::append_path(&ent.path(), &acc.path());
                 
                 assert!(vault.set_entity(&ent).is_ok());
                 assert!(vault.set_account(&ent, &acc).is_ok());
                 assert!(vault.set_password(&ent, &acc, &pass).is_ok());
 
                 let account = vault.get_account(&ent, &acc);
+                let password_location = dm.read_locker(&path).unwrap();
 
                 assert!(account.is_ok());
+                assert_eq!(*account.unwrap(), pass);
+                assert_eq!(password_location.len(), 1);
+            }
+        }; 
+    }
 
-                if let Ok(a) = account {
-                    assert_eq!(*a, pass);
-                }
+    #[test]
+    fn set_password_one_file_limit() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (index, config, locker) = this.as_path_buf();
+                let mut dm = DirManager::new(&config, &locker);
+                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
+                let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
+                let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
+                let other_pass = Encrypted::from("baz$baz$baz$baz").unwrap();
+                let path = DirManager::append_path(&ent.path(), &acc.path());
+                
+                assert!(vault.set_entity(&ent).is_ok());
+                assert!(vault.set_account(&ent, &acc).is_ok());
+                assert!(vault.set_password(&ent, &acc, &pass).is_ok());
+                assert!(vault.set_password(&ent, &acc, &other_pass).is_ok());
+
+                let account = vault.get_account(&ent, &acc);
+                let password_location = dm.read_locker(&path).unwrap();
+
+                assert!(account.is_ok());
+                assert_eq!(*account.unwrap(), pass);
+                assert_eq!(password_location.len(), 1);
             }
         }; 
     }
