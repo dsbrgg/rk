@@ -185,8 +185,6 @@ mod keeper {
                     password
                 );
 
-                println!("{:?}", args);
-
                 let entity_path = args.entity.path();
 
                 dump.push(locker);
