@@ -162,6 +162,17 @@ impl Locker {
             dat
         }
     }
+
+    pub fn from_encrypted(encrypted: &Encrypted) -> Locker {
+        let Distinguished { 
+            iv, 
+            key, 
+            dat, 
+            ..  
+        } = encrypted.distinguish();
+
+        Locker::from(iv, key, dat)
+    }
     
     /* Methods */
 
@@ -236,6 +247,25 @@ mod locker_tests {
         let dat_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
         
         let locker = Locker::from(iv, key, dat);
+
+        assert_eq!(locker.iv.raw(), iv_raw);
+        assert_eq!(locker.key.raw(), key_raw);
+        assert_eq!(locker.dat.raw(), dat_raw);
+    }
+
+    #[test]
+    fn from_encrypted() {
+        let iv = String::from("0x00000000000000000000000000000000");
+        let key = String::from("0x00000000000000000000000000000001");
+        let dat = String::from("0x00000000000000000000000000000002");
+        let hash = String::from("0x00000000000000000000000000000003");
+
+        let iv_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let key_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1];
+        let dat_raw = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+
+        let encrypted = Encrypted::new(&iv, &key, &dat, &hash);
+        let locker = Locker::from_encrypted(&encrypted);
 
         assert_eq!(locker.iv.raw(), iv_raw);
         assert_eq!(locker.key.raw(), key_raw);
