@@ -86,7 +86,7 @@ impl<'p> CLI {
         );
 
         let found = self.keeper.find(args)?;
-
+        
         if let Resolve::Find(vec) = &found {
             println!("{:?}", vec);
             let selected = select(vec.to_owned());
@@ -100,7 +100,7 @@ impl<'p> CLI {
                 
                 // println!("{:?}", read);
 
-                return Ok(Resolve::Read(option.path()));
+                return Ok(Resolve::Read(option));
             }
         }
 
