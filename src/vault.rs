@@ -191,11 +191,12 @@ impl Vault {
 
         let str_error = "Unable to parse &str";
         let error = VaultError::Error(entity.path());
-        let entity_path = entity.path();
+        let vault_entity = self.get_entity_key(entity)?;
+        let entity_path = vault_entity.path();
         let account_path = account.path();
         let path = DirManager::append_path(&entity_path, &account_path);
         let structure_entity = self.structure
-            .get_mut(&entity)
+            .get_mut(&vault_entity)
             .ok_or(error)?;
 
         self.directories.create_locker(&path)?;
@@ -251,8 +252,8 @@ impl Vault {
 
     pub fn remove_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
         let error = VaultError::Error("Entity not found".to_string());
-        let (directory, _) = self.structure.get_key_value(&entity).ok_or(error)?;
-        let locker = directory.to_owned().path();
+        let directory = self.get_entity_key(entity)?;
+        let locker = directory.path();
 
         self.structure.remove(entity);
         self.directories.remove_locker(&locker)?;
@@ -261,18 +262,11 @@ impl Vault {
     }
 
     pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
-        let entity_error = VaultError::Error("Entity not found".to_string());
-        let account_error = VaultError::Error("Account not found".to_string());
-        let (ent, accounts) = self.structure.get_key_value(&entity).ok_or(entity_error)?;
-        let (acc, _) = accounts.get_key_value(&account).ok_or(account_error)?;
+        let ent = self.get_entity_key(entity)?;
+        let acc = self.get_account_key(entity, account)?;
         let path = DirManager::append_path(&ent.path(), &acc.path());
-
-        drop(ent);
-        drop(accounts);
-
-        // TODO: terrible use of shadowing, maybe implment Copy or Clone to VaultError
-        let account_error = VaultError::Error("Account not found".to_string());
-        let structure_entity = self.structure.get_mut(entity).ok_or(account_error)?;
+        // TODO: abstract this so unwrap does not need to be called
+        let structure_entity = self.structure.get_mut(entity).unwrap();
 
         structure_entity.remove(account);
         self.directories.remove_locker(&path)?;
