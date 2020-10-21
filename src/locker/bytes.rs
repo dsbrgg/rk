@@ -3,7 +3,7 @@ use rand::{Rng, OsRng};
 
 // TODO: create Encrypted struct 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ByteSize {
     E,
     U16,
@@ -99,6 +99,8 @@ impl Bytes {
         self.hex = hex;
         self.binary = binary;
     }
+
+    pub fn size(&self) -> &ByteSize { &self.size }
 
     /* Associated functions */
 
