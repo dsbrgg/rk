@@ -12,20 +12,23 @@ use crate::managers::{Manager, DirManager, FileManager};
 
 type Account = HashMap<Encrypted, Encrypted>;
 type Structure = HashMap<Encrypted, Account>;
+type VaultResult<T> = Result<T, VaultError>;
 
 /* VaultError enum */
 
 #[derive(Debug)]
 pub enum VaultError {
     Error(String),
-    Io(io::Error)
+    Io(io::Error),
+    MissingEntity,
 }
 
 impl VaultError {
     pub fn to_str(self) -> String {
         match self {
             VaultError::Error(s) => s,
-            VaultError::Io(e) => format!("{:?}", e)
+            VaultError::Io(e) => format!("{:?}", e),
+            VaultError::MissingEntity => format!("Missing entity on operation"),
         }
     }
 }
@@ -65,7 +68,7 @@ impl Vault {
 
     /* Intialisers */
 
-    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> Result<Vault, VaultError> {
+    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> VaultResult<Vault> {
         let mut dm = DirManager::new(config, locker);
         let mut fm = FileManager::new(index, config, locker);
         let mut structure = Structure::new();
@@ -123,19 +126,27 @@ impl Vault {
 
     /* Methods */
 
-    fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
-        let error = VaultError::Error("Entity not found".to_string());
-        let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+    pub fn set(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> VaultResult<()> {
+        let empty_entity = entity.is_empty();
+        let empty_account = account.is_empty();
+        let empty_password = password.is_empty();
 
-        Ok(vault_entity.to_owned())
-    }
+        if empty_entity && !empty_account { return Err(VaultError::MissingEntity); }
+        if empty_entity && !empty_password { return Err(VaultError::MissingEntity); }
 
-    fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
-        let error = VaultError::Error("Account not found".to_string());
-        let entity = self.get_entity(entity)?;
-        let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
+        if !entity.is_empty() { 
+            self.set_entity(entity)?; 
+        }
 
-        Ok(vault_account.to_owned())
+        if !entity.is_empty() && !account.is_empty() { 
+            self.set_account(entity, account)?; 
+        }
+
+        if !entity.is_empty() && !account.is_empty() && !password.is_empty () { 
+            self.set_password(entity, account, password)?; 
+        }
+
+        Ok(())
     }
 
     fn has_entity(&self, entity: &Encrypted) -> bool {
@@ -152,6 +163,21 @@ impl Vault {
         let password = self.get_account(entity, account)?;
 
         Ok(!password.is_empty())
+    }
+
+    fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
+        let error = VaultError::Error("Entity not found".to_string());
+        let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
+
+        Ok(vault_entity.to_owned())
+    }
+
+    fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
+        let error = VaultError::Error("Account not found".to_string());
+        let entity = self.get_entity(entity)?;
+        let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
+
+        Ok(vault_account.to_owned())
     }
 
     pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
