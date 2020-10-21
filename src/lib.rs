@@ -42,42 +42,44 @@ impl Keeper {
     }
 
     pub fn add(&mut self, args: Args) -> Result<Resolve, VaultError> {
-        if args.has_account() && !args.has_entity() {
-            let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
+        let Args {
+            entity,
+            account,
+            password
+        } = args;
 
-            return Err(err);
-        }
-       
-        // TODO: if entity exists, its overrinding inital vault structure iwth an empty one
-        // need to check if entity is already there so there's no need to actually create
-        // everything again
-        if args.has_entity() { self.vault.set_entity(&args.entity)?; }
-        if args.has_account() { self.vault.set_account(&args.entity, &args.account)?; }
-        if args.has_password() { self.vault.set_password(&args.entity, &args.account, &args.password)?; }
+        self.vault.set(&entity, &account, &password)?;
 
         Ok(Resolve::Add)
     }
 
     pub fn find(&mut self, args: Args) -> Result<Resolve, VaultError> {
-        if !args.has_entity() && !args.has_account() {
+        let Args {
+            entity,
+            account,
+            ..
+        } = args;
+
+        if entity.is_empty() && account.is_empty() {
             let err = VaultError::Error("Neither entity or account provided.".to_string());
 
             return Err(err);
         }
 
-        if !args.has_entity() && args.has_account() {
+        if entity.is_empty() && !account.is_empty() {
             let err = VaultError::Error("Entity must be provided when an account is set.".to_string());
 
             return Err(err);
         }
 
-        if args.has_account() {
-            let account = self.vault.get_account(&args.entity, &args.account)?;
+        if !account.is_empty() {
+            let keeper_account = self.vault.get_account(&entity, &account)?;
+            let locker = Locker::from_encrypted(&keeper_account);
 
-            return Ok(Resolve::Read(account.path()));
+            return Ok(Resolve::Read(locker.decrypt()));
         }
 
-        let entity = self.vault.get_entity(&args.entity)?;
+        let entity = self.vault.get_entity(&entity)?;
         let accounts = entity.keys().cloned()
             .map(|e| {
                 let l = Locker::from_encrypted(&e);
@@ -89,14 +91,20 @@ impl Keeper {
     }
 
     pub fn read(&mut self, args: Args) -> Result<Resolve, VaultError> {
-        if !args.has_entity() && !args.has_account() {
+        let Args {
+            entity,
+            account,
+            ..
+        } = args;
+
+        if entity.is_empty() && !account.is_empty() {
             let err = VaultError::Error("Entity and account must be provided".to_string());
 
             return Err(err);
         }
 
-        let account = self.vault.get_account(&args.entity, &args.account)?;
-        let Distinguished { iv, key, dat, .. } = account.distinguish();
+        let keeper_account = self.vault.get_account(&entity, &account)?;
+        let Distinguished { iv, key, dat, .. } = keeper_account.distinguish();
         let locker = Locker::from(iv, key, dat);
         let decrypted = locker.decrypt();
 
@@ -217,9 +225,7 @@ mod keeper {
                     None
                 );
 
-                let result = catch_unwind(AssertUnwindSafe(|| {
-                    keeper.add(args).unwrap();
-                }));
+                let result = keeper.add(args);
 
                 assert_eq!(result.is_err(), true);
             }
