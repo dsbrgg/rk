@@ -164,6 +164,14 @@ impl Locker {
     }
 
     pub fn from_encrypted(encrypted: &Encrypted) -> Locker {
+        if encrypted.is_empty() {
+            let iv = String::from("0x");
+            let key = String::from("0x");
+            let dat = String::from("0x");
+
+            return Locker::from(iv, key, dat);
+        }
+
         let Distinguished { 
             iv, 
             key, 
@@ -199,6 +207,10 @@ impl Locker {
     }
 
     pub fn decrypt(&self) -> String {
+        if self.dat.size() == &E {
+            return String::new();
+        }
+
         let iv = self.iv.raw();
         let key = self.key.raw();
         let dat = self.dat.raw();
@@ -273,6 +285,16 @@ mod locker_tests {
     }
 
     #[test]
+    fn from_encrypted_empty() {
+        let encrypted = Encrypted::empty();
+        let locker = Locker::from_encrypted(&encrypted);
+
+        assert_eq!(locker.iv.size(), &E);
+        assert_eq!(locker.key.size(), &E);
+        assert_eq!(locker.dat.size(), &E);
+    }
+
+    #[test]
     fn encrypt() {
         let mut locker = Locker::new();
         let to_encrypt = "encrypt me!";
@@ -293,10 +315,9 @@ mod locker_tests {
     fn decrypt() {
         let mut locker = Locker::new();
         let to_encrypt = "encrypt me!";
-
-        locker.encrypt(to_encrypt);
-        
-        let decrypted = locker.decrypt();
+        let encrypted = locker.encrypt(to_encrypt);
+        let locker_encrypted = Locker::from_encrypted(&encrypted);
+        let decrypted = locker_encrypted.decrypt();
 
         assert_eq!(decrypted, String::from("encrypt me!"));
     }
