@@ -12,7 +12,7 @@ use crate::managers::{Manager, DirManager, FileManager};
 
 type Account = HashMap<Encrypted, Encrypted>;
 type Structure = HashMap<Encrypted, Account>;
-type VaultResult<T> = Result<T, VaultError>;
+pub type VaultResult<T> = Result<T, VaultError>;
 
 /* VaultError enum */
 
@@ -153,26 +153,26 @@ impl Vault {
         self.structure.contains_key(entity)
     }
 
-    fn has_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<bool, VaultError> {
+    fn has_account(&self, entity: &Encrypted, account: &Encrypted) -> VaultResult<bool> {
         let entity = self.get_entity(entity)?;
 
         Ok(entity.contains_key(account))
     }
 
-    fn has_password(&self, entity: &Encrypted, account: &Encrypted) -> Result<bool, VaultError> {
+    fn has_password(&self, entity: &Encrypted, account: &Encrypted) -> VaultResult<bool> {
         let password = self.get_account(entity, account)?;
 
         Ok(!password.is_empty())
     }
 
-    fn get_entity_key(&self, entity: &Encrypted) -> Result<Encrypted, VaultError> {
+    fn get_entity_key(&self, entity: &Encrypted) -> VaultResult<Encrypted> {
         let error = VaultError::Error("Entity not found".to_string());
         let (vault_entity, _) = self.structure.get_key_value(&entity).ok_or(error)?;
 
         Ok(vault_entity.to_owned())
     }
 
-    fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> Result<Encrypted, VaultError> {
+    fn get_account_key(&self, entity: &Encrypted, account: &Encrypted) -> VaultResult<Encrypted> {
         let error = VaultError::Error("Account not found".to_string());
         let entity = self.get_entity(entity)?;
         let (vault_account, _) = entity.get_key_value(&account).ok_or(error)?;
@@ -180,7 +180,7 @@ impl Vault {
         Ok(vault_account.to_owned())
     }
 
-    pub fn get_entity(&self, entity: &Encrypted) -> Result<&Account, VaultError> {
+    pub fn get_entity(&self, entity: &Encrypted) -> VaultResult<&Account> {
         let error = VaultError::Error("Entity not found".to_string());
 
         self.structure
@@ -188,7 +188,7 @@ impl Vault {
             .ok_or(error)
     }
 
-    pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> Result<&Encrypted, VaultError> {
+    pub fn get_account(&self, entity: &Encrypted, account: &Encrypted) -> VaultResult<&Encrypted> {
         let error = VaultError::Error("Account not found".to_string());
         let structure = self.get_entity(entity)?;
         
@@ -197,7 +197,7 @@ impl Vault {
             .ok_or(error)
     }
 
-    pub fn set_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
+    pub fn set_entity(&mut self, entity: &Encrypted) -> VaultResult<()> {
         if self.has_entity(entity) {
             return Ok(());
         }
@@ -210,7 +210,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
+    pub fn set_account(&mut self, entity: &Encrypted, account: &Encrypted) -> VaultResult<()> {
         if self.has_account(entity, account)? {
             return Ok(());
         }
@@ -234,7 +234,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn set_password(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> Result<(), VaultError> {
+    pub fn set_password(&mut self, entity: &Encrypted, account: &Encrypted, password: &Encrypted) -> VaultResult<()> {
         let mut path = PathBuf::new();
         let error = VaultError::Error(entity.path());
 
@@ -275,7 +275,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn remove_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
+    pub fn remove_entity(&mut self, entity: &Encrypted) -> VaultResult<()> {
         let directory = self.get_entity_key(entity)?;
         let locker = directory.path();
 
@@ -285,7 +285,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> Result<(), VaultError> {
+    pub fn remove_account(&mut self, entity: &Encrypted, account: &Encrypted) -> VaultResult<()> {
         let ent = self.get_entity_key(entity)?;
         let acc = self.get_account_key(entity, account)?;
         let path = DirManager::append_path(&ent.path(), &acc.path());
