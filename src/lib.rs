@@ -8,7 +8,7 @@ mod yaml;
 use std::path::PathBuf;
 
 pub use args::Args;
-pub use vault::{Vault, VaultError};
+pub use vault::{Vault, VaultResult, VaultError};
 pub use locker::{Locker, Distinguished, Encrypted};
 
 #[derive(Debug, PartialEq)]
@@ -34,14 +34,14 @@ impl Resolve {
 pub struct Keeper { vault: Vault }
 
 impl Keeper {
-    pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> Result<Keeper, VaultError> {
+    pub fn new(index: PathBuf, config: PathBuf, locker: PathBuf) -> VaultResult<Keeper> {
         let vault = Vault::new(&index, &config, &locker)?;
         let keeper = Keeper { vault };
 
         Ok(keeper)
     }
 
-    pub fn add(&mut self, args: Args) -> Result<Resolve, VaultError> {
+    pub fn add(&mut self, args: Args) -> VaultResult<Resolve> {
         let Args {
             entity,
             account,
@@ -53,7 +53,7 @@ impl Keeper {
         Ok(Resolve::Add)
     }
 
-    pub fn find(&mut self, args: Args) -> Result<Resolve, VaultError> {
+    pub fn find(&mut self, args: Args) -> VaultResult<Resolve> {
         let Args {
             entity,
             account,
@@ -90,7 +90,7 @@ impl Keeper {
         Ok(Resolve::Find(accounts))
     }
 
-    pub fn read(&mut self, args: Args) -> Result<Resolve, VaultError> {
+    pub fn read(&mut self, args: Args) -> VaultResult<Resolve> {
         let Args {
             entity,
             account,
@@ -111,7 +111,7 @@ impl Keeper {
         Ok(Resolve::Read(decrypted))
     }
 
-    pub fn remove(&mut self, args: Args ) -> Result<Resolve, VaultError> {
+    pub fn remove(&mut self, args: Args ) -> VaultResult<Resolve> {
         let Args {
             entity,
             account,
