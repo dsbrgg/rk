@@ -189,7 +189,6 @@ impl Vault {
             return Ok(());
         }
 
-        let str_error = "Unable to parse &str";
         let error = VaultError::Error(entity.path());
         let vault_entity = self.get_entity_key(entity)?;
         let entity_path = vault_entity.path();
@@ -229,7 +228,7 @@ impl Vault {
             path.push(old_password.path());
 
             let old_password_path = DirManager::pb_to_str(&path);
-            self.files.remove_locker(&old_password_path);
+            self.files.remove_locker(&old_password_path)?;
 
             path.pop();
         }
@@ -251,7 +250,6 @@ impl Vault {
     }
 
     pub fn remove_entity(&mut self, entity: &Encrypted) -> Result<(), VaultError> {
-        let error = VaultError::Error("Entity not found".to_string());
         let directory = self.get_entity_key(entity)?;
         let locker = directory.path();
 
