@@ -68,27 +68,27 @@ impl Vault {
 
     /* Intialisers */
 
-    pub fn new(index: &PathBuf, config: &PathBuf, locker: &PathBuf) -> VaultResult<Vault> {
+    pub fn new(config: &PathBuf, locker: &PathBuf) -> VaultResult<Vault> {
         let mut dm = DirManager::new(config, locker);
-        let mut fm = FileManager::new(index, config, locker);
+        let mut fm = FileManager::new(config, locker);
         let mut structure = Structure::new();
         let entities = dm.read_locker("")?;
 
         for entity in entities.iter() {
             let mut accounts = Vec::new();
-            let entity_name = Self::get_name(&entity);
+            let entity_name = Self::filename(&entity);
             let encrypted_entity = Encrypted::from(&entity_name)?;
             let entity_dir = dm.read_locker(&entity_name)?;
 
             for account in entity_dir.iter() {
-                let account_name = Self::get_name(&account);
+                let account_name = Self::filename(&account);
                 let encrypted_account = Encrypted::from(&account_name)?;
                 let path = DirManager::append_path(&entity_name, &account_name);
                 let account_dir = dm.read_locker(&path)?;
 
                 if account_dir.len() == 1 {
                     let password_file = &account_dir[0];
-                    let password_name = Self::get_name(&password_file);
+                    let password_name = Self::filename(&password_file);
                     let encrypted_password = Encrypted::from(&password_name)?;
                     
                     accounts.push((encrypted_account, encrypted_password));
@@ -300,7 +300,7 @@ impl Vault {
 
     /* Associated functions */
 
-    fn get_name(path_string: &PathBuf) -> String {
+    fn filename(path_string: &PathBuf) -> String {
         path_string.file_name()
             .unwrap()
             .to_str()
@@ -338,9 +338,9 @@ mod tests {
         }
     }
 
-    fn fill_locker(index: &PathBuf, config: &PathBuf, locker: &PathBuf) {
+    fn fill_locker(config: &PathBuf, locker: &PathBuf) {
         let mut dm = DirManager::new(&config, &locker);
-        let mut fm = FileManager::new(&index, &config, &locker);
+        let mut fm = FileManager::new(&config, &locker);
         let mut path = PathBuf::new();
 
         let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
@@ -367,11 +367,11 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
                 
-                let vault = Vault::new(&index, &config, &locker);
+                let vault = Vault::new(&config, &locker);
 
                 assert!(vault.is_ok());
             }
@@ -384,11 +384,11 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
-                let vault = Vault::new(&index, &config, &locker).unwrap();
+                let vault = Vault::new(&config, &locker).unwrap();
                 let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
                 let accounts = vault.get_entity(&entity);
 
@@ -411,11 +411,11 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
-                let vault = Vault::new(&index, &config, &locker).unwrap();
+                let vault = Vault::new(&&config, &locker).unwrap();
                 let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
                 let account = Encrypted::from("quux$foo$bar$biz").unwrap();
                 let pass = Encrypted::from("biz$fred$bar$corge").unwrap();
@@ -432,12 +432,12 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
                 assert!(vault.set_entity(&entity).is_ok());
@@ -462,9 +462,9 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
 
                 let mut locker_instance = Locker::new();
                 let entity = locker_instance.encrypt("foo");
@@ -487,12 +487,12 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let path = DirManager::append_path(&ent.path(), &acc.path());
@@ -517,9 +517,9 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
 
                 let mut locker_instance = Locker::new();
                 let entity = locker_instance.encrypt("foo");
@@ -544,9 +544,9 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
@@ -572,9 +572,9 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let pass = Encrypted::from("biz$biz$biz$biz").unwrap();
@@ -602,12 +602,12 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let entity = Encrypted::from("foo$foo$foo$foo").unwrap();
 
                 assert!(vault.set_entity(&entity).is_ok());
@@ -634,13 +634,13 @@ mod tests {
             paths: Vec::new(),
             after_each: &after_each,
             test: &|this| {
-                let (index, config, locker) = this.as_path_buf();
+                let (config, locker) = this.as_path_buf();
 
-                fill_locker(&index, &config, &locker);
+                fill_locker(&config, &locker);
 
                 let mut path = PathBuf::new();
                 let mut dm = DirManager::new(&config, &locker);
-                let mut vault = Vault::new(&index, &config, &locker).unwrap();
+                let mut vault = Vault::new(&config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
                 let other_acc = Encrypted::from("fred$fred$fred$fred").unwrap();
