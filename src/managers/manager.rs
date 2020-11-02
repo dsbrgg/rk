@@ -1,6 +1,12 @@
 use std::io;
 use std::path::{PathBuf};
 
+#[derive(Debug)]
+pub enum ManagerOption {
+    Config,
+    Locker,
+}
+
 pub trait Manager {
     type Output;
 
