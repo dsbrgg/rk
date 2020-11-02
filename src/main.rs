@@ -7,12 +7,12 @@ mod locker;
 mod managers;
 mod mocks;
 mod vault;
-mod yaml;
+mod settings;
 
 use cli::*;
 use args::*;
 use locker::*;
-use yaml::{
+use settings::{
     Settings, 
     SettingsOpts::*
 };
@@ -25,11 +25,10 @@ fn main() {
     let args = app::execute();
     let settings = Settings::default();
     
-    let index = settings.get(Index);
     let config = settings.get(Config);
     let locker = settings.get(Locker);
 
-    CLI::start(index, config, locker)
+    CLI::start(config, locker)
         .operation(args)
         .expect("Error on app operation");
 }
