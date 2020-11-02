@@ -11,7 +11,6 @@ pub struct Settings {
 }
 
 pub enum SettingsOpts {
-    Index,
     Locker,
     Config,
 }
@@ -19,7 +18,6 @@ pub enum SettingsOpts {
 impl SettingsOpts {
     fn to_str<'a>(self) -> &'a str {
         match self {
-            SettingsOpts::Index => "index",
             SettingsOpts::Locker => "locker",
             SettingsOpts::Config => "config",
         }
@@ -57,31 +55,23 @@ impl Default for Settings {
     fn default() -> Self {
         let mut paths: HashMap<String, Value> = HashMap::new();
 
-        let index = String::from("index");
         let locker = String::from("locker");
         let config = String::from("config");
 
-        let mut index_dir = dirs::home_dir().unwrap();
         let mut locker_dir = dirs::home_dir().unwrap();
         let mut config_dir = dirs::config_dir().unwrap();
 
         locker_dir.push(".rk");
         
-        index_dir.push(".rk");
-        index_dir.push("index");
-
         config_dir.push("rk");
         config_dir.push("settings.yml");
 
-        let index_location = index_dir.to_str().unwrap().to_string();
         let locker_location = locker_dir.to_str().unwrap().to_string();
         let config_location = config_dir.to_str().unwrap().to_string();
 
-        let index_value =  Value::String(index_location);
         let config_value = Value::String(config_location);
         let locker_value = Value::String(locker_location);
 
-        paths.insert(index, index_value);
         paths.insert(config, config_value);
         paths.insert(locker, locker_value);
 
@@ -103,31 +93,23 @@ mod test {
     fn default() {
         let mut paths: HashMap<String, Value> = HashMap::new();
 
-        let index = String::from("index");
         let locker = String::from("locker");
         let config = String::from("config");
 
-        let mut index_dir = dirs::home_dir().unwrap();
         let mut locker_dir = dirs::home_dir().unwrap();
         let mut config_dir = dirs::config_dir().unwrap();
 
         locker_dir.push(".rk");
         
-        index_dir.push(".rk");
-        index_dir.push("index");
-
         config_dir.push("rk");
         config_dir.push("settings.yml");
 
-        let index_location = index_dir.to_str().unwrap().to_string();
         let locker_location = locker_dir.to_str().unwrap().to_string();
         let config_location = config_dir.to_str().unwrap().to_string();
 
-        let index_value =  Value::String(index_location);
         let config_value = Value::String(config_location);
         let locker_value = Value::String(locker_location);
 
-        paths.insert(index, index_value);
         paths.insert(config, config_value);
         paths.insert(locker, locker_value);
 
@@ -152,15 +134,12 @@ mod test {
         let deserialized = Settings::from_yaml(&yaml).unwrap();
         let mut default_paths: HashMap<String, Value> = HashMap::new();
 
-        let index = String::from("index");
         let config = String::from("config");
         let locker = String::from("locker");
 
-        let index_value =  Value::String("$HOME/.rk/index".to_string());
         let config_value = Value::String("$HOME/.config/rk/settings.yml".to_string());
         let locker_value = Value::String("$HOME/.rk".to_string());
         
-        default_paths.insert(index, index_value);
         default_paths.insert(config, config_value);
         default_paths.insert(locker, locker_value);
 
@@ -175,36 +154,28 @@ mod test {
     fn get() {
         let mut paths = HashMap::new();
         
-        let index = String::from("index");
-        let index_value = Value::String("index".to_string());
-
         let locker = String::from("locker");
         let locker_value = Value::String("locker".to_string());
 
         let config = String::from("config");
         let config_value = Value::String("config".to_string());
         
-        paths.insert(index, index_value);
         paths.insert(locker, locker_value);
         paths.insert(config, config_value);
 
         let settings = Settings { paths };
-        let get_index = settings.get(SettingsOpts::Index);
         let get_locker = settings.get(SettingsOpts::Locker);
         let get_config = settings.get(SettingsOpts::Config);
 
-        assert_eq!(get_index, PathBuf::from("index"));
         assert_eq!(get_locker, PathBuf::from("locker"));
         assert_eq!(get_config, PathBuf::from("config"));
     }
 
     #[test]
     fn settings_opts_to_str() {
-        let index_option = SettingsOpts::Index;
         let locker_option = SettingsOpts::Locker;
         let config_option = SettingsOpts::Config;
 
-        assert_eq!(index_option.to_str(), "index");
         assert_eq!(locker_option.to_str(), "locker");
         assert_eq!(config_option.to_str(), "config");
     }
