@@ -7,146 +7,71 @@ use clap::{
 };
 
 pub enum Commands {
-    AddEntity,
-    AddAccount,
-    AddPassword,
-    FindEntity,
-    FindAccount,
-    RemoveEntity,
-    RemoveAccount
+    Add,
+    Find,
+    Remove
 }
 
 pub fn command(cmd: Commands, args: Vec<&str>) -> ArgMatches<'static> {
    let app = App::new("test");
 
     match cmd {
-        Commands::AddEntity => app.subcommand(add_entity()).get_matches_from(args),
-        Commands::AddAccount => app.subcommand(add_account()).get_matches_from(args),
-        Commands::AddPassword => app.subcommand(add_password()).get_matches_from(args),
-        Commands::FindEntity => app.subcommand(find_entity()).get_matches_from(args),
-        Commands::FindAccount => app.subcommand(find_account()).get_matches_from(args),
-        Commands::RemoveEntity => app.subcommand(remove_entity()).get_matches_from(args),
-        Commands::RemoveAccount => app.subcommand(remove_account()).get_matches_from(args),
+        Commands::Add => app.subcommand(add()).get_matches_from(args),
+        Commands::Find => app.subcommand(find()).get_matches_from(args),
+        Commands::Remove => app.subcommand(remove()).get_matches_from(args),
     }
 }
 
-fn add_entity() -> App<'static, 'static> {
+fn add() -> App<'static, 'static> {
     SubCommand::with_name("add")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("entity")
-                .arg(
-                    Arg::with_name("entity")
-                        .takes_value(true)
-                        .required(true)
-                )
+        .arg(
+            Arg::with_name("entity")
+                .short("e")
+                .takes_value(true)
+                .required(true)
+        )
+        .arg(
+            Arg::with_name("account")
+                .short("a")
+                .takes_value(true)
+                .required(false)
+        )
+        .arg(
+            Arg::with_name("password")
+                .short("p")
+                .takes_value(true)
+                .required(false)
         )
 }
 
-fn add_account() -> App<'static, 'static> {
-    SubCommand::with_name("add")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("account")
-                .arg(
-                    Arg::with_name("account")
-                        .takes_value(true)
-                        .required(true)
-                )
-                .arg(
-                    Arg::with_name("entity")
-                        .short("e")
-                        .takes_value(true)
-                        .required(true)
-                )
-        )
-}
-
-fn add_password() -> App<'static, 'static> {
-    SubCommand::with_name("add")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("password")
-                .arg(
-                    Arg::with_name("pwd")
-                        .takes_value(true)
-                        .required(true)
-                )
-                .arg(
-                    Arg::with_name("account")
-                        .short("a")
-                        .takes_value(true)
-                        .required(true)
-                )
-                .arg(
-                    Arg::with_name("entity")
-                        .short("e")
-                        .takes_value(true)
-                        .required(true)
-                )
-        )
-}
-
-fn find_entity() -> App<'static, 'static> {
+fn find() -> App<'static, 'static> {
     SubCommand::with_name("find")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("entity")
-                .arg(
-                    Arg::with_name("entity")
-                        .takes_value(true)
-                        .required(true)
-                )
+        .arg(
+            Arg::with_name("entity")
+                .short("e")
+                .takes_value(true)
+                .required(true)
+        )
+        .arg(
+            Arg::with_name("account")
+                .short("a")
+                .takes_value(true)
+                .required(false)
         )
 }
 
-fn find_account() -> App<'static, 'static> {
-    SubCommand::with_name("find")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("account")
-                .arg(
-                    Arg::with_name("account")
-                        .takes_value(true)
-                        .required(true)
-                )
-                .arg(
-                    Arg::with_name("entity")
-                        .short("e")
-                        .takes_value(true)
-                        .required(true)
-                )
-        )
-}
-
-fn remove_entity() -> App<'static, 'static> {
+fn remove() -> App<'static, 'static> {
     SubCommand::with_name("remove")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("entity")
-                .arg(
-                    Arg::with_name("entity")
-                        .takes_value(true)
-                        .required(true)
-                )
+        .arg(
+            Arg::with_name("entity")
+                .short("e")
+                .takes_value(true)
+                .required(true)
         )
-}
-
-fn remove_account() -> App<'static, 'static> {
-    SubCommand::with_name("remove")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            SubCommand::with_name("account")
-                .arg(
-                    Arg::with_name("account")
-                        .takes_value(true)
-                        .required(true)
-                )
-                .arg(
-                    Arg::with_name("entity")
-                        .short("e")
-                        .takes_value(true)
-                        .required(true)
-                )
+        .arg(
+            Arg::with_name("account")
+                .short("a")
+                .takes_value(true)
+                .required(false)
         )
 }
