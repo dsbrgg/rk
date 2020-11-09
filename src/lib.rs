@@ -15,12 +15,12 @@ pub use locker::{Locker, Distinguished, Encrypted};
 pub enum Resolve {
     Add,
     Read(String),
-    Find(Vec<String>),
+    Find(Vec<(String, String)>),
     Remove
 }
 
 impl Resolve {
-    pub fn to_vec(self) -> Vec<String> {
+    pub fn to_vec(self) -> Vec<(String, String)> {
         if let Resolve::Find(vec) = self { return vec; }
         panic!("to_vec should be called on a Resolve::Find only");
     }
@@ -80,10 +80,12 @@ impl Keeper {
         }
 
         let entity = self.vault.get_entity(&entity)?;
-        let accounts = entity.keys().cloned()
-            .map(|e| {
-                let l = Locker::from_encrypted(&e);
-                l.decrypt()
+        let accounts: Vec<(String, String)> = entity.iter()
+            .map(|(acc, pass)| {
+                let account = Locker::from_encrypted(&acc);
+                let password = Locker::from_encrypted(&pass);
+
+                (account.decrypt(), password.decrypt())
             })
             .collect();
 
@@ -361,7 +363,7 @@ mod keeper {
                 let found = result.to_vec();
 
                 assert_eq!(found.len(), 1);
-                assert_eq!(found[0], String::from("find_entity_account_2"));
+                assert_eq!(found[0], (String::from("find_entity_account_2"), String::new()));
             }
         };
     }
