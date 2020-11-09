@@ -11,7 +11,7 @@ use rk::{
     Encrypted,
     Resolve, 
     Keeper,
-    VaultError
+    VaultResult
 };
 
 fn select(found: Vec<(String, String)>) -> Option<String> {
@@ -46,7 +46,7 @@ impl<'p> CLI {
         }
     }
 
-    pub fn operation(&mut self, args: ArgMatches) -> Result<Resolve, VaultError> {
+    pub fn operation(&mut self, args: ArgMatches) -> VaultResult<Resolve> {
         match args.subcommand() {
             ("add", Some(add)) => { self.handle_add(add) },
             ("find", Some(find)) => { self.handle_find(find) },
@@ -56,12 +56,9 @@ impl<'p> CLI {
     }
 
     fn extract_values(args: &'p ArgMatches) -> Params<'p> {
-        let (_, arg) = args.subcommand();
-        let options = arg.unwrap();
-
-        let password = options.value_of("pwd");
-        let account = options.value_of("account");
-        let entity = options.value_of("entity");
+        let password = args.value_of("password");
+        let account = args.value_of("account");
+        let entity = args.value_of("entity");
         
         Params {
             entity,
@@ -70,7 +67,7 @@ impl<'p> CLI {
         }
     }
 
-    fn handle_add(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
+    fn handle_add(&mut self, args: &'p ArgMatches) -> VaultResult<Resolve> {
         let Params { 
             entity, 
             account, 
@@ -86,7 +83,7 @@ impl<'p> CLI {
         self.keeper.add(args)
     }
 
-    fn handle_find(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
+    fn handle_find(&mut self, args: &'p ArgMatches) -> VaultResult<Resolve> {
         let Params { 
             entity, 
             account, 
@@ -123,7 +120,7 @@ impl<'p> CLI {
         Ok(found)
     }
     
-    fn handle_remove(&mut self, args: &'p ArgMatches) -> Result<Resolve, VaultError> {
+    fn handle_remove(&mut self, args: &'p ArgMatches) -> VaultResult<Resolve> {
         let Params { 
             entity, 
             account, 
@@ -179,8 +176,8 @@ mod tests {
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
-                let args = vec![ "test", "add", "entity", "add_entity" ];
-                let results = command(AddEntity, args);
+                let args = vec![ "test", "add", "-e", "add_entity" ];
+                let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -196,8 +193,8 @@ mod tests {
             test: &|this| {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
-                let args = vec![ "test", "add", "account", "add_account", "-e", "add_account_entity" ];
-                let results = command(AddAccount, args);
+                let args = vec![ "test", "add", "-a", "add_account", "-e", "add_account_entity" ];
+                let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -215,11 +212,11 @@ mod tests {
                 let mut cli = CLI::start(config, locker);
 
                 let args = vec![ 
-                    "test", "add", "password", "very_good_password_1", 
+                    "test", "add", "-p", "very_good_password_1", 
                     "-a", "account_for_password", "-e", "entity_for_password" 
                 ];
 
-                let results = command(AddPassword, args);
+                let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
@@ -236,14 +233,14 @@ mod tests {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
                
-                let add_args = vec![ "test", "add", "entity", "operation_find_entity" ];
-                let add_results = command(AddEntity, add_args);
+                let add_args = vec![ "test", "add", "-e", "operation_find_entity" ];
+                let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
 
-                let find_args = vec![ "test", "find", "entity", "operation_find_entity" ]; 
-                let find_results = command(FindEntity, find_args);
+                let find_args = vec![ "test", "find", "-e", "operation_find_entity" ]; 
+                let find_results = command(Find, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 assert_eq!(found, Resolve::Find(vec![]));
@@ -260,12 +257,12 @@ mod tests {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
                
-                let add_args = vec![ "test", "add", "account", "account", "-e", "entity" ];
-                let add_results = command(AddAccount, add_args);
+                let add_args = vec![ "test", "add", "-a", "account", "-e", "entity" ];
+                let add_results = command(Add, add_args);
                 cli.operation(add_results);
 
-                let find_args = vec![ "test", "find", "account", "account", "-e", "entity" ];
-                let find_results = command(FindAccount, find_args);
+                let find_args = vec![ "test", "find", "-a", "account", "-e", "entity" ];
+                let find_results = command(Find, find_args);
                 let found = cli.operation(find_results).unwrap();
 
                 assert_eq!(found, Resolve::Read("".to_string()));
@@ -282,14 +279,14 @@ mod tests {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
                
-                let add_args = vec![ "test", "add", "entity", "entity" ];
-                let add_results = command(AddEntity, add_args);
+                let add_args = vec![ "test", "add", "-e", "entity" ];
+                let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
 
-                let remove_args = vec![ "test", "remove", "entity", "entity" ];
-                let remove_results = command(RemoveEntity, remove_args);
+                let remove_args = vec![ "test", "remove", "-e", "entity" ];
+                let remove_results = command(Remove, remove_args);
                 let removed = cli.operation(remove_results).unwrap();
 
                 assert_eq!(removed, Resolve::Remove);
@@ -306,14 +303,14 @@ mod tests {
                 let (config, locker) = this.as_path_buf();
                 let mut cli = CLI::start(config, locker);
                
-                let add_args = vec![ "test", "add", "account", "new_account", "-e", "new_entity" ];
-                let add_results = command(AddAccount, add_args);
+                let add_args = vec![ "test", "add", "-a", "new_account", "-e", "new_entity" ];
+                let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
                 assert_eq!(add, Resolve::Add);
 
-                let remove_args = vec![ "test", "remove", "account", "new_account", "-e", "new_entity" ];
-                let remove_results = command(RemoveAccount, remove_args);
+                let remove_args = vec![ "test", "remove", "-a", "new_account", "-e", "new_entity" ];
+                let remove_results = command(Remove, remove_args);
                 let removed = cli.operation(remove_results).unwrap();
 
                 assert_eq!(removed, Resolve::Remove);
