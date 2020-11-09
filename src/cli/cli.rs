@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use clap::ArgMatches;
 use copypasta::ClipboardContext;
 use copypasta::ClipboardProvider;
+use dialoguer::{theme::ColorfulTheme, Select};
 
 use rk::{
     Args, 
@@ -13,7 +14,19 @@ use rk::{
     VaultError
 };
 
-use crate::cli::select;
+fn select(found: Vec<String>) -> Option<String> {
+    if found.len() == 0 { return None; }
+    if found.len() == 1 { return Some(found[0].clone()); }
+    
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Pick account")
+        .default(0)
+        .items(&found[..])
+        .interact()
+        .unwrap();
+
+    Some(found[selection].clone())
+}
 
 struct Params<'p> { 
     entity: Option<&'p str>,
