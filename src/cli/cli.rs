@@ -14,18 +14,19 @@ use rk::{
     VaultError
 };
 
-fn select(found: Vec<String>) -> Option<String> {
+fn select(found: Vec<(String, String)>) -> Option<String> {
     if found.len() == 0 { return None; }
-    if found.len() == 1 { return Some(found[0].clone()); }
+    if found.len() == 1 { return Some(found[0].1.clone()); }
     
+    let accounts: Vec<&str> = found.iter().map(|(acc, _)| &acc[..]).collect();
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Pick account")
         .default(0)
-        .items(&found[..])
+        .items(&accounts[..])
         .interact()
         .unwrap();
 
-    Some(found[selection].clone())
+    Some(found[selection].1.clone())
 }
 
 struct Params<'p> { 
@@ -110,6 +111,7 @@ impl<'p> CLI {
                 // ctx.set_contents(read).unwrap();
                 // let read = self.keeper.read(option)?.to_string();
                 
+                println!("{:?}", option);
                 return Ok(Resolve::Read(option));
             }
         }
