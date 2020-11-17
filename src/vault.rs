@@ -184,6 +184,10 @@ impl Vault {
         Ok(vault_account.to_owned())
     }
 
+    pub fn list(&self) -> VaultResult<Vec<Encrypted>> {
+        Ok(self.structure.keys().cloned().collect())
+    }
+
     pub fn get_entity(&self, entity: &Encrypted) -> VaultResult<&Account> {
         self.structure
             .get(entity)
@@ -421,6 +425,25 @@ mod tests {
                 let acc = vault.get_account(&entity, &account).unwrap();
 
                 assert_eq!(*acc, pass);
+            }
+        }; 
+    }
+
+    #[test]
+    fn list() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+
+                fill_locker(&config, &locker);
+
+                let vault = Vault::new(&&config, &locker).unwrap();
+                let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
+                let entities = vault.list().unwrap();
+
+                assert_eq!(entities, vec![entity]);
             }
         }; 
     }
