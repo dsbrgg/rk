@@ -11,7 +11,9 @@ use rk::{
     Encrypted,
     Resolve, 
     Keeper,
-    VaultResult
+    VaultResult,
+    list_table,
+    find_table
 };
 
 fn select(found: Vec<(String, String)>) -> Option<String> {
@@ -50,6 +52,7 @@ impl<'p> CLI {
         match args.subcommand() {
             ("add", Some(add)) => { self.handle_add(add) },
             ("find", Some(find)) => { self.handle_find(find) },
+            ("list", Some(_)) => { self.handle_list() },
             ("remove", Some(remove)) => { self.handle_remove(remove) }
             (_, _) => { panic!("Unknown operation in CLI"); }
         }
@@ -108,16 +111,25 @@ impl<'p> CLI {
                 // ctx.set_contents(read).unwrap();
                 // let read = self.keeper.read(option)?.to_string();
                 
-                println!("{:?}", option);
+                find_table(option.to_string());
+
                 return Ok(Resolve::Read(option));
             }
         }
 
-        if let Resolve::Read(password) = &found {
-            println!("{:?}", password);
+        if let Resolve::Read(password) = found {
+            find_table(password);
         }
 
-        Ok(found)
+        Ok(Resolve::Done)
+    }
+
+    fn handle_list(&mut self) -> VaultResult<Resolve> {
+        let list = self.keeper.list()?;
+
+        list_table(list.to_list());
+
+        Ok(Resolve::Done)
     }
     
     fn handle_remove(&mut self, args: &'p ArgMatches) -> VaultResult<Resolve> {
@@ -180,7 +192,7 @@ mod tests {
                 let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
             }
         };
     }
@@ -197,7 +209,7 @@ mod tests {
                 let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
             }
         };
     }
@@ -219,7 +231,7 @@ mod tests {
                 let results = command(Add, args);
                 let add = cli.operation(results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
             }
         };
     }
@@ -237,13 +249,13 @@ mod tests {
                 let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
 
                 let find_args = vec![ "test", "find", "-e", "operation_find_entity" ]; 
                 let find_results = command(Find, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Find(vec![]));
+                assert_eq!(found, Resolve::Done);
             }
         };
     }
@@ -265,7 +277,7 @@ mod tests {
                 let find_results = command(Find, find_args);
                 let found = cli.operation(find_results).unwrap();
 
-                assert_eq!(found, Resolve::Read("".to_string()));
+                assert_eq!(found, Resolve::Done);
             }
         };
     }
@@ -283,13 +295,13 @@ mod tests {
                 let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
 
                 let remove_args = vec![ "test", "remove", "-e", "entity" ];
                 let remove_results = command(Remove, remove_args);
                 let removed = cli.operation(remove_results).unwrap();
 
-                assert_eq!(removed, Resolve::Remove);
+                assert_eq!(removed, Resolve::Done);
             }
         };
     }
@@ -307,13 +319,13 @@ mod tests {
                 let add_results = command(Add, add_args);
                 let add = cli.operation(add_results).unwrap();
 
-                assert_eq!(add, Resolve::Add);
+                assert_eq!(add, Resolve::Done);
 
                 let remove_args = vec![ "test", "remove", "-a", "new_account", "-e", "new_entity" ];
                 let remove_results = command(Remove, remove_args);
                 let removed = cli.operation(remove_results).unwrap();
 
-                assert_eq!(removed, Resolve::Remove);
+                assert_eq!(removed, Resolve::Done);
             }
         };
     }
