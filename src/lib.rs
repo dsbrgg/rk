@@ -4,25 +4,33 @@ mod managers;
 mod mocks;
 mod vault;
 mod settings;
+mod tables;
 
 use std::path::PathBuf;
 
+pub use tables::*;
 pub use args::Args;
 pub use vault::{Vault, VaultResult, VaultError};
 pub use locker::{Locker, Distinguished, Encrypted};
 
 #[derive(Debug, PartialEq)]
 pub enum Resolve {
-    Add,
+    Done,
+    Failure,
     Read(String),
     Find(Vec<(String, String)>),
-    Remove
+    List(Vec<String>)
 }
 
 impl Resolve {
     pub fn to_vec(self) -> Vec<(String, String)> {
         if let Resolve::Find(vec) = self { return vec; }
         panic!("to_vec should be called on a Resolve::Find only");
+    }
+    
+    pub fn to_list(self) -> Vec<String> {
+        if let Resolve::List(vec) = self { return vec; }
+        panic!("to_list should be called on a Resolve::List only");
     }
 
     pub fn to_string(self) -> String {
@@ -50,7 +58,7 @@ impl Keeper {
 
         self.vault.set(&entity, &account, &password)?;
 
-        Ok(Resolve::Add)
+        Ok(Resolve::Done)
     }
 
     pub fn find(&mut self, args: Args) -> VaultResult<Resolve> {
@@ -92,6 +100,19 @@ impl Keeper {
         Ok(Resolve::Find(accounts))
     }
 
+    pub fn list(&mut self) -> VaultResult<Resolve> {
+        let entities = self.vault.list()?;
+        let list: Vec<String> = entities.iter()
+            .map(|entity| {
+                let locker = Locker::from_encrypted(&entity);
+
+                locker.decrypt()
+            })
+            .collect();
+
+        Ok(Resolve::List(list))
+    }
+
     pub fn read(&mut self, args: Args) -> VaultResult<Resolve> {
         let Args {
             entity,
@@ -129,12 +150,12 @@ impl Keeper {
         if !entity.is_empty() && account.is_empty() {
             self.vault.remove_entity(&entity)?;
 
-            return Ok(Resolve::Remove);
+            return Ok(Resolve::Done);
         }
 
         self.vault.remove_account(&entity, &account)?;
 
-        Ok(Resolve::Remove)
+        Ok(Resolve::Done)
     }
 }
 
@@ -205,8 +226,9 @@ mod keeper {
                 dump.push(locker);
                 dump.push(entity_path);
 
-                keeper.add(args);
+                let add = keeper.add(args);
 
+                assert!(add.is_ok());
                 assert!(dump.exists());
             }
         };
@@ -261,8 +283,9 @@ mod keeper {
                 dump.push(entity_path);
                 dump.push(account_path);
 
-                keeper.add(args);
+                let add = keeper.add(args);
                 
+                assert!(add.is_ok());
                 assert!(dump.exists());
             }
         };
@@ -292,8 +315,9 @@ mod keeper {
                 dump.push(entity_path);
                 dump.push(account_path);
 
-                keeper.add(args);
+                let add = keeper.add(args);
 
+                assert!(add.is_ok());
                 assert!(dump.exists());
                 assert!(dump.is_dir());
 
@@ -301,6 +325,40 @@ mod keeper {
 
                 assert!(dump.exists());
                 assert!(dump.is_file());
+            }
+        };
+    }
+
+    #[test]
+    fn list() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker.clone()).unwrap();
+
+                let args = Args::new(
+                    Some("find_entity_1"),
+                    None,
+                    None 
+                );
+
+                let entity = args.entity.path();
+
+                dump.push(locker);
+                dump.push(entity);
+
+                let add = keeper.add(args.clone());
+
+                assert!(add.is_ok());
+
+                let result = keeper.list().unwrap();
+                let locker = Locker::from_encrypted(&args.entity);
+               
+                assert!(dump.exists());
+                assert_eq!(result.to_list(), vec![locker.decrypt()]);
             }
         };
     }
@@ -326,7 +384,9 @@ mod keeper {
                 dump.push(locker);
                 dump.push(entity);
 
-                keeper.add(args.clone());
+                let add = keeper.add(args.clone());
+
+                assert!(add.is_ok());
 
                 let result = keeper.find(args).unwrap();
                
@@ -351,7 +411,9 @@ mod keeper {
                     None 
                 );
 
-                keeper.add(args_add.clone());
+                let add = keeper.add(args_add.clone());
+
+                assert!(add.is_ok());
 
                 let args_find = Args::new(
                     Some("find_entity_account_1"),
@@ -388,16 +450,18 @@ mod keeper {
                     password
                 );
 
-                let entity_path= args.entity.path();
-                let account_path= args.account.path();
-                let password_path= args.password.path();
+                let entity_path = args.entity.path();
+                let account_path = args.account.path();
+                let password_path = args.password.path();
 
                 dump.push(locker);
                 dump.push(entity_path);
                 dump.push(account_path);
                 dump.push(password_path);
                 
-                keeper.add(args.clone()); 
+                let add = keeper.add(args.clone()); 
+
+                assert!(add.is_ok());
 
                 let result = keeper.read(args).unwrap().to_string();
 
@@ -450,8 +514,13 @@ mod keeper {
                     None 
                 );
 
-                keeper.add(args.clone());
-                keeper.remove(args.clone());
+                let add = keeper.add(args.clone());
+
+                assert!(add.is_ok());
+
+                let remove = keeper.remove(args.clone());
+
+                assert!(remove.is_ok());
               
                 let result = keeper.find(args);
 
@@ -476,7 +545,9 @@ mod keeper {
                     None 
                 );
 
-                keeper.add(args_add);
+                let add = keeper.add(args_add);
+
+                assert!(add.is_ok());
                 
                 let entity = Some("entity");
                 let args_remove = Args::new(
@@ -485,7 +556,9 @@ mod keeper {
                     None
                 );
 
-                keeper.remove(args_remove.clone());
+                let remove = keeper.remove(args_remove.clone());
+
+                assert!(remove.is_ok());
                
                 let result = keeper.find(args_remove);
 
