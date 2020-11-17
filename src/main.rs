@@ -8,10 +8,12 @@ mod managers;
 mod mocks;
 mod vault;
 mod settings;
+mod tables;
 
 use cli::*;
 use args::*;
 use locker::*;
+use tables::*;
 use settings::{
     Settings, 
     SettingsOpts::*
