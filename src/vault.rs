@@ -184,10 +184,6 @@ impl Vault {
         Ok(vault_account.to_owned())
     }
 
-    pub fn list(&self) -> VaultResult<Vec<Encrypted>> {
-        Ok(self.structure.keys().cloned().collect())
-    }
-
     pub fn get_entity(&self, entity: &Encrypted) -> VaultResult<&Account> {
         self.structure
             .get(entity)
@@ -200,6 +196,16 @@ impl Vault {
         structure
             .get(account)
             .ok_or(VaultError::MissingAccount)
+    }
+
+    pub fn list(&self) -> VaultResult<Vec<Encrypted>> {
+        Ok(self.structure.keys().cloned().collect())
+    }
+
+    pub fn list_accounts(&self, entity: &Encrypted) -> VaultResult<Vec<Encrypted>> {
+        let structure = self.get_entity(entity)?;
+
+        Ok(structure.keys().cloned().collect())
     }
 
     pub fn set_entity(&mut self, entity: &Encrypted) -> VaultResult<()> {
@@ -449,6 +455,26 @@ mod tests {
     }
 
     #[test]
+    fn list_accounts() {
+        Setup { 
+            paths: Vec::new(),
+            after_each: &after_each,
+            test: &|this| {
+                let (config, locker) = this.as_path_buf();
+
+                fill_locker(&config, &locker);
+
+                let vault = Vault::new(&&config, &locker).unwrap();
+                let entity = Encrypted::from("foo$bar$biz$fred").unwrap();
+                let account = Encrypted::from("quux$foo$bar$biz").unwrap();
+                let accounts = vault.list_accounts(&entity).unwrap();
+
+                assert_eq!(accounts, vec![account]);
+            }
+        }; 
+    }
+
+    #[test]
     fn set_entity() {
         Setup { 
             paths: Vec::new(),
@@ -513,11 +539,9 @@ mod tests {
 
                 fill_locker(&config, &locker);
 
-                let mut dm = DirManager::new(&config, &locker);
                 let mut vault = Vault::new(&config, &locker).unwrap();
                 let ent = Encrypted::from("foo$foo$foo$foo").unwrap();
                 let acc = Encrypted::from("bar$bar$bar$bar").unwrap();
-                let path = DirManager::append_path(&ent.path(), &acc.path());
                 
                 assert!(vault.set_entity(&ent).is_ok());
                 assert!(vault.set_account(&ent, &acc).is_ok());
