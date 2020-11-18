@@ -100,7 +100,21 @@ impl Keeper {
         Ok(Resolve::Find(accounts))
     }
 
-    pub fn list(&mut self) -> VaultResult<Resolve> {
+    pub fn list(&mut self, args: Option<Args>) -> VaultResult<Resolve> {
+        if let Some(arguments) = args {
+            let Args { entity, .. } = arguments;
+            let accounts = self.vault.list_accounts(&entity)?;
+            let list: Vec<String> = accounts.iter()
+                .map(|account| {
+                    let locker = Locker::from_encrypted(&account);
+
+                    locker.decrypt()
+                })
+                .collect();
+
+            return Ok(Resolve::List(list));
+        }
+
         let entities = self.vault.list()?;
         let list: Vec<String> = entities.iter()
             .map(|entity| {
@@ -354,8 +368,42 @@ mod keeper {
 
                 assert!(add.is_ok());
 
-                let result = keeper.list().unwrap();
+                let result = keeper.list(None).unwrap();
                 let locker = Locker::from_encrypted(&args.entity);
+               
+                assert!(dump.exists());
+                assert_eq!(result.to_list(), vec![locker.decrypt()]);
+            }
+        };
+    }
+
+    #[test]
+    fn list_accounts() {
+        Setup {
+            paths: Vec::new(), 
+            after_each: &after_each,
+            test: &|this| {
+                let mut dump = this.dump_path();
+                let (config, locker) = this.as_path_buf();
+                let mut keeper = Keeper::new(config, locker.clone()).unwrap();
+
+                let args = Args::new(
+                    Some("list_entity"),
+                    Some("list_account"),
+                    None 
+                );
+
+                let entity = args.entity.path();
+
+                dump.push(locker);
+                dump.push(entity);
+
+                let add = keeper.add(args.clone());
+
+                assert!(add.is_ok());
+
+                let result = keeper.list(Some(args.clone())).unwrap();
+                let locker = Locker::from_encrypted(&args.account);
                
                 assert!(dump.exists());
                 assert_eq!(result.to_list(), vec![locker.decrypt()]);
