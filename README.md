@@ -8,6 +8,10 @@
 
 ## Usage
 
+* rk list [-entity/-e] <entity>
+  * rk list
+  * rk list -e gmail
+
 * rk add -entity [-e] <entity> [-account/-a] <account> [-password/-p] <password>
   * rk add -e gmail
   * rk add -e gmail -a your.account@gmail.com
