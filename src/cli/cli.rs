@@ -52,7 +52,7 @@ impl<'p> CLI {
         match args.subcommand() {
             ("add", Some(add)) => { self.handle_add(add) },
             ("find", Some(find)) => { self.handle_find(find) },
-            ("list", Some(_)) => { self.handle_list() },
+            ("list", Some(list)) => { self.handle_list(list) },
             ("remove", Some(remove)) => { self.handle_remove(remove) }
             (_, _) => { panic!("Unknown operation in CLI"); }
         }
@@ -124,10 +124,24 @@ impl<'p> CLI {
         Ok(Resolve::Done)
     }
 
-    fn handle_list(&mut self) -> VaultResult<Resolve> {
-        let list = self.keeper.list()?;
+    fn handle_list(&mut self, args: &'p ArgMatches) -> VaultResult<Resolve> {
+        let Params { 
+            entity, 
+            ..
+        } = CLI::extract_values(args);
 
-        list_table(list.to_list());
+        if entity.is_some() {
+            let args = Args::new(entity, None, None);
+            let list = self.keeper.list(Some(args))?;
+
+            list_table(list.to_list(), true);
+
+            return Ok(Resolve::Done);
+        }
+
+        let list = self.keeper.list(None)?;
+
+        list_table(list.to_list(), false);
 
         Ok(Resolve::Done)
     }
