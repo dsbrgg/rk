@@ -14,7 +14,13 @@ pub fn execute() -> ArgMatches<'static> {
         .setting(AppSettings::SubcommandRequired)
         .subcommand(
             SubCommand::with_name("list")
-                .about("List entities")
+                .about("List entities or entity accounts")
+                .arg(
+                    Arg::with_name("entity")
+                        .short("e")
+                        .takes_value(true)
+                        .required(false)
+                )
         )
         .subcommand(
             SubCommand::with_name("find")
