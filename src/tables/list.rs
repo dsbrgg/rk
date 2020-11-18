@@ -7,16 +7,17 @@ use cli_table::{
     Row
 };
 
-pub fn list_table(entities: Vec<String>) -> io::Result<()> {
+pub fn list_table(list: Vec<String>, accounts: bool) -> io::Result<()> {
     let bold = CellFormat::builder().bold(true).build();
+    let header = if !accounts { format!("Entity") } else { format!("Account") };
     let mut rows = vec![
         Row::new(vec![
-            Cell::new(&format!("Entity"), bold)
+            Cell::new(&header, bold)
         ])
     ];
 
-    for entity in entities {
-        let row = Row::new(vec![Cell::new(&entity, Default::default())]);
+    for register in list {
+        let row = Row::new(vec![Cell::new(&register, Default::default())]);
 
         rows.push(row);
     }
